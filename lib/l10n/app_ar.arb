@@ -163,5 +163,18 @@
   "lecturesContentNotAvailable": "محتوى المحاضرات لـ {subjectName} غير متاح بعد.",
   "downloadSelected": "تنزيل المحدد",
   "viewDetails": "عرض التفاصيل",
-  "enableNotifications": "تمكين الإشعارات"
+  "enableNotifications": "تمكين الإشعارات",
+  "home": "الرئيسية",
+  "upComing": "قريباً",
+  "upComingContent": "المحتوى القادم سيكون متاحاً قريباً!",
+  "dashboardPlaceholder": "مرحباً بك في لوحة التحكم الخاصة بك!",
+  "dashboardComingSoon": "سيظهر نشاطك والوصول السريع والإحصائيات المخصصة هنا قريباً.",
+  "errorPageNotFound": "الصفحة غير موجودة: {pageName}",
+  "@errorPageNotFound": {
+    "placeholders": {
+      "pageName": {}
+    }
+  },
+  "errorAttemptedGlobalPush": "تمت محاولة فتح المحتوى خارج التنقل الحالي للعلامة التبويب. يرجى المحاولة مرة أخرى من علامة التبويب الرئيسية، أو الإبلاغ عن هذه المشكلة إذا استمرت.",
+  "downloadFolderNotFound": "مجلد التنزيلات غير موجود. ربما تم نقله أو حذفه."
 }

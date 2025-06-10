@@ -569,4 +569,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get enableNotifications => 'Enable Notifications';
+
+  @override
+  String get home => 'Home';
+
+  @override
+  String get upComing => 'Up-coming';
+
+  @override
+  String get upComingContent => 'Up-coming content will be available soon!';
+
+  @override
+  String get dashboardPlaceholder => 'Welcome to your Study Station Dashboard!';
+
+  @override
+  String get dashboardComingSoon =>
+      'Your activity, quick access, and personalized insights will appear here soon.';
+
+  @override
+  String errorPageNotFound(Object pageName) {
+    return 'Page not found: $pageName';
+  }
+
+  @override
+  String get errorAttemptedGlobalPush =>
+      'Attempted to open content outside the current tab\'s navigation. Please try again from the main tab, or report this issue if it persists.';
+
+  @override
+  String get downloadFolderNotFound =>
+      'Download folder not found. It might have been moved or deleted.';
 }

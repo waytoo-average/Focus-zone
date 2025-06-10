@@ -566,4 +566,33 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get enableNotifications => 'تمكين الإشعارات';
+
+  @override
+  String get home => 'الرئيسية';
+
+  @override
+  String get upComing => 'قريباً';
+
+  @override
+  String get upComingContent => 'المحتوى القادم سيكون متاحاً قريباً!';
+
+  @override
+  String get dashboardPlaceholder => 'مرحباً بك في لوحة التحكم الخاصة بك!';
+
+  @override
+  String get dashboardComingSoon =>
+      'سيظهر نشاطك والوصول السريع والإحصائيات المخصصة هنا قريباً.';
+
+  @override
+  String errorPageNotFound(Object pageName) {
+    return 'الصفحة غير موجودة: $pageName';
+  }
+
+  @override
+  String get errorAttemptedGlobalPush =>
+      'تمت محاولة فتح المحتوى خارج التنقل الحالي للعلامة التبويب. يرجى المحاولة مرة أخرى من علامة التبويب الرئيسية، أو الإبلاغ عن هذه المشكلة إذا استمرت.';
+
+  @override
+  String get downloadFolderNotFound =>
+      'مجلد التنزيلات غير موجود. ربما تم نقله أو حذفه.';
 }

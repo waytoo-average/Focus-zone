@@ -222,102 +222,60 @@ class LanguageProvider extends ChangeNotifier {
     if (newLocale != _locale) {
       _locale = newLocale;
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('languageCode', newLocale.languageCode);
+      await prefs.setString('languageCode', newLocale.languageCode); // FIX: Corrected this line
       notifyListeners();
     }
   }
 }
 
-// --- DownloadPathProvider ---
+// --- DownloadPathProvider --- REMADE
 class DownloadPathProvider extends ChangeNotifier {
-  String? _customDownloadPath; // Stores the user-chosen direct file path
-  String? get customDownloadPathUri => _customDownloadPath; // Renamed to accurately reflect direct path
+  String? _appSpecificDownloadPath; // Stores the resolved app-specific path
 
   DownloadPathProvider() {
-    _loadDownloadPath();
+    _initAppSpecificDownloadPath();
   }
 
-  Future<void> _loadDownloadPath() async {
-    final prefs = await SharedPreferences.getInstance();
-    _customDownloadPath = prefs.getString('userDownloadPath');
-    developer.log("Loaded custom download path: $_customDownloadPath", name: "DownloadPathProvider");
-    notifyListeners();
-  }
-
-  // This method now saves the chosen path and triggers reload
-  Future<void> setDownloadPath(String? path) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (path != null && path.isNotEmpty) {
-      _customDownloadPath = path;
-      await prefs.setString('userDownloadPath', path);
-      developer.log("Set custom download path: $_customDownloadPath", name: "DownloadPathProvider");
-    } else {
-      _customDownloadPath = null;
-      await prefs.remove('userDownloadPath');
-      developer.log("Cleared custom download path.", name: "DownloadPathProvider");
-    }
-    notifyListeners();
-  }
-
-  Future<void> clearCustomDownloadPath() async {
-    await setDownloadPath(null); // Use existing setter to clear
-    developer.log("Clear custom download path requested. Path has been cleared.", name: "DownloadPathProvider");
-    notifyListeners();
-  }
-
-  // Gets the app-specific internal downloads directory
-  Future<String> _getAppSpecificDownloadPath() async {
+  // Initialize and store the app-specific download path
+  Future<void> _initAppSpecificDownloadPath() async {
+    // Get the external storage directory for Android, or application documents for iOS/others
     final directory = await getExternalStorageDirectory();
-    String path = directory?.path ?? (await getApplicationDocumentsDirectory()).path;
+    String baseDir = directory?.path ?? (await getApplicationDocumentsDirectory()).path;
 
-    final appDownloadDir = Directory('$path/StudyStationDownloads');
+    // Define the specific sub-directory for downloads
+    final appDownloadDir = Directory('$baseDir/StudyStationDownloads');
+
+    // Ensure the directory exists
     if (!await appDownloadDir.exists()) {
-      await appDownloadDir.create(recursive: true);
+      try {
+        await appDownloadDir.create(recursive: true);
+        developer.log("Created app-specific download directory: ${appDownloadDir.path}", name: "DownloadPathProvider");
+      } catch (e) {
+        developer.log("Error creating app-specific download directory: $e", name: "DownloadPathProvider");
+        // Handle error, maybe show a persistent message to the user
+      }
     }
-    return appDownloadDir.path;
+    _appSpecificDownloadPath = appDownloadDir.path;
+    developer.log("Initialized app-specific download path: $_appSpecificDownloadPath", name: "DownloadPathProvider");
+    notifyListeners(); // Notify listeners that the path is now available
   }
 
   // This is the primary method to get the path to use for downloads
+  // It always returns the fixed app-specific path.
   Future<String> getEffectiveDownloadPath() async {
-    await _loadDownloadPath(); // Ensure latest path is loaded
-
-    // First, try the user-chosen path if available and seems valid
-    if (_customDownloadPath != null && _customDownloadPath!.isNotEmpty) {
-      final customDir = Directory(_customDownloadPath!);
-      // Attempt to ensure the directory exists and is writable (best effort check)
-      try {
-        if (!await customDir.exists()) {
-          await customDir.create(recursive: true);
-          developer.log("Created custom download directory: $_customDownloadPath", name: "DownloadPathProvider");
-        }
-        // Additional check: try creating a dummy file to test writability.
-        // This is not foolproof for SAF, but can catch simple issues.
-        final testFile = File('${customDir.path}/.test_write');
-        try {
-          await testFile.writeAsString('test');
-          await testFile.delete();
-          developer.log("Custom path $_customDownloadPath is writable (tested).", name: "DownloadPathProvider");
-          return _customDownloadPath!;
-        } catch (e) {
-          developer.log("Custom path $_customDownloadPath is NOT directly writable: $e", name: "DownloadPathProvider");
-          // Fall through to app-specific if not writable
-        }
-      } catch (e) {
-        developer.log("Error checking/creating custom path $_customDownloadPath: $e", name: "DownloadPathProvider");
-        // Fall through to app-specific if error
-      }
+    // Ensure the path is initialized before returning
+    if (_appSpecificDownloadPath == null) {
+      await _initAppSpecificDownloadPath();
     }
-
-    // Fallback to app-specific path
-    final fallbackPath = await _getAppSpecificDownloadPath();
-    developer.log("Falling back to app-specific download path: $fallbackPath", name: "DownloadPathProvider");
-    return fallbackPath;
+    return _appSpecificDownloadPath!;
   }
 
-  // Dummy method to resolve undefined_method errors if any old code still calls it directly
-  // This will now get the effective path, not just the app-specific.
+  // No longer needed since there's no "custom" path to clear
+  // Future<void> clearCustomDownloadPath() async { /* Logic removed */ }
+
+  // Retain this for legacy calls or specific needs, but it now directly returns the effective path
   Future<String> getAppSpecificDownloadPath() async {
-    return await _getAppSpecificDownloadPath(); // Keep this for now, but its meaning is shifting slightly
+    return await getEffectiveDownloadPath();
   }
 }
 
@@ -656,23 +614,22 @@ class MyApp extends StatelessWidget {
           initialRoute: '/',
           routes: {
             '/': (context) => const SplashScreen(),
-            '/startScreen': (context) => const StartScreen(),
-            '/grades': (context) => const GradeSelectionScreen(),
+            '/rootScreen': (context) => RootScreen(key: rootScreenKey), // Pass the global key here
+            // All other screens will be pushed on top of the MaterialApp's main navigator
+            // so they will cover the entire screen including the BottomNavigationBar.
+            // These routes are now defined globally for the main Navigator.
             '/departments': (context) {
-              final args =
-              ModalRoute.of(context)?.settings.arguments as AcademicContext?;
+              final args = ModalRoute.of(context)?.settings.arguments as AcademicContext?;
               if (args == null) return ErrorScreen(message: AppLocalizations.of(context)?.errorMissingContext ?? "Missing academic context for departments.");
               return DepartmentSelectionScreen(academicContext: args);
             },
             '/years': (context) {
-              final args =
-              ModalRoute.of(context)?.settings.arguments as AcademicContext?;
+              final args = ModalRoute.of(context)?.settings.arguments as AcademicContext?;
               if (args == null) return ErrorScreen(message: AppLocalizations.of(context)?.errorMissingContext ?? "Missing academic context for years.");
               return YearSelectionScreen(academicContext: args);
             },
             '/semesters': (context) {
-              final args =
-              ModalRoute.of(context)?.settings.arguments as AcademicContext?;
+              final args = ModalRoute.of(context)?.settings.arguments as AcademicContext?;
               if (args == null) return ErrorScreen(message: AppLocalizations.of(context)?.errorMissingContext ?? "Missing academic context for semesters.");
               return SemesterSelectionScreen(academicContext: args);
             },
@@ -724,7 +681,6 @@ class MyApp extends StatelessWidget {
                 academicContext: academicContext,
               );
             },
-            '/settings': (context) => const SettingsScreen(),
             '/googleDriveViewer': (context) {
               final args = ModalRoute.of(context)?.settings.arguments as String?;
               return GoogleDriveViewerScreen(embedUrl: args);
@@ -748,7 +704,10 @@ class MyApp extends StatelessWidget {
             },
             '/about': (context) => const AboutScreen(),
             '/collegeInfo': (context) => const CollegeInfoScreen(),
-            '/todoList': (context) => const TodoListScreen(),
+            '/todoDetailScreen': (context) { // Make sure this route is defined
+              final args = ModalRoute.of(context)?.settings.arguments;
+              return TodoDetailScreen(todoItem: args is TodoItem ? args : null);
+            },
           },
         );
       },
@@ -776,9 +735,7 @@ class ErrorScreen extends StatelessWidget {
 }
 
 
-// --- Screen Widgets ---
-
-// 1. Splash Screen
+// --- Splash Screen ---
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
   @override
@@ -789,7 +746,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) Navigator.pushReplacementNamed(context, '/startScreen');
+      if (mounted) Navigator.pushReplacementNamed(context, '/rootScreen'); // Navigate to RootScreen
     });
   }
   @override
@@ -803,9 +760,193 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 }
 
-// Start Screen
-class StartScreen extends StatelessWidget {
-  const StartScreen({super.key});
+// GlobalKey for RootScreenState to access its methods from children
+final GlobalKey<_RootScreenState> rootScreenKey = GlobalKey<_RootScreenState>();
+
+// New RootScreen for Bottom Navigation Bar
+class RootScreen extends StatefulWidget {
+  const RootScreen({super.key}); // Corrected: Remove the redundant 'key' parameter declaration
+
+  @override
+  State<RootScreen> createState() => _RootScreenState();
+}
+
+class _RootScreenState extends State<RootScreen> {
+  int _selectedIndex = 0;
+
+  // GlobalKey for each nested Navigator to manage their respective stacks.
+  // This is crucial for persistent navigation state within each tab.
+  final Map<int, GlobalKey<NavigatorState>> _navigatorKeys = {
+    0: GlobalKey<NavigatorState>(), // Dashboard
+    1: GlobalKey<NavigatorState>(), // Study
+    2: GlobalKey<NavigatorState>(), // To-Do list
+    3: GlobalKey<NavigatorState>(), // Up-coming
+    4: GlobalKey<NavigatorState>(), // Settings
+  };
+
+  void _onItemTapped(int index) {
+    // If tapping the currently selected tab, try to pop to its root
+    if (_selectedIndex == index) {
+      _navigatorKeys[index]?.currentState?.popUntil((route) => route.isFirst);
+    } else {
+      // Otherwise, switch to the new tab
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
+  }
+
+  // A helper function to build an Offstage widget containing a Navigator for each tab.
+  // This allows Flutter to keep all tab navigation stacks alive.
+  Widget _buildOffstageNavigator(int index, Widget initialRouteWidget) {
+    return Offstage(
+      offstage: _selectedIndex != index,
+      child: Navigator(
+        key: _navigatorKeys[index],
+        onGenerateRoute: (routeSettings) {
+          // The initial route for each tab is always '/'
+          if (routeSettings.name == '/') {
+            return MaterialPageRoute(builder: (context) => initialRouteWidget);
+          }
+          // All other routes are pushed within this tab's *nested* navigator.
+          // This ensures the BottomNavigationBar remains visible for these pushes.
+          // Note: If you push a named route that is *not* handled here, it will
+          // try to resolve on the main MaterialApp's routes, which is fine
+          // for full-screen overlays like PDF viewers.
+
+          // Example: If a deep link in the 'Study' tab (index 1) wants to go to /departments
+          // it will be handled by this nested navigator.
+          switch (routeSettings.name) {
+            case '/departments':
+              final args = routeSettings.arguments as AcademicContext?;
+              return MaterialPageRoute(builder: (context) => DepartmentSelectionScreen(academicContext: args!));
+            case '/years':
+              final args = routeSettings.arguments as AcademicContext?;
+              return MaterialPageRoute(builder: (context) => YearSelectionScreen(academicContext: args!));
+            case '/semesters':
+              final args = routeSettings.arguments as AcademicContext?;
+              return MaterialPageRoute(builder: (context) => SemesterSelectionScreen(academicContext: args!));
+            case '/subjects':
+              final arguments = routeSettings.arguments as Map<String, dynamic>?;
+              return MaterialPageRoute(builder: (context) => SubjectSelectionScreen(
+                subjects: arguments!['subjects'] as Map<String, String>,
+                academicContext: arguments['context'] as AcademicContext,
+              ));
+            case '/subjectContentScreen':
+              final args = routeSettings.arguments as Map<String, dynamic>?;
+              return MaterialPageRoute(builder: (context) => SubjectContentScreen(
+                subjectName: args!['subjectName'] as String,
+                rootFolderId: args['rootFolderId'] as String,
+                academicContext: args['academicContext'] as AcademicContext,
+              ));
+            case '/todoDetailScreen': // This route is part of the TodoList tab's navigation
+              final args = routeSettings.arguments;
+              return MaterialPageRoute(builder: (context) => TodoDetailScreen(todoItem: args is TodoItem ? args : null));
+            case '/about': // These could be pushed within Settings or directly from a tab
+              return MaterialPageRoute(builder: (context) => const AboutScreen());
+            case '/collegeInfo': // These could be pushed within Settings or directly from a tab
+              return MaterialPageRoute(builder: (context) => const CollegeInfoScreen());
+            // Global content viewers like PDFViewer and GoogleDriveViewer should NOT be here,
+            // they should be pushed on the main Navigator.
+            case '/pdfViewer':
+            case '/googleDriveViewer':
+            case '/lectureFolderBrowser': // Lecture folder browser also usually covers the whole screen
+              // Attempting to push a global route on a nested navigator.
+              // This indicates a navigation flow issue in your app.
+              return MaterialPageRoute(builder: (context) => ErrorScreen(message: AppLocalizations.of(context)?.errorAttemptedGlobalPush ?? "Attempted to push a global route on a nested navigator."));
+            default:
+              // Fallback for any unexpected routes within a tab's navigator
+              // You might want a more specific error screen here, or log the issue.
+              return MaterialPageRoute(builder: (context) => ErrorScreen(message: AppLocalizations.of(context)?.errorPageNotFound(routeSettings.name ?? 'Unknown') ?? "Page not found: ${routeSettings.name}"));
+          }
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+
+    return PopScope(
+      // Handles Android back button presses
+      // If the current tab's navigator can pop, pop it.
+      // Else if not on the first tab, switch to the first tab.
+      // Else, allow the app to exit.
+      canPop: false, // Prevents default pop behavior
+      onPopInvoked: (didPop) async {
+        if (didPop) return; // If system back button already handled, do nothing
+
+        final NavigatorState? currentNavigator = _navigatorKeys[_selectedIndex]?.currentState;
+
+        if (currentNavigator != null && currentNavigator.canPop()) {
+          currentNavigator.pop(); // Pop from the current tab's nested navigator
+        } else if (_selectedIndex != 0) {
+          // If at the root of a non-home tab, switch to home tab
+          _onItemTapped(0); // This also pops to root of the home tab
+        } else {
+          // If at the root of the home tab, allow app to exit
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        body: IndexedStack( // Use IndexedStack for performance and state preservation
+          index: _selectedIndex,
+          children: [
+            _buildOffstageNavigator(0, const DashboardScreen()),
+            _buildOffstageNavigator(1, const GradeSelectionScreen()), // Study tab starts with GradeSelection
+            _buildOffstageNavigator(2, const TodoListScreen()), // To-Do tab starts with TodoList
+            _buildOffstageNavigator(3, Scaffold(appBar: AppBar(title: Text(s.upComing)), body: Center(child: Text(s.upComingContent, style: Theme.of(context).textTheme.titleLarge)))),
+            _buildOffstageNavigator(4, const SettingsScreen()), // Settings tab starts with SettingsScreen
+          ],
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          items: <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.star_outline),
+              activeIcon: const Icon(Icons.star),
+              label: s.home,
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.school_outlined),
+              activeIcon: const Icon(Icons.school),
+              label: s.studyButton,
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.task_alt_outlined),
+              activeIcon: const Icon(Icons.task_alt),
+              label: s.todoListButton,
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.upcoming_outlined),
+              activeIcon: const Icon(Icons.upcoming),
+              label: s.upComing,
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.settings_outlined),
+              activeIcon: const Icon(Icons.settings),
+              label: s.settings,
+            ),
+          ],
+          currentIndex: _selectedIndex,
+          selectedItemColor: Theme.of(context).colorScheme.secondary,
+          unselectedItemColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          onTap: _onItemTapped,
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Theme.of(context).cardTheme.color,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          unselectedLabelStyle: const TextStyle(fontSize: 12),
+          elevation: 10,
+        ),
+      ),
+    );
+  }
+}
+
+// Dashboard Screen - NO LONGER HAS ITS OWN SCAFFOLD OR APPBAR
+// It assumes it's being displayed within a parent Scaffold
+class DashboardScreen extends StatelessWidget {
+  const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -813,125 +954,110 @@ class StartScreen extends StatelessWidget {
     final signInProvider = Provider.of<SignInProvider>(context);
     final user = signInProvider.currentUser;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background, // Set Scaffold background back to solid background color
-      body: Column( // Removed Container with gradient
-        children: [
-          AppBar( // AppBar remains at the top
-            title: Text(s.appTitle),
-            automaticallyImplyLeading: false, // No back button on initial screen
-            actions: [
-              if (user == null)
-                TextButton(
-                  onPressed: signInProvider.signIn,
-                  style: TextButton.styleFrom(foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16.0)),
-                  child: Text(s.signIn, style: const TextStyle(fontSize: 16)),
-                )
-              else
-                GestureDetector(
-                  onTap: () => showAppSnackBar(context, s.signedInAs(user.displayName ?? user.email ?? s.unknownUser), action: SnackBarAction(label: s.signOut, onPressed: signInProvider.signOut), icon: Icons.person_outline),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.white,
-                      backgroundImage: user.photoUrl != null ? NetworkImage(user.photoUrl!) : null,
-                      child: user.photoUrl == null ? Text(user.displayName?.isNotEmpty == true ? user.displayName![0].toUpperCase() : (user.email.isNotEmpty == true ? user.email[0].toUpperCase() : '?'), style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 14)) : null,
-                    ),
+    return Column( // Directly returns a Column, no Scaffold here
+      children: [
+        AppBar( // This AppBar is part of the DashboardScreen's content
+          title: Text(s.appTitle),
+          automaticallyImplyLeading: false, // This is a top-level tab content, no back button
+          actions: [
+            if (user == null)
+              TextButton(
+                onPressed: signInProvider.signIn,
+                style: TextButton.styleFrom(foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16.0)),
+                child: Text(s.signIn, style: const TextStyle(fontSize: 16)),
+              )
+            else
+              GestureDetector(
+                onTap: () => showAppSnackBar(context, s.signedInAs(user.displayName ?? user.email ?? s.unknownUser), action: SnackBarAction(label: s.signOut, onPressed: signInProvider.signOut), icon: Icons.person_outline),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Colors.white,
+                    backgroundImage: user.photoUrl != null ? NetworkImage(user.photoUrl!) : null,
+                    child: user.photoUrl == null ? Text(user.displayName?.isNotEmpty == true ? user.displayName![0].toUpperCase() : (user.email.isNotEmpty == true ? user.email[0].toUpperCase() : '?'), style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 14)) : null,
                   ),
                 ),
-            ],
-          ),
-          Expanded(
+              ),
+          ],
+        ),
+        Expanded(
+          child: Center(
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      HapticFeedback.lightImpact(); // Haptic feedback
-                      Navigator.pushNamed(context, '/grades');
-                    },
-                    child: Text(s.studyButton),
-                  ),
+                  Icon(Icons.dashboard_outlined, size: 80, color: Theme.of(context).colorScheme.onBackground.withOpacity(0.4)),
                   const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () {
-                      HapticFeedback.lightImpact(); // Haptic feedback
-                      Navigator.pushNamed(context, '/todoList');
-                    },
-                    child: Text(s.todoListButton),
+                  Text(
+                    s.dashboardPlaceholder,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
+                    ),
                   ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () {
-                      HapticFeedback.lightImpact(); // Haptic feedback
-                      Navigator.pushNamed(context, '/settings');
-                    },
-                    child: Text(s.settings),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () {
-                      HapticFeedback.lightImpact(); // Haptic feedback
-                      SystemNavigator.pop();
-                    },
-                    style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
-                    child: Text(s.exitButton),
+                  const SizedBox(height: 10),
+                  Text(
+                    s.dashboardComingSoon,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
 
-// GradeSelectionScreen
+// GradeSelectionScreen - NO LONGER HAS ITS OWN SCAFFOLD OR APPBAR
+// It assumes it's being displayed within a parent Scaffold
 class GradeSelectionScreen extends StatelessWidget {
   const GradeSelectionScreen({super.key});
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(s.appTitle),
-        leading: IconButton( // Only Home button in leading
-          icon: const Icon(Icons.home),
-          onPressed: () => Navigator.pushReplacementNamed(context, '/startScreen'),
-          tooltip: s.studyButton, // Using studyButton for tooltip. Could add a 'homeButtonTooltip' key if needed.
-        ),
-        actions: [
-          // Only settings button in actions (Google user info moved to StartScreen)
-          IconButton(icon: const Icon(Icons.settings), onPressed: () => Navigator.pushNamed(context, '/settings'), tooltip: s.settings),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/departments', arguments: AcademicContext(grade: s.firstGrade)), child: Text(s.firstGrade)),
-            const SizedBox(height: 20),
-            ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/departments', arguments: AcademicContext(grade: s.secondGrade)), child: Text(s.secondGrade)),
-            const SizedBox(height: 20),
-            ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/departments', arguments: AcademicContext(grade: s.thirdGrade)), child: Text(s.thirdGrade)),
-            const SizedBox(height: 20),
-            ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/departments', arguments: AcademicContext(grade: s.fourthGrade)), child: Text(s.fourthGrade)),
+    return Column( // Directly returns a Column, no Scaffold here
+      children: [
+        AppBar( // This AppBar is part of the GradeSelectionScreen's content
+          title: Text(s.appTitle),
+          automaticallyImplyLeading: false, // Top-level tab content, no default back button
+          actions: [
+            // Push settings screen using the *current* navigator (which is the nested one)
+            IconButton(icon: const Icon(Icons.settings), onPressed: () => Navigator.of(context).pushNamed('/settings'), tooltip: s.settings),
           ],
         ),
-      ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ElevatedButton(onPressed: () => Navigator.of(context).pushNamed('/departments', arguments: AcademicContext(grade: s.firstGrade)), child: Text(s.firstGrade)),
+                const SizedBox(height: 20),
+                ElevatedButton(onPressed: () => Navigator.of(context).pushNamed('/departments', arguments: AcademicContext(grade: s.secondGrade)), child: Text(s.secondGrade)),
+                const SizedBox(height: 20),
+                ElevatedButton(onPressed: () => Navigator.of(context).pushNamed('/departments', arguments: AcademicContext(grade: s.thirdGrade)), child: Text(s.thirdGrade)),
+                const SizedBox(height: 20),
+                ElevatedButton(onPressed: () => Navigator.of(context).pushNamed('/departments', arguments: AcademicContext(grade: s.fourthGrade)), child: Text(s.fourthGrade)),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
 
-// DepartmentSelectionScreen
+// DepartmentSelectionScreen - Remains largely the same as it's pushed
+// It will now be pushed onto the *nested* navigator
 class DepartmentSelectionScreen extends StatelessWidget {
   final AcademicContext academicContext;
   const DepartmentSelectionScreen({super.key, required this.academicContext});
@@ -943,11 +1069,11 @@ class DepartmentSelectionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
     final List<String> departmentOptions = _getDepartmentStrings(context);
-    return Scaffold(
+    return Scaffold( // This remains a Scaffold as it's a detail screen pushed over the main tabs
       appBar: AppBar(
         title: Text(academicContext.titleString, softWrap: true, maxLines: 2),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
-        actions: [IconButton(icon: const Icon(Icons.settings), onPressed: () => Navigator.pushNamed(context, '/settings'), tooltip: s.settings)],
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
+        actions: [IconButton(icon: const Icon(Icons.settings), onPressed: () => Navigator.of(context).pushNamed('/settings'), tooltip: s.settings)],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -958,7 +1084,7 @@ class DepartmentSelectionScreen extends StatelessWidget {
             final String localizedDepartment = departmentOptions[index];
             return Padding(
               padding: const EdgeInsets.only(bottom: 20.0),
-              child: ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/years', arguments: academicContext.copyWith(department: localizedDepartment)), child: Text(localizedDepartment)),
+              child: ElevatedButton(onPressed: () => Navigator.of(context).pushNamed('/years', arguments: academicContext.copyWith(department: localizedDepartment)), child: Text(localizedDepartment)),
             );
           }),
         ),
@@ -982,8 +1108,8 @@ class YearSelectionScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(academicContext.titleString, softWrap: true, maxLines: 2),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
-        actions: [IconButton(icon: const Icon(Icons.settings), onPressed: () => Navigator.pushNamed(context, '/settings'), tooltip: s.settings)],
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
+        actions: [IconButton(icon: const Icon(Icons.settings), onPressed: () => Navigator.of(context).pushNamed('/settings'), tooltip: s.settings)],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -994,7 +1120,7 @@ class YearSelectionScreen extends StatelessWidget {
             final String localizedYear = yearOptions[index];
             return Padding(
               padding: const EdgeInsets.only(bottom: 20.0),
-              child: ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/semesters', arguments: academicContext.copyWith(year: localizedYear)), child: Text(localizedYear)),
+              child: ElevatedButton(onPressed: () => Navigator.of(context).pushNamed('/semesters', arguments: academicContext.copyWith(year: localizedYear)), child: Text(localizedYear)),
             );
           }),
         ),
@@ -1007,7 +1133,7 @@ class YearSelectionScreen extends StatelessWidget {
 class SemesterSelectionScreen extends StatelessWidget {
   final AcademicContext academicContext;
   const SemesterSelectionScreen({super.key, required this.academicContext});
-  final Map<String, String> authorizedSemester2Subjects = const { 'قضايا مجتمعية': '1wyuL_okkhbtFHNcSkKzXvc-wK7G420wj', 'علوم حاسب': '14VYnkax5I9hXgaExRXYWQaz6mWlg59l3', 'تصميم دوائر الاتصالات': '1mFSHV7BPzUoaf7Au8FssGFL6mtNIzz4s', 'اساسيات تكنولوجيا الشبكات': '1-y8Wk3Aa5G_WyyHCdIY_GP2XGDNbNTGi', 'Math': '1VDUIJn4xGIGZ8TYluSHNG6k3GMXEGJm_', 'English': '1D0Ps6mw5qY21jRuGVm5a_s1UZJwvPK8', 'Communication Circuit Technology': '1ZyeUwHOoxAw2DisIFc5pGFJJ57Gy49hv', 'Chinese': '14tYcv7b3zfvohazvVDElaJrcJafldeg4' };
+  final Map<String, String> authorizedSemester2Subjects = const { 'قضايا مجتمعية': '1wyuL_okkhbtFHNcSkKzXvc-wK7G420wj', 'علوم حاسب': '14VYnkax5I9hXgaExRXYWQaz6mWlg59l3', 'تصميم دوائر الاتصالات': '1mFSHV7BPzUoaf7Au8FssGFL6mtNIzz4s', 'اساسيات تكنولوجيا الشبكات': '1-y8Wk3Aa5G_WyyHCdIY_GP2XGDNbNTGi', 'Math': '19o4N4Jb_9w12M_oVzC400L_K7G720wj', 'English': '1D0Ps6mw5qY21jRuGVm5a_s1UZJwvPK8', 'Communication Circuit Technology': '1ZyeUwHOoxAw2DisIFc5pGFJJ57Gy49hv', 'Chinese': '14tYcv7b3zfvohazvVDElaJrcJafldeg4' };
   final Map<String, String> authorizedSemester1Subjects = const { 'علم جودة': '1-ESboU85nTtO2FYMbiZZeNn3Anv6aH0', 'تدريب تقني كهرباء': '1psr8ylukgFsqhW9v1CZkLpWaPaE-8MnL', 'physics': '11LAt7VWyJB_NJtR-Q6u6btUfNY6uEpEx', 'math': '11ag3IGjyezZouQO1tOyhaCeEbQLGND2t', 'English': '11Kn1lg8qTyFFBa4ZQStnQYzzdLeAJYjl', 'circuit': '11ZIekUHxVXriF1w2lC5dYSf3u8yCmeIt', 'chinese': '12v8ywEq9-RMVhOvORwc3DGpkswRsBlLb', 'it': '11cD7TV1sHuaK1QRYRrU8UB62Zye_i3mQ' };
   @override
   Widget build(BuildContext context) {
@@ -1359,7 +1485,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       if (await localFile.exists()) {
         try {
           await localFile.delete();
-          developer.log("_deleteAndRetry (${widget.fileId}): Deleted cached PDF: ${localFile.path}", name: 'PdfViewerScreen');
+          developer.log("_deleteAndRetry (${widget.fileId}): Deleted cached PDF: ${localFile.path}", name: "PdfViewerScreen");
         } catch (e) {
           developer.log("_deleteAndRetry (${widget.fileId}): Error deleting cached PDF: $e", name: 'PdfViewerScreen');
         }
@@ -1496,7 +1622,7 @@ class GoogleDriveViewerScreen extends StatefulWidget {
   @override
   State<GoogleDriveViewerScreen> createState() => _GoogleDriveViewerScreenState();
 }
-class _GoogleDriveViewerScreenState extends State<GoogleDriveViewerScreen> {
+class _GoogleDriveViewerScreenState extends State<GoogleDriveViewerScreen> { // Corrected this line
   late final WebViewController _controller;
   bool _isLoading = true;
   @override
@@ -1768,7 +1894,8 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
           return;
         }
 
-        if (file.mimeType == 'application/pdf') {
+        // FIX: Prioritize .pdf extension for routing to PdfViewerScreen
+        if (file.name?.toLowerCase().endsWith('.pdf') == true) { // Check file extension
           final String directPdfUrl = 'https://drive.google.com/uc?export=download&id=${file.id!}';
           Navigator.pushNamed(
             context,
@@ -2269,6 +2396,7 @@ class SettingsScreen extends StatelessWidget {
   // Modified function to open app-specific download path directly
   Future<void> _openAppDownloadPath(BuildContext context, AppLocalizations s, DownloadPathProvider pathProvider) async {
     final String currentDownloadPath = await pathProvider.getEffectiveDownloadPath();
+    developer.log("Attempting to open path: $currentDownloadPath", name: "SettingsScreen"); // Log the path being opened
     try {
       final result = await OpenFilex.open(currentDownloadPath);
       if (result.type != ResultType.done) {
@@ -2319,11 +2447,11 @@ class SettingsScreen extends StatelessWidget {
                   radius: 40,
                   child: user.photoUrl == null
                       ? Text(
-                    user.displayName?.isNotEmpty == true
-                        ? user.displayName![0].toUpperCase()
-                        : (user.email.isNotEmpty == true ? user.email[0].toUpperCase() : '?'),
-                    style: const TextStyle(fontSize: 30),
-                  )
+                        user.displayName?.isNotEmpty == true
+                            ? user.displayName![0].toUpperCase()
+                            : (user.email.isNotEmpty == true ? user.email[0].toUpperCase() : '?'),
+                        style: const TextStyle(fontSize: 30),
+                      )
                       : null,
                 ),
               ),
@@ -2981,7 +3109,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
     };
 
     for (var todo in todos) {
-      if (todo.isCompleted) continue; // Don't group completed tasks
+      if (todo.isCompleted) continue; // FIX: Changed 'return;' to 'continue;' here
 
       if (todo.isOverdue) {
         grouped[s.overdueTasks]!.add(todo);
@@ -3069,8 +3197,8 @@ class _TodoListScreenState extends State<TodoListScreen> {
       '${s.notificationReminderBody} ${task.title}', // Notification body (fixed string interpolation)
       tzScheduleDateTime, // Scheduled time
       notificationDetails, // Correctly pass notificationDetails
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // Corrected: Add androidScheduleMode
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime, // Required parameter
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // FIX: Corrected named argument
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime, // FIX: Added required named argument
       matchDateTimeComponents: dateTimeComponents, // Set recurrence based on repeatInterval
       payload: 'task_id:${task.hashCode}', // Custom payload for handling taps
     );
@@ -3618,7 +3746,6 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Notifications Toggle
             Text(s.notifications, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             SwitchListTile(

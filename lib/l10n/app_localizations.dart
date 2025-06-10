@@ -1081,6 +1081,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enable Notifications'**
   String get enableNotifications;
+
+  /// No description provided for @home.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get home;
+
+  /// No description provided for @upComing.
+  ///
+  /// In en, this message translates to:
+  /// **'Up-coming'**
+  String get upComing;
+
+  /// No description provided for @upComingContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Up-coming content will be available soon!'**
+  String get upComingContent;
+
+  /// No description provided for @dashboardPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to your Study Station Dashboard!'**
+  String get dashboardPlaceholder;
+
+  /// No description provided for @dashboardComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Your activity, quick access, and personalized insights will appear here soon.'**
+  String get dashboardComingSoon;
+
+  /// No description provided for @errorPageNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Page not found: {pageName}'**
+  String errorPageNotFound(Object pageName);
+
+  /// No description provided for @errorAttemptedGlobalPush.
+  ///
+  /// In en, this message translates to:
+  /// **'Attempted to open content outside the current tab\'s navigation. Please try again from the main tab, or report this issue if it persists.'**
+  String get errorAttemptedGlobalPush;
+
+  /// No description provided for @downloadFolderNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Download folder not found. It might have been moved or deleted.'**
+  String get downloadFolderNotFound;
 }
 
 class _AppLocalizationsDelegate

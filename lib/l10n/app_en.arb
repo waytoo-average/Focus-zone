@@ -163,5 +163,18 @@
   "lecturesContentNotAvailable": "Lectures content for {subjectName} is not yet available.",
   "downloadSelected": "Download Selected",
   "viewDetails": "View Details",
-  "enableNotifications": "Enable Notifications"
+  "enableNotifications": "Enable Notifications",
+  "home": "Home",
+  "upComing": "Up-coming",
+  "upComingContent": "Up-coming content will be available soon!",
+  "dashboardPlaceholder": "Welcome to your Study Station Dashboard!",
+  "dashboardComingSoon": "Your activity, quick access, and personalized insights will appear here soon.",
+  "errorPageNotFound": "Page not found: {pageName}",
+  "@errorPageNotFound": {
+    "placeholders": {
+      "pageName": {}
+    }
+  },
+  "errorAttemptedGlobalPush": "Attempted to open content outside the current tab's navigation. Please try again from the main tab, or report this issue if it persists.",
+  "downloadFolderNotFound": "Download folder not found. It might have been moved or deleted."
 }
