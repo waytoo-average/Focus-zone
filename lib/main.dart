@@ -7,7 +7,7 @@ import 'dart:math'; // For pow in formatBytes
 import 'package:flutter/services.dart'; // Import for SystemNavigator.pop()
 
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart'; // FIX: Corrected import path
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive; // aliased as drive
@@ -137,6 +137,43 @@ class AcademicContext {
     if (subjectName != null) parts.add(subjectName!);
     return parts.join(' > ');
   }
+
+  // --- NEW: Helper to get the canonical (English) string for map lookup ---
+  // This is crucial for matching the hardcoded keys in _allAcademicContentFolders.
+  String? getCanonicalGrade(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+    if (grade == s.firstGrade) return 'First Grade';
+    if (grade == s.secondGrade) return 'Second Grade';
+    if (grade == s.thirdGrade) return 'Third Grade';
+    if (grade == s.fourthGrade) return 'Fourth Grade';
+    return null; // Should not happen if localization is consistent
+  }
+
+  String? getCanonicalDepartment(BuildContext context) {
+    if (department == null) return null;
+    final s = AppLocalizations.of(context)!;
+    if (department == s.communication) return 'Communication';
+    if (department == s.electronics) return 'Electronics';
+    if (department == s.mechatronics) return 'Mechatronics';
+    return null;
+  }
+
+  String? getCanonicalYear(BuildContext context) {
+    if (year == null) return null;
+    final s = AppLocalizations.of(context)!;
+    if (year == s.currentYear) return 'Current Year';
+    if (year == s.lastYear) return 'Last Year';
+    return null;
+  }
+
+  String? getCanonicalSemester(BuildContext context) {
+    if (semester == null) return null;
+    final s = AppLocalizations.of(context)!;
+    if (semester == s.semester1) return 'Semester 1';
+    if (semester == s.semester2) return 'Semester 2';
+    return null;
+  }
+
 }
 
 // --- SignInProvider for app-wide state management ---
@@ -239,7 +276,7 @@ class DownloadPathProvider extends ChangeNotifier {
   // Initialize and store the app-specific download path
   Future<void> _initAppSpecificDownloadPath() async {
     // Get the external storage directory for Android, or application documents for iOS/others
-    final directory = await getExternalStorageDirectory();
+    final directory = await getApplicationDocumentsDirectory();
     String baseDir = directory?.path ?? (await getApplicationDocumentsDirectory()).path;
 
     // Define the specific sub-directory for downloads
@@ -345,13 +382,13 @@ class MyApp extends StatelessWidget {
 
     // New Color Scheme - Inspired by calming green/blue and warm accents
     // Light Theme Colors
-    final Color primaryGreenLight = const Color(0xFF4CAF50); // A fresh green
+    final Color primaryGreenLight = const Color(0xFF3043AE); // A fresh green
     final Color accentOrangeLight = const Color(0xFFFFB300); // Warm amber
     final Color backgroundLight = const Color(0xFFF0F4F8); // Soft light grey-blue
     final Color cardLight = Colors.white;
 
     // Dark Theme Colors
-    final Color primaryGreenDark = const Color(0xFF2E7D32); // A deeper green
+    final Color primaryGreenDark = const Color(0xFF2F41A6); // A deeper green
     final Color accentOrangeDark = const Color(0xFFFFCC80); // Lighter amber for dark theme visibility
     final Color backgroundDark = const Color(0xFF263238); // Deep charcoal
     final Color cardDark = const Color(0xFF37474F); // Darker charcoal for cards
@@ -692,7 +729,6 @@ class MyApp extends StatelessWidget {
             '/pdfViewer': (context) {
               final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
               final s = AppLocalizations.of(context);
-
               if (args == null || args['fileUrl'] == null || args['fileId'] == null) {
                 return ErrorScreen(message: s?.errorNoUrlProvided ?? "PDF viewer arguments missing.");
               }
@@ -825,7 +861,10 @@ class _RootScreenState extends State<RootScreen> {
               return MaterialPageRoute(builder: (context) => YearSelectionScreen(academicContext: args!));
             case '/semesters':
               final args = routeSettings.arguments as AcademicContext?;
-              return MaterialPageRoute(builder: (context) => SemesterSelectionScreen(academicContext: args!));
+              if (args == null) {
+                return MaterialPageRoute(builder: (context) => ErrorScreen(message: AppLocalizations.of(context)?.errorMissingContext ?? "Missing academic context for semesters."));
+              }
+              return MaterialPageRoute(builder: (context) => SemesterSelectionScreen(academicContext: args));
             case '/subjects':
               final arguments = routeSettings.arguments as Map<String, dynamic>?;
               return MaterialPageRoute(builder: (context) => SubjectSelectionScreen(
@@ -846,17 +885,17 @@ class _RootScreenState extends State<RootScreen> {
               return MaterialPageRoute(builder: (context) => const AboutScreen());
             case '/collegeInfo': // These could be pushed within Settings or directly from a tab
               return MaterialPageRoute(builder: (context) => const CollegeInfoScreen());
-            // Global content viewers like PDFViewer and GoogleDriveViewer should NOT be here,
-            // they should be pushed on the main Navigator.
+          // Global content viewers like PDFViewer and GoogleDriveViewer should NOT be here,
+          // they should be pushed on the main Navigator.
             case '/pdfViewer':
             case '/googleDriveViewer':
             case '/lectureFolderBrowser': // Lecture folder browser also usually covers the whole screen
-              // Attempting to push a global route on a nested navigator.
-              // This indicates a navigation flow issue in your app.
+            // Attempting to push a global route on a nested navigator.
+            // This indicates a navigation flow issue in your app.
               return MaterialPageRoute(builder: (context) => ErrorScreen(message: AppLocalizations.of(context)?.errorAttemptedGlobalPush ?? "Attempted to push a global route on a nested navigator."));
             default:
-              // Fallback for any unexpected routes within a tab's navigator
-              // You might want a more specific error screen here, or log the issue.
+            // Fallback for any unexpected routes within a tab's navigator
+            // You might want a more specific error screen here, or log the issue.
               return MaterialPageRoute(builder: (context) => ErrorScreen(message: AppLocalizations.of(context)?.errorPageNotFound(routeSettings.name ?? 'Unknown') ?? "Page not found: ${routeSettings.name}"));
           }
         },
@@ -1028,10 +1067,7 @@ class GradeSelectionScreen extends StatelessWidget {
         AppBar( // This AppBar is part of the GradeSelectionScreen's content
           title: Text(s.appTitle),
           automaticallyImplyLeading: false, // Top-level tab content, no default back button
-          actions: [
-            // Push settings screen using the *current* navigator (which is the nested one)
-            IconButton(icon: const Icon(Icons.settings), onPressed: () => Navigator.of(context).pushNamed('/settings'), tooltip: s.settings),
-          ],
+          // Removed settings icon from GradeSelectionScreen AppBar - done
         ),
         Expanded(
           child: Padding(
@@ -1073,7 +1109,8 @@ class DepartmentSelectionScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(academicContext.titleString, softWrap: true, maxLines: 2),
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
-        actions: [IconButton(icon: const Icon(Icons.settings), onPressed: () => Navigator.of(context).pushNamed('/settings'), tooltip: s.settings)],
+        actions: [ // Added back the actions for settings icon
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -1109,7 +1146,8 @@ class YearSelectionScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(academicContext.titleString, softWrap: true, maxLines: 2),
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.of(context).pop()),
-        actions: [IconButton(icon: const Icon(Icons.settings), onPressed: () => Navigator.of(context).pushNamed('/settings'), tooltip: s.settings)],
+        actions: [ // Added back the actions for settings icon
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -1133,17 +1171,201 @@ class YearSelectionScreen extends StatelessWidget {
 class SemesterSelectionScreen extends StatelessWidget {
   final AcademicContext academicContext;
   const SemesterSelectionScreen({super.key, required this.academicContext});
-  final Map<String, String> authorizedSemester2Subjects = const { 'قضايا مجتمعية': '1wyuL_okkhbtFHNcSkKzXvc-wK7G420wj', 'علوم حاسب': '14VYnkax5I9hXgaExRXYWQaz6mWlg59l3', 'تصميم دوائر الاتصالات': '1mFSHV7BPzUoaf7Au8FssGFL6mtNIzz4s', 'اساسيات تكنولوجيا الشبكات': '1-y8Wk3Aa5G_WyyHCdIY_GP2XGDNbNTGi', 'Math': '19o4N4Jb_9w12M_oVzC400L_K7G720wj', 'English': '1D0Ps6mw5qY21jRuGVm5a_s1UZJwvPK8', 'Communication Circuit Technology': '1ZyeUwHOoxAw2DisIFc5pGFJJ57Gy49hv', 'Chinese': '14tYcv7b3zfvohazvVDElaJrcJafldeg4' };
-  final Map<String, String> authorizedSemester1Subjects = const { 'علم جودة': '1-ESboU85nTtO2FYMbiZZeNn3Anv6aH0', 'تدريب تقني كهرباء': '1psr8ylukgFsqhW9v1CZkLpWaPaE-8MnL', 'physics': '11LAt7VWyJB_NJtR-Q6u6btUfNY6uEpEx', 'math': '11ag3IGjyezZouQO1tOyhaCeEbQLGND2t', 'English': '11Kn1lg8qTyFFBa4ZQStnQYzzdLeAJYjl', 'circuit': '11ZIekUHxVXriF1w2lC5dYSf3u8yCmeIt', 'chinese': '12v8ywEq9-RMVhOvORwc3DGpkswRsBlLb', 'it': '11cD7TV1sHuaK1QRYRrU8UB62Zye_i3mQ' };
+
+  // Centralized data structure for all academic content
+  // Structure: Grade -> Department -> Year -> Semester -> SubjectName: FolderId
+  // IMPORTANT: Keys here must match the canonical English strings (e.g., from AcademicContext.getCanonicalGrade)
+  static final Map<String, Map<String, Map<String, Map<String, Map<String, String>>>>> _allAcademicContentFolders = {
+    'First Grade': { // Grade
+      'Communication': { // Department
+        'Current Year': { // Year
+          'Semester 1': <String, String>{ // Semester (Map<String, String> for subjects)
+            'علم جودة': '1-ESboU85nTtO2FYMbiZZeNn3Anv6aH0',
+            'تدريب تقني كهرباء': '1psr8ylukgFsqhW9v1CZkLpWaPaE-8MnL',
+            'physics': '11LAt7VWyJB_NJtR-Q6u6btUfNY6uEpEx',
+            'math': '11ag3IGjyezZouQO1tOyhaCeEbQLGND2t',
+            'English': '11Kn1lg8qTyFFBa4ZQStnQYzzdLeAJYjl',
+            'circuit': '11ZIekUHxVXriF1w2lC5dYSf3u8yCmeIt',
+            'chinese': '12v8ywEq9-RMVhOvORwc3DGpkswRsBlLb',
+            'it': '11cD7TV1sHuaK1QRYRrU8UB62Zye_i3mQ'
+          },
+          'Semester 2': <String, String>{
+            'قضايا مجتمعية': '1wyuL_okkhbtFHNcSkKzXvc-wK7G420wj',
+            'علوم حاسب': '14VYnkax5I9hXgaExRXYWQaz6mWlg59l3',
+            'تصميم دوائر الاتصالات': '1mFSHV7BPzUoaf7Au8FssGFL6mtNIzz4s',
+            'اساسيات تكنولوجيا الشبكات': '1-y8Wk3Aa5G_WyyHCdIY_GP2XGDNbNTGi',
+            'Math': '19o4N4Jb_9w12M_oVzC400L_K7G720wj',
+            'English': '1D0Ps6mw5qY21jRuGVm5a_s1UZJwvPK8',
+            'Communication Circuit Technology': '1ZyeUwHOoxAw2DisIFc5pGFJJ57Gy49hv',
+            'Chinese': '14tYcv7b3zfvohazvVDElaJrcJafldeg4'
+          },
+        },
+        'Last Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+      },
+      'Electronics': {
+        'Current Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+        'Last Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+      },
+      'Mechatronics': {
+        'Current Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+        'Last Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+      },
+    },
+    'Second Grade': {
+      'Communication': {
+        'Current Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+        'Last Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+      },
+      'Electronics': {
+        'Current Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+        'Last Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+      },
+      'Mechatronics': {
+        'Current Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+        'Last Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+      },
+    },
+    'Third Grade': {
+      'Communication': {
+        'Current Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+        'Last Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+      },
+      'Electronics': {
+        'Current Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+        'Last Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+      },
+      'Mechatronics': {
+        'Current Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+        'Last Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+      },
+    },
+    'Fourth Grade': {
+      'Communication': {
+        'Current Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+        'Last Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+      },
+      'Electronics': {
+        'Current Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+        'Last Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+      },
+      'Mechatronics': {
+        'Current Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+        'Last Year': {
+          'Semester 1': <String, String>{}, // Empty map - Add your folder IDs here
+          'Semester 2': <String, String>{}, // Empty map - Add your folder IDs here
+        },
+      },
+    },
+  };
+
+
+  Map<String, String> _getSubjectsForContext(BuildContext context, AcademicContext contextToLookup) {
+    // Get the canonical (English) strings for lookup
+    final String? canonicalGrade = contextToLookup.getCanonicalGrade(context);
+    final String? canonicalDepartment = contextToLookup.getCanonicalDepartment(context);
+    final String? canonicalYear = contextToLookup.getCanonicalYear(context);
+    final String? canonicalSemester = contextToLookup.getCanonicalSemester(context);
+
+    // Return empty map if any part of the canonical context needed for lookup is null
+    if (canonicalGrade == null ||
+        canonicalDepartment == null ||
+        canonicalYear == null ||
+        canonicalSemester == null) {
+      developer.log('Incomplete Canonical AcademicContext for subject lookup: $contextToLookup', name: 'SemesterSelectionScreen');
+      return {}; // Return empty map if context is incomplete or cannot be canonized
+    }
+
+    // Safely access nested maps using canonical keys.
+    final Map<String, Map<String, Map<String, Map<String, String>>>>? gradeMap = _allAcademicContentFolders[canonicalGrade];
+    final Map<String, Map<String, Map<String, String>>>? departmentMap = gradeMap?[canonicalDepartment];
+    final Map<String, Map<String, String>>? yearMap = departmentMap?[canonicalYear];
+    final Map<String, String>? semesterMap = yearMap?[canonicalSemester];
+
+    return semesterMap ?? {}; // Return the final subject map or an empty map if path not found
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
-    final bool isFirstGradeCommCurrentYear = academicContext.grade == s.firstGrade && academicContext.department == s.communication && academicContext.year == s.currentYear;
+
+    // Get subjects for Semester 1 by creating a copy of academicContext with semester1
+    // The AcademicContext.copyWith needs to use the localized string for semester,
+    // but _getSubjectsForContext will internally convert it to the canonical key.
+    final Map<String, String> semester1Subjects = _getSubjectsForContext(context, academicContext.copyWith(semester: s.semester1));
+
+    // Get subjects for Semester 2 by creating a new context for it
+    final Map<String, String> semester2Subjects = _getSubjectsForContext(context, academicContext.copyWith(semester: s.semester2));
+
     return Scaffold(
       appBar: AppBar(
         title: Text(academicContext.titleString, softWrap: true, maxLines: 2),
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
-        actions: [IconButton(icon: const Icon(Icons.settings), onPressed: () => Navigator.pushNamed(context, '/settings'), tooltip: s.settings)],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -1153,21 +1375,26 @@ class SemesterSelectionScreen extends StatelessWidget {
           children: [
             ElevatedButton(
               onPressed: () {
-                Map<String, String> subjectsToPass = isFirstGradeCommCurrentYear ? authorizedSemester1Subjects : {};
-                Navigator.pushNamed(context, '/subjects', arguments: {'subjects': subjectsToPass, 'context': academicContext.copyWith(semester: s.semester1)});
+                // Pass the current semester's subjects
+                Navigator.pushNamed(context, '/subjects', arguments: {
+                  'subjects': semester1Subjects,
+                  'context': academicContext.copyWith(semester: s.semester1)
+                });
               },
               child: Text(s.semester1),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                Map<String, String> subjectsToPass = isFirstGradeCommCurrentYear ? authorizedSemester2Subjects : {};
-                Navigator.pushNamed(context, '/subjects', arguments: {'subjects': subjectsToPass, 'context': academicContext.copyWith(semester: s.semester2)});
+                // Pass the next semester's subjects
+                Navigator.pushNamed(context, '/subjects', arguments: {
+                  'subjects': semester2Subjects,
+                  'context': academicContext.copyWith(semester: s.semester2)
+                });
               },
               child: Text(s.semester2),
             ),
             const Spacer(),
-            Align(alignment: Alignment.bottomRight, child: Text('V 0.1.3', style: TextStyle(fontSize: 16, color: Theme.of(context).textTheme.bodySmall?.color, fontWeight: FontWeight.bold))),
           ],
         ),
       ),
@@ -1186,9 +1413,8 @@ class SubjectSelectionScreen extends StatelessWidget {
     final s = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text(academicContext.titleString, softWrap: true, maxLines: 2),
+        title: Text(academicContext.titleString, softWrap: true, maxLines: 3),
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
-        actions: [IconButton(icon: const Icon(Icons.settings), onPressed: () => Navigator.pushNamed(context, '/settings'), tooltip: s.settings)],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -1206,7 +1432,6 @@ class SubjectSelectionScreen extends StatelessWidget {
                 },
               ),
             ),
-            Align(alignment: Alignment.bottomRight, child: Text('V 0.1.3', style: TextStyle(fontSize: 16, color: Theme.of(context).textTheme.bodySmall?.color, fontWeight: FontWeight.bold))),
           ],
         ),
       ),
@@ -1401,7 +1626,6 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       return;
     }
     developer.log("_downloadPdf (${widget.fileId}): Starting Dio download from ${widget.fileUrl} to ${localFile.path}", name: 'PdfViewerScreen');
-
     final dio = Dio();
     try {
       await dio.download(
@@ -1877,8 +2101,8 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
     if (_isSelectionMode) {
       _toggleSelection(file);
     } else {
-      if (_isFolder(file)) {
-        Navigator.push(
+      if (_isFolder(file)) { // Check if it's a folder
+        Navigator.push( // Navigate into the folder
           context,
           MaterialPageRoute(
             builder: (context) => LectureFolderBrowserScreen(
@@ -1886,7 +2110,7 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
             ),
           ),
         );
-      } else {
+      } else { // It's a file
         if (file.id == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(s!.errorFileIdMissing)),
@@ -1894,7 +2118,7 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
           return;
         }
 
-        // FIX: Prioritize .pdf extension for routing to PdfViewerScreen
+        // Prioritize .pdf extension for routing to PdfViewerScreen
         if (file.name?.toLowerCase().endsWith('.pdf') == true) { // Check file extension
           final String directPdfUrl = 'https://drive.google.com/uc?export=download&id=${file.id!}';
           Navigator.pushNamed(
@@ -1970,9 +2194,9 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
     if (!await targetDirectory.exists()) {
       try {
         await targetDirectory.create(recursive: true);
-        developer.log("Created app-specific download directory: $effectiveDownloadPath", name: "DownloadFiles");
+        developer.log("Created app-specific download directory: ${effectiveDownloadPath}", name: "DownloadFiles");
       } catch (e) {
-        developer.log("Failed to create app-specific directory $effectiveDownloadPath: $e", name: "DownloadFiles");
+        developer.log("Failed to create app-specific directory ${effectiveDownloadPath}: $e", name: "DownloadFiles");
         if(mounted) {
           showAppSnackBar(context, s!.failedToCreateDirectory(e.toString()));
         }
@@ -1990,13 +2214,17 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
     final dio = Dio();
 
     for (var fileToDownload in _selectedFiles) {
-      if (fileToDownload.id == null || _isFolder(fileToDownload)) continue;
+      if (_isFolder(fileToDownload)) continue; // Don't try to download folders
 
       final fileName = fileToDownload.name ?? 'downloaded_file';
-      final filePath = '$effectiveDownloadPath/$fileName';
-      final fileId = fileToDownload.id!;
+      final fileId = fileToDownload.id;
+      if (fileId == null) {
+        developer.log("Skipping download for file with null ID: $fileName", name: "DownloadFiles");
+        continue;
+      }
 
-      final String downloadUrl = fileToDownload.webContentLink ?? 'https://drive.google.com/uc?export=download&id=${fileToDownload.id!}';
+      final filePath = '${effectiveDownloadPath}/${fileName}';
+      final String downloadUrl = fileToDownload.webContentLink ?? 'https://drive.google.com/uc?export=download&id=${fileId}';
 
       final cancelToken = CancelToken();
       _cancelTokens[fileId] = cancelToken;
@@ -2006,7 +2234,7 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
           setState(() { _downloadProgressMap[fileId] = 0.0; });
         }
 
-        developer.log("Starting download for ${fileToDownload.name} to $filePath (app-specific) from $downloadUrl", name: "DownloadFiles");
+        developer.log("Starting download for ${fileToDownload.name} to ${filePath} (app-specific) from ${downloadUrl}", name: "DownloadFiles");
 
         await dio.download(
           downloadUrl,
@@ -2066,7 +2294,7 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
               try {
                 await OpenFilex.open(effectiveDownloadPath);
               } catch (e) {
-                developer.log("Could not open download folder: $e", name: "DownloadFiles");
+                developer.log("Could not open download folder: ${e}", name: "DownloadFiles");
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s!.couldNotOpenFolder(e.toString()))));
               }
             }
@@ -2429,12 +2657,6 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(s.settings),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -2447,11 +2669,11 @@ class SettingsScreen extends StatelessWidget {
                   radius: 40,
                   child: user.photoUrl == null
                       ? Text(
-                        user.displayName?.isNotEmpty == true
-                            ? user.displayName![0].toUpperCase()
-                            : (user.email.isNotEmpty == true ? user.email[0].toUpperCase() : '?'),
-                        style: const TextStyle(fontSize: 30),
-                      )
+                    user.displayName?.isNotEmpty == true
+                        ? user.displayName![0].toUpperCase()
+                        : (user.email.isNotEmpty == true ? user.email[0].toUpperCase() : '?'),
+                    style: const TextStyle(fontSize: 30),
+                  )
                       : null,
                 ),
               ),
@@ -2567,16 +2789,7 @@ class SettingsScreen extends StatelessWidget {
                 _openAppDownloadPath(context, s, downloadPathProvider); // Directly open path
               },
             ),
-            // Removed "Clear Custom Download Path" option completely
-            // _buildSettingsItem(
-            //   context,
-            //   s: s,
-            //   icon: Icons.folder_delete_outlined, // New icon
-            //   text: s.clearCustomDownloadPathOption, // New key
-            //   onTap: () {
-            //     _clearCustomDownloadPath(context, s, downloadPathProvider);
-            //   },
-            // ),
+
             _buildSettingsItem(
               context,
               s: s,
@@ -3052,11 +3265,10 @@ class _TodoListScreenState extends State<TodoListScreen> {
       // Apply list filter
       if (_currentList != s.allListsTitle) {
         // If "Default List" is selected, show tasks with null listName or defaultList
-        if (_currentList == s.defaultList) {
-          if (todo.listName != null && todo.listName != s.defaultList) return false;
-        } else {
-          // For other specific lists, show tasks with matching listName
-          if (todo.listName != _currentList) return false;
+        if (todo.listName == null && _currentList == s.defaultList) {
+          return true; // Null listName tasks go into Default List
+        } else if (todo.listName != _currentList) {
+          return false;
         }
       }
 
@@ -3196,9 +3408,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
       s.appTitle, // Notification title
       '${s.notificationReminderBody} ${task.title}', // Notification body (fixed string interpolation)
       tzScheduleDateTime, // Scheduled time
-      notificationDetails, // Correctly pass notificationDetails
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // FIX: Corrected named argument
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime, // FIX: Added required named argument
+      notificationDetails,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // FIX: Corrected named parameter
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime, // FIX: Corrected named parameter
       matchDateTimeComponents: dateTimeComponents, // Set recurrence based on repeatInterval
       payload: 'task_id:${task.hashCode}', // Custom payload for handling taps
     );
@@ -3303,10 +3515,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                 }).toList(),
               ),
             ),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => Navigator.pop(context),
-            ),
+            automaticallyImplyLeading: false, // Removed back button
             actions: [
               IconButton(
                 icon: _isSearching ? const Icon(Icons.search_off) : const Icon(Icons.search),
