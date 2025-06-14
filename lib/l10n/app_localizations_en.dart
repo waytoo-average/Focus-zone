@@ -598,4 +598,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get downloadFolderNotFound =>
       'Download folder not found. It might have been moved or deleted.';
+
+  @override
+  String get discordProfile => 'Discord Profile';
+
+  @override
+  String get githubProfile => 'GitHub Profile';
 }

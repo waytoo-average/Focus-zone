@@ -113,3 +113,5 @@ flutter:
   # Add this section for localization
   assets:
     - lib/l10n/
+    - assets/icons/
+

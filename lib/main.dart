@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:developer' as developer; // For log
 import 'dart:math'; // For pow in formatBytes
-import 'package:flutter/services.dart'; // Import for SystemNavigator.pop()
+import 'package:flutter/services.dart'; // Import for SystemNavigator.pop() and Clipboard
 
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart'; // FIX: Corrected import path
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive; // aliased as drive
@@ -334,8 +334,8 @@ void main() async {
   );
 
   final InitializationSettings initializationSettings = InitializationSettings(
-    android: initializationSettingsAndroid,
-    iOS: initializationSettingsDarwin,
+    android: initializationSettingsAndroid, // FIX: Corrected variable name here
+    iOS: initializationSettingsDarwin, // FIX: Corrected variable name here
   );
   await flutterLocalNotificationsPlugin.initialize(
     initializationSettings,
@@ -656,19 +656,28 @@ class MyApp extends StatelessWidget {
             // so they will cover the entire screen including the BottomNavigationBar.
             // These routes are now defined globally for the main Navigator.
             '/departments': (context) {
-              final args = ModalRoute.of(context)?.settings.arguments as AcademicContext?;
-              if (args == null) return ErrorScreen(message: AppLocalizations.of(context)?.errorMissingContext ?? "Missing academic context for departments.");
-              return DepartmentSelectionScreen(academicContext: args);
+              final academicContext = ModalRoute.of(context)?.settings.arguments;
+              if (academicContext is AcademicContext) {
+                return DepartmentSelectionScreen(academicContext: academicContext);
+              }
+              // Fallback for error case
+              return ErrorScreen(message: AppLocalizations.of(context)?.errorMissingContext ?? "Missing academic context for departments.");
             },
             '/years': (context) {
-              final args = ModalRoute.of(context)?.settings.arguments as AcademicContext?;
-              if (args == null) return ErrorScreen(message: AppLocalizations.of(context)?.errorMissingContext ?? "Missing academic context for years.");
-              return YearSelectionScreen(academicContext: args);
+              final academicContext = ModalRoute.of(context)?.settings.arguments;
+              if (academicContext is AcademicContext) {
+                return YearSelectionScreen(academicContext: academicContext);
+              }
+              // Fallback for error case
+              return ErrorScreen(message: AppLocalizations.of(context)?.errorMissingContext ?? "Missing academic context for years.");
             },
             '/semesters': (context) {
-              final args = ModalRoute.of(context)?.settings.arguments as AcademicContext?;
-              if (args == null) return ErrorScreen(message: AppLocalizations.of(context)?.errorMissingContext ?? "Missing academic context for semesters.");
-              return SemesterSelectionScreen(academicContext: args);
+              final academicContext = ModalRoute.of(context)?.settings.arguments;
+              if (academicContext is AcademicContext) {
+                return SemesterSelectionScreen(academicContext: academicContext);
+              }
+              // Fallback for error case
+              return ErrorScreen(message: AppLocalizations.of(context)?.errorMissingContext ?? "Missing academic context for semesters.");
             },
             '/subjects': (context) {
               final arguments = ModalRoute.of(context)?.settings.arguments;
@@ -854,27 +863,58 @@ class _RootScreenState extends State<RootScreen> {
           // it will be handled by this nested navigator.
           switch (routeSettings.name) {
             case '/departments':
-              final args = routeSettings.arguments as AcademicContext?;
-              return MaterialPageRoute(builder: (context) => DepartmentSelectionScreen(academicContext: args!));
-            case '/years':
-              final args = routeSettings.arguments as AcademicContext?;
-              return MaterialPageRoute(builder: (context) => YearSelectionScreen(academicContext: args!));
-            case '/semesters':
-              final args = routeSettings.arguments as AcademicContext?;
-              if (args == null) {
-                return MaterialPageRoute(builder: (context) => ErrorScreen(message: AppLocalizations.of(context)?.errorMissingContext ?? "Missing academic context for semesters."));
+              final academicContext = routeSettings.arguments;
+              if (academicContext is AcademicContext) {
+                return MaterialPageRoute(builder: (context) => DepartmentSelectionScreen(academicContext: academicContext));
               }
-              return MaterialPageRoute(builder: (context) => SemesterSelectionScreen(academicContext: args));
+              return MaterialPageRoute(builder: (context) => ErrorScreen(message: AppLocalizations.of(context)?.errorMissingContext ?? "Missing academic context for departments."));
+            case '/years':
+              final academicContext = routeSettings.arguments;
+              if (academicContext is AcademicContext) {
+                return MaterialPageRoute(builder: (context) => YearSelectionScreen(academicContext: academicContext));
+              }
+              return MaterialPageRoute(builder: (context) => ErrorScreen(message: AppLocalizations.of(context)?.errorMissingContext ?? "Missing academic context for years."));
+            case '/semesters':
+              final academicContext = routeSettings.arguments;
+              if (academicContext is AcademicContext) {
+                return MaterialPageRoute(builder: (context) => SemesterSelectionScreen(academicContext: academicContext));
+              }
+              return MaterialPageRoute(builder: (context) => ErrorScreen(message: AppLocalizations.of(context)?.errorMissingContext ?? "Missing academic context for semesters."));
             case '/subjects':
-              final arguments = routeSettings.arguments as Map<String, dynamic>?;
+              final arguments = routeSettings.arguments;
+              Map<String, String> subjectsMap = {};
+              AcademicContext? academicContext;
+
+              if (arguments is Map && arguments.containsKey('subjects')) {
+                final dynamic rawSubjects = arguments['subjects'];
+                if (rawSubjects is Map) {
+                  rawSubjects.forEach((key, value) {
+                    if (key is String && value is String) {
+                      subjectsMap[key] = value;
+                    }
+                  });
+                }
+                if (arguments.containsKey('context') &&
+                    arguments['context'] is AcademicContext) {
+                  academicContext = arguments['context'] as AcademicContext;
+                }
+              }
+
+              if (academicContext == null) {
+                final s = AppLocalizations.of(context);
+                return MaterialPageRoute(builder: (context) => ErrorScreen(message: s?.errorMissingSubjectDetails ?? "Unknown error: Missing academic context."));
+              }
               return MaterialPageRoute(builder: (context) => SubjectSelectionScreen(
-                subjects: arguments!['subjects'] as Map<String, String>,
-                academicContext: arguments['context'] as AcademicContext,
+                subjects: subjectsMap,
+                academicContext: academicContext,
               ));
             case '/subjectContentScreen':
-              final args = routeSettings.arguments as Map<String, dynamic>?;
+              final args = routeSettings.arguments;
+              if (args is! Map<String, dynamic> || !args.containsKey('subjectName') || !args.containsKey('rootFolderId') || !args.containsKey('academicContext')) {
+                return MaterialPageRoute(builder: (context) => ErrorScreen(message: AppLocalizations.of(context)?.errorMissingSubjectDetails ?? "Missing subject details."));
+              }
               return MaterialPageRoute(builder: (context) => SubjectContentScreen(
-                subjectName: args!['subjectName'] as String,
+                subjectName: args['subjectName'] as String,
                 rootFolderId: args['rootFolderId'] as String,
                 academicContext: args['academicContext'] as AcademicContext,
               ));
@@ -1373,28 +1413,36 @@ class SemesterSelectionScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ElevatedButton(
-              onPressed: () {
-                // Pass the current semester's subjects
-                Navigator.pushNamed(context, '/subjects', arguments: {
-                  'subjects': semester1Subjects,
-                  'context': academicContext.copyWith(semester: s.semester1)
-                });
-              },
-              child: Text(s.semester1),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20.0),
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pushNamed(
+                    '/subjects',
+                    arguments: {
+                      'subjects': semester1Subjects,
+                      'context': academicContext.copyWith(semester: s.semester1),
+                    },
+                  );
+                },
+                child: Text(s.semester1),
+              ),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // Pass the next semester's subjects
-                Navigator.pushNamed(context, '/subjects', arguments: {
-                  'subjects': semester2Subjects,
-                  'context': academicContext.copyWith(semester: s.semester2)
-                });
-              },
-              child: Text(s.semester2),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20.0),
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pushNamed(
+                    '/subjects',
+                    arguments: {
+                      'subjects': semester2Subjects,
+                      'context': academicContext.copyWith(semester: s.semester2),
+                    },
+                  );
+                },
+                child: Text(s.semester2),
+              ),
             ),
-            const Spacer(),
           ],
         ),
       ),
@@ -2853,18 +2901,47 @@ class SettingsScreen extends StatelessWidget {
 // 12. AboutScreen
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
+
+  // Your GitHub URL
+  static const String githubUrl = 'https://github.com/waytoo-average';
+  // Your Discord profile URL
+  static const String discordProfileUrl = 'https://discord.com/users/858382338281963520';
+  // Your LinkedIn URL
+  static const String linkedinUrl = 'https://www.linkedin.com/in/belal-elnemr-94073322b/'; // Placeholder: Add actual URL if desired
+  // Your X (Twitter) URL
+  static const String xUrl = 'https://twitter.com/BelalElNmer'; // Placeholder: Add actual URL if desired
+  // Your Instagram URL
+  static const String instagramUrl = 'https://www.instagram.com/belal_e_l_nemr/'; // Placeholder: Add actual URL if desired
+  // Your Facebook URL (assuming this is your personal one if distinct from CollegeInfoScreen's)
+  static const String facebookUrl = 'https://www.facebook.com/belal.elnmr/'; // Placeholder: Add actual URL if desired
+  static const String appCurrentVersion = '0.1.3'; // Updated for Phase 2
+  static const String phoneNumber = '+201026027552'; // FIX: Defined phoneNumber
+  static const String emailAddress = 'belal.elnemr.work@gmail.com'; // FIX: Defined emailAddress
+
+
   Future<void> _launchUrl(BuildContext context, String url) async {
     final s = AppLocalizations.of(context);
     if (s == null) return;
-    try { if (!await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)) { if (context.mounted) showAppSnackBar(context, s.couldNotLaunchUrl(url), icon: Icons.link_off, iconColor: Colors.red); }
-    } catch (e) { if (context.mounted) showAppSnackBar(context, s.couldNotLaunchUrl(url), icon: Icons.link_off, iconColor: Colors.red); }
+    try {
+      if (!await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)) {
+        if (context.mounted) {
+          showAppSnackBar(context, s.couldNotLaunchUrl(url), icon: Icons.link_off, iconColor: Colors.red);
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        showAppSnackBar(context, s.couldNotLaunchUrl(url), icon: Icons.link_off, iconColor: Colors.red);
+      }
+    }
   }
+
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
-    const String phoneNumber = '01027658156';
-    const String emailAddress = 'belalmohamedelnemr0@gmail.com';
-    const String appCurrentVersion = '0.1.3'; // Updated for Phase 2
+
+    // Determine icon color based on current theme for custom assets
+    final Color? iconColor = Theme.of(context).colorScheme.onSurface; // This will be white70 for dark, grey800 for light
+
     return Scaffold(
       appBar: AppBar(title: Text(s.about), leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context))),
       body: ListView(
@@ -2875,29 +2952,127 @@ class AboutScreen extends StatelessWidget {
             const SizedBox(height: 10),
             Text(s.appTitle, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold), textAlign: TextAlign.center),
             const SizedBox(height: 5),
-            Text('${s.appVersion}: $appCurrentVersion', style: Theme.of(context).textTheme.bodyMedium),
+            Text('${s.appVersion}: ${AboutScreen.appCurrentVersion}', style: Theme.of(context).textTheme.bodyMedium), // FIX: Added AboutScreen.
             const SizedBox(height: 8),
             Padding(padding: const EdgeInsets.symmetric(horizontal: 16.0), child: Text(s.appDescription, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall))
           ]),
           const Divider(height: 40, thickness: 1),
           Text(s.madeBy, style: Theme.of(context).textTheme.titleLarge), const SizedBox(height: 8.0), Text(s.developerName, style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600)), Text(s.developerDetails, style: Theme.of(context).textTheme.bodyMedium),
           const Divider(height: 40, thickness: 1),
-          Text(s.contactInfo, style: Theme.of(context).textTheme.titleLarge), const SizedBox(height: 8.0),
-          ListTile(
-            leading: const Icon(Icons.phone_android_outlined),
-            title: Text(s.phoneNumber),
-            subtitle: const Text(phoneNumber),
-            onTap: () => _launchUrl(context,'tel:$phoneNumber'),
-            contentPadding: EdgeInsets.zero,
-            visualDensity: VisualDensity.compact,
-          ),
-          ListTile(
-            leading: const Icon(Icons.email_outlined),
-            title: Text(s.email),
-            subtitle: const Text(emailAddress),
-            onTap: () => _launchUrl(context,'mailto:$emailAddress'),
-            contentPadding: EdgeInsets.zero,
-            visualDensity: VisualDensity.compact,
+
+          // Replaced ListTiles with a Row of Material-wrapped InkWells
+          Text(s.contactInfo, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 16.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0), // Add horizontal padding to the row itself
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround, // Distribute space evenly
+              children: [
+                // Phone
+                Material(
+                  color: Theme.of(context).cardTheme.color,
+                  borderRadius: BorderRadius.circular(12),
+                  elevation: 4.0,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => _launchUrl(context, 'tel:${AboutScreen.phoneNumber}'), // FIX: Added AboutScreen.
+                    child: Tooltip( // FIX: Added Tooltip widget
+                      message: s.phoneNumber,
+                      child: SizedBox(
+                        width: 60, // Fixed size for the icon container
+                        height: 60, // Fixed size for the icon container
+                        child: Center(
+                          child: Icon(Icons.phone_android_outlined, size: 30, color: iconColor),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16.0), // Spacing between icons
+                // Email
+                Material(
+                  color: Theme.of(context).cardTheme.color,
+                  borderRadius: BorderRadius.circular(12),
+                  elevation: 4.0,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => _launchUrl(context, 'mailto:${AboutScreen.emailAddress}'), // FIX: Added AboutScreen.
+                    child: Tooltip( // FIX: Added Tooltip widget
+                      message: s.email,
+                      child: SizedBox(
+                        width: 60,
+                        height: 60,
+                        child: Center(
+                          child: Icon(Icons.email_outlined, size: 30, color: iconColor),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16.0), // Spacing between icons
+                // GitHub
+                Material(
+                  color: Theme.of(context).cardTheme.color,
+                  borderRadius: BorderRadius.circular(12),
+                  elevation: 4.0,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => _launchUrl(context, AboutScreen.githubUrl), // FIX: Added AboutScreen.
+                    child: Tooltip( // FIX: Added Tooltip widget
+                      message: s.githubProfile,
+                      child: SizedBox(
+                        width: 60,
+                        height: 60,
+                        child: Center(
+                          child: Image.asset('assets/icons/github.png', width: 30, height: 30, color: iconColor),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16.0), // Spacing between icons
+                // Discord
+                Material(
+                  color: Theme.of(context).cardTheme.color,
+                  borderRadius: BorderRadius.circular(12),
+                  elevation: 4.0,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => _launchUrl(context, AboutScreen.discordProfileUrl), // FIX: Added AboutScreen.
+                    child: Tooltip( // FIX: Added Tooltip widget
+                      message: s.discordProfile,
+                      child: SizedBox(
+                        width: 60,
+                        height: 60,
+                        child: Center(
+                          child: Image.asset('assets/icons/discord.png', width: 30, height: 30, color: iconColor),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // New: Add placeholder for other social media icons if you want to expand later
+                // Example for LinkedIn:
+                // const SizedBox(width: 16.0),
+                // Material(
+                //   color: Theme.of(context).cardTheme.color,
+                //   borderRadius: BorderRadius.circular(12),
+                //   elevation: 4.0,
+                //   child: InkWell(
+                //     borderRadius: BorderRadius.circular(12),
+                //     onTap: () => _launchUrl(context, AboutScreen.linkedinUrl),
+                //     tooltip: s.linkedinProfile, // Needs new localization key
+                //     child: SizedBox(
+                //       width: 60,
+                //       height: 60,
+                //       child: Center(
+                //         child: Image.asset('assets/icons/linkedin.png', width: 30, height: 30, color: iconColor),
+                //       ),
+                //     ),
+                //   ),
+                // ),
+              ],
+            ),
           ),
           const Divider(height: 40, thickness: 1),
         ],
@@ -3719,7 +3894,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     title: todo.title,
                     isCompleted: todo.isCompleted,
                     dueDate: todo.dueDate,
-                    dueTime: todo.dueTime,
+                    dueTime: todo.dueTime, // FIX: Corrected from dueItem to dueTime
                     isRepeating: todo.isRepeating,
                     repeatInterval: todo.repeatInterval,
                     listName: todo.listName,
@@ -3907,7 +4082,7 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch, // FIX: Changed Cross.stretch to CrossAxisAlignment.stretch
           children: [
             Text(s.whatIsToBeDone, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),

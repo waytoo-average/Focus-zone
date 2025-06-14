@@ -595,4 +595,10 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get downloadFolderNotFound =>
       'مجلد التنزيلات غير موجود. ربما تم نقله أو حذفه.';
+
+  @override
+  String get discordProfile => 'ملف Discord الشخصي';
+
+  @override
+  String get githubProfile => 'ملف GitHub الشخصي';
 }

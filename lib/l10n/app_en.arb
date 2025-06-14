@@ -176,5 +176,7 @@
     }
   },
   "errorAttemptedGlobalPush": "Attempted to open content outside the current tab's navigation. Please try again from the main tab, or report this issue if it persists.",
-  "downloadFolderNotFound": "Download folder not found. It might have been moved or deleted."
+  "downloadFolderNotFound": "Download folder not found. It might have been moved or deleted.",
+  "discordProfile": "Discord Profile",
+  "githubProfile": "GitHub Profile"
 }
