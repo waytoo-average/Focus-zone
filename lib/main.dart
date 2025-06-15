@@ -1,3 +1,4 @@
+// lib/main.dart
 // main.dart - MINIMAL CODE - Final complete version with all features and fixes
 
 import 'package:flutter/material.dart';
@@ -65,6 +66,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
         ChangeNotifierProvider(create: (_) => DownloadPathProvider()),
+        ChangeNotifierProvider(create: (_) => RecentFilesProvider()), // NEW: Added RecentFilesProvider
+        ChangeNotifierProvider(create: (_) => TodoSummaryProvider()),  // NEW: Added TodoSummaryProvider
         // Add this line to make the global notification plugin accessible to TodoListScreen
         Provider<FlutterLocalNotificationsPlugin>.value(value: flutterLocalNotificationsPlugin),
       ],
@@ -92,146 +95,151 @@ class MyApp extends StatelessWidget {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final languageProvider = Provider.of<LanguageProvider>(context);
 
-    // New Color Scheme - Inspired by calming green/blue and warm accents
+    // Color Scheme: Palette 1: "Deep Ocean & Sunset Glow"
     // Light Theme Colors
-    final Color primaryGreenLight = const Color(0xFF3043AE); // A fresh green
-    final Color accentOrangeLight = const Color(0xFFFFB300); // Warm amber
-    final Color backgroundLight = const Color(0xFFF0F4F8); // Soft light grey-blue
-    final Color cardLight = Colors.white;
+    final Color primaryDeepNavy = const Color(0xFF1E3A5F); // Primary
+    final Color accentDarkOrange = const Color(0xFFFF8C00); // Secondary
+    final Color backgroundLight = const Color(0xFFF5F7FA); // Background
+    final Color surfaceLight = const Color(0xFFFFFFFF); // Surface (Cards)
 
     // Dark Theme Colors
-    final Color primaryGreenDark = const Color(0xFF2F41A6); // A deeper green
-    final Color accentOrangeDark = const Color(0xFFFFCC80); // Lighter amber for dark theme visibility
-    final Color backgroundDark = const Color(0xFF263238); // Deep charcoal
-    final Color cardDark = const Color(0xFF37474F); // Darker charcoal for cards
+    final Color primaryDarkenedNavy = const Color(0xFF152A4A); // Darkened Primary
+    final Color accentLighterOrange = const Color(0xFFFFB300); // Lighter Secondary for contrast
+    final Color backgroundDark = const Color(0xFF121212); // Deep Black for background
+    final Color surfaceDark = const Color(0xFF1E1E1E); // Darker gray for cards/surfaces
 
     final ThemeData darkTheme = ThemeData(
       brightness: Brightness.dark,
-      primaryColor: primaryGreenDark, // Explicitly set primary color
-      canvasColor: backgroundDark, // Affects bottom sheets, dialogs etc.
-      scaffoldBackgroundColor: backgroundDark, // Set Scaffold background back to solid color
-      useMaterial3: false, // Ensure consistent Material 2 design if not fully ready for M3
+      primaryColor: primaryDarkenedNavy,
+      canvasColor: backgroundDark,
+      scaffoldBackgroundColor: backgroundDark,
+      useMaterial3: false,
       colorScheme: ColorScheme.dark(
-        primary: primaryGreenDark,
-        secondary: accentOrangeDark, // Accent color for secondary actions/highlights
-        surface: cardDark, // Card background color
-        background: backgroundDark, // Scaffold background color
-        error: Colors.red[700]!, // Error color
+        primary: primaryDarkenedNavy,
+        secondary: accentLighterOrange,
+        surface: surfaceDark,
+        background: backgroundDark,
+        error: const Color(0xFFCF6679), // A softer red for dark theme errors
         onPrimary: Colors.white,
         onSecondary: Colors.black, // Still black for contrast on light accent
-        onSurface: Colors.white70, // Text on cards/surfaces
-        onBackground: Colors.white, // Text on scaffold background
-        onError: Colors.white,
+        onSurface: Colors.white70,
+        onBackground: Colors.white,
+        onError: Colors.black,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: primaryGreenDark,
+        backgroundColor: primaryDarkenedNavy,
         foregroundColor: Colors.white,
-        centerTitle: true,
+        centerTitle: false, // Default to false for modern left-alignment
         titleTextStyle: const TextStyle(
-          fontSize: 18,
+          fontSize: 20, // Slightly larger for better hierarchy
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
-        toolbarHeight: 80.0,
-        elevation: 0.0, // Flatter design
+        toolbarHeight: 64.0, // Standard toolbar height
+        elevation: 4.0, // Some elevation for depth
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryGreenDark, // Dark primary for dark theme buttons
+          backgroundColor: primaryDarkenedNavy,
           foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 56), // Slightly smaller, common button height
+          minimumSize: const Size(double.infinity, 52), // Modern button height
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12), // More rounded corners
-            side: BorderSide(color: primaryGreenDark.withOpacity(0.5), width: 1), // Subtle border
+            borderRadius: BorderRadius.circular(12),
           ),
-          elevation: 4.0, // Some elevation
+          elevation: 4.0,
           textStyle: const TextStyle(
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: FontWeight.w600,
           ),
         ),
       ),
       cardTheme: CardThemeData(
-        elevation: 4.0,
+        elevation: 6.0, // More prominent elevation for cards
         shape: RoundedRectangleBorder(
-          borderRadius: const BorderRadius.all(Radius.circular(16)), // More rounded cards
+          borderRadius: const BorderRadius.all(Radius.circular(16)),
         ),
-        margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0.0),
-        color: cardDark, // Apply card dark color
+        margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0.0), // Standardized margin
+        color: surfaceDark,
       ),
       listTileTheme: ListTileThemeData(
-        contentPadding:
-        const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0), // More vertical padding
-        tileColor: cardDark, // Match card color
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        tileColor: surfaceDark,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12), // Rounded corners
+          borderRadius: BorderRadius.circular(12),
         ),
         titleTextStyle: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.white, // Default text color for list tiles
+          color: Colors.white,
         ),
         subtitleTextStyle: const TextStyle(
           fontSize: 13,
-          color: Colors.white70, // Slightly lighter for subtitle
+          color: Colors.white70,
         ),
       ),
       checkboxTheme: CheckboxThemeData(
         fillColor: MaterialStateProperty.resolveWith((states) {
           if (states.contains(MaterialState.selected)) {
-            return accentOrangeDark; // Use accent color for selected checkbox
+            return accentLighterOrange;
           }
           return null;
         }),
         checkColor: MaterialStateProperty.all(Colors.white),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: accentOrangeDark, // Use accent orange for FAB
+        backgroundColor: accentLighterOrange,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), // Match other rounded elements
-        elevation: 6.0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 8.0,
       ),
-      // Input field decoration for TextFields like quick add and new task
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: cardDark, // Match card background
+        fillColor: surfaceDark.withOpacity(0.8), // Slightly transparent for depth
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none, // No border by default
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.transparent), // No border
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.1), width: 1), // Subtle border
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: primaryGreenDark, width: 2), // Corrected: use borderSide
+          borderSide: BorderSide(color: accentLighterOrange, width: 2),
         ),
         hintStyle: const TextStyle(color: Colors.white54),
         labelStyle: const TextStyle(color: Colors.white70),
       ),
       textTheme: const TextTheme(
-        bodyLarge: TextStyle(color: Colors.white), // Default text color
-        bodyMedium: TextStyle(color: Colors.white70),
-        titleLarge:
-        TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20), // Larger titles
-        titleMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 17),
-        bodySmall: TextStyle(color: Colors.white54),
+        displayLarge: TextStyle(color: Colors.white),
+        displayMedium: TextStyle(color: Colors.white),
+        displaySmall: TextStyle(color: Colors.white),
+        headlineLarge: TextStyle(color: Colors.white),
+        headlineMedium: TextStyle(color: Colors.white),
+        headlineSmall: TextStyle(color: Colors.white),
+        titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22), // Main titles
+        titleMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18), // Section titles
+        titleSmall: TextStyle(color: Colors.white70, fontWeight: FontWeight.w500, fontSize: 14),
+        bodyLarge: TextStyle(color: Colors.white),
+        bodyMedium: TextStyle(color: Colors.white70), // Default text color
+        bodySmall: TextStyle(color: Colors.white54), // Secondary text
+        labelLarge: TextStyle(color: Colors.white),
+        labelMedium: TextStyle(color: Colors.white70),
+        labelSmall: TextStyle(color: Colors.white54),
       ),
     );
 
     final ThemeData lightTheme = ThemeData(
-      primarySwatch: Colors.green, // Base for primary color, will be overridden
-      primaryColor: primaryGreenLight, // Explicitly set primary color
-      canvasColor: backgroundLight, // Affects bottom sheets, dialogs etc.
-      scaffoldBackgroundColor: backgroundLight, // Set Scaffold background back to solid color
-      useMaterial3: false, // Ensure consistent Material 2 design if not fully ready for M3
+      primaryColor: primaryDeepNavy,
+      canvasColor: backgroundLight,
+      scaffoldBackgroundColor: backgroundLight,
+      useMaterial3: false,
       colorScheme: ColorScheme.light(
-        primary: primaryGreenLight,
-        secondary: accentOrangeLight, // Accent color
-        surface: cardLight, // Card background
-        background: backgroundLight, // Scaffold background
-        error: Colors.red[700]!,
+        primary: primaryDeepNavy,
+        secondary: accentDarkOrange,
+        surface: surfaceLight,
+        background: backgroundLight,
+        error: const Color(0xFFB00020), // Standard red for errors
         onPrimary: Colors.white,
         onSecondary: Colors.black,
         onSurface: Colors.grey[800]!,
@@ -239,99 +247,105 @@ class MyApp extends StatelessWidget {
         onError: Colors.white,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: primaryGreenLight,
+        backgroundColor: primaryDeepNavy,
         foregroundColor: Colors.white,
-        centerTitle: true,
+        centerTitle: false,
         titleTextStyle: const TextStyle(
-          fontSize: 18,
+          fontSize: 20,
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
-        toolbarHeight: 80.0,
-        elevation: 0.0, // Flatter design
+        toolbarHeight: 64.0,
+        elevation: 4.0,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryGreenLight, // Light primary for light theme buttons
+          backgroundColor: primaryDeepNavy,
           foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 56),
+          minimumSize: const Size(double.infinity, 52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: primaryGreenLight.withOpacity(0.5), width: 1),
           ),
           elevation: 4.0,
           textStyle: const TextStyle(
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: FontWeight.w600,
           ),
         ),
       ),
       cardTheme: CardThemeData(
-        elevation: 4.0,
+        elevation: 6.0,
         shape: RoundedRectangleBorder(
-          borderRadius: const BorderRadius.all(Radius.circular(16)), // More rounded cards
+          borderRadius: const BorderRadius.all(Radius.circular(16)),
         ),
         margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0.0),
-        color: cardLight, // Apply card light color
+        color: surfaceLight,
       ),
       listTileTheme: ListTileThemeData(
-        contentPadding:
-        const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0), // More vertical padding
-        tileColor: cardLight, // Match card color
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        tileColor: surfaceLight,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12), // Rounded corners
+          borderRadius: BorderRadius.circular(12),
         ),
         titleTextStyle: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: Colors.grey[800], // Default text color for list tiles
+          color: Colors.grey[800],
         ),
         subtitleTextStyle: TextStyle(
           fontSize: 13,
-          color: Colors.grey[600], // Slightly lighter for subtitle
+          color: Colors.grey[600],
         ),
       ),
       checkboxTheme: CheckboxThemeData(
         fillColor: MaterialStateProperty.resolveWith((states) {
           if (states.contains(MaterialState.selected)) {
-            return accentOrangeLight; // Use accent color for selected checkbox
+            return accentDarkOrange;
           }
           return null;
         }),
         checkColor: MaterialStateProperty.all(Colors.white),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: accentOrangeLight, // Use accent orange for FAB
+        backgroundColor: accentDarkOrange,
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        elevation: 6.0,
+        elevation: 8.0,
       ),
-      // Input field decoration for TextFields like quick add and new task
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: backgroundLight, // A light background for input fields
+        fillColor: backgroundLight.withOpacity(0.8), // Slightly transparent for depth
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none, // No border by default
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.transparent), // No border
+          borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: primaryGreenLight, width: 2), // Corrected: use borderSide
+          borderSide: BorderSide(color: primaryDeepNavy, width: 2),
         ),
         hintStyle: TextStyle(color: Colors.grey[500]),
         labelStyle: TextStyle(color: Colors.grey[700]),
       ),
       textTheme: TextTheme(
+        displayLarge: TextStyle(color: Colors.grey[800]),
+        displayMedium: TextStyle(color: Colors.grey[800]),
+        displaySmall: TextStyle(color: Colors.grey[800]),
+        headlineLarge: TextStyle(color: Colors.grey[800]),
+        headlineMedium: TextStyle(color: Colors.grey[800]),
+        headlineSmall: TextStyle(color: Colors.grey[800]),
+        titleLarge: TextStyle(color: Colors.grey[900], fontWeight: FontWeight.bold, fontSize: 22),
+        titleMedium: TextStyle(color: Colors.grey[850], fontWeight: FontWeight.w600, fontSize: 18),
+        titleSmall: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w500, fontSize: 14),
         bodyLarge: TextStyle(color: Colors.grey[800]),
         bodyMedium: TextStyle(color: Colors.grey[700]),
-        titleLarge:
-        TextStyle(color: Colors.grey[900], fontWeight: FontWeight.bold, fontSize: 20),
-        titleMedium: TextStyle(color: Colors.grey[850], fontWeight: FontWeight.w600, fontSize: 17),
         bodySmall: TextStyle(color: Colors.grey[600]),
+        labelLarge: TextStyle(color: Colors.grey[800]),
+        labelMedium: TextStyle(color: Colors.grey[700]),
+        labelSmall: TextStyle(color: Colors.grey[600]),
       ),
     );
 
@@ -366,8 +380,13 @@ class MyApp extends StatelessWidget {
             '/rootScreen': (context) => RootScreen(key: rootScreenKey),
             // These are the only *global* routes remaining in main.dart
             '/googleDriveViewer': (context) {
-              final args = ModalRoute.of(context)?.settings.arguments as String?;
-              return GoogleDriveViewerScreen(embedUrl: args);
+              final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+              return GoogleDriveViewerScreen(
+                embedUrl: args?['embedUrl'] as String?,
+                fileId: args?['fileId'] as String?,
+                fileName: args?['fileName'] as String?,
+                mimeType: args?['mimeType'] as String?,
+              );
             },
             '/lectureFolderBrowser': (context) {
               final args = ModalRoute.of(context)?.settings.arguments as String?;

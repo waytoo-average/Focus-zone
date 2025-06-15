@@ -150,18 +150,20 @@ class TodoListScreen extends StatefulWidget {
 
 class _TodoListScreenState extends State<TodoListScreen> {
   final TextEditingController _taskController = TextEditingController();
-  List<TodoItem> _todos = [];
+  List<TodoItem> _todos = []; // This will now be a filtered/sorted view of data from Provider
   bool _isLoading = true;
   bool _isSearching = false;
 
   String _currentList = 'INITIAL_PLACEHOLDER';
   String _searchQuery = '';
 
-  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
+  // Removed GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
 
   @override
   void initState() {
     super.initState();
+    // Listen to changes from TodoSummaryProvider
+    Provider.of<TodoSummaryProvider>(context, listen: false).addListener(_onTodosChanged);
     _loadTodos();
   }
 
@@ -178,6 +180,36 @@ class _TodoListScreenState extends State<TodoListScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    // Ensure the listener is removed to prevent memory leaks and "deactivated widget" errors
+    Provider.of<TodoSummaryProvider>(context, listen: false).removeListener(_onTodosChanged);
+    _taskController.dispose();
+    super.dispose();
+  }
+
+  void _onTodosChanged() {
+    if (!mounted) return; // Crucial check for preventing "deactivated widget" errors
+    _loadTodos(); // Reloads the filtered list based on the updated provider data
+  }
+
+  Future<void> _loadTodos() async {
+    if (!mounted) return; // Crucial check for preventing "deactivated widget" errors
+    // Get the raw list of todos from the provider
+    final todoProvider = Provider.of<TodoSummaryProvider>(context, listen: false);
+
+    // Sort and filter the provider's allTodos list
+    List<TodoItem> fetchedTodos = todoProvider.allTodos;
+
+    if (mounted) { // Ensure mounted before setState
+      setState(() {
+        _todos = fetchedTodos; // Update internal list with provider's data
+        _isLoading = false;
+        _applyFilters();
+      });
+    }
+  }
+
   bool _isLocalizedList(String listName, AppLocalizations s) {
     return listName == s.allListsTitle ||
         listName == s.personal ||
@@ -186,113 +218,72 @@ class _TodoListScreenState extends State<TodoListScreen> {
         listName == s.defaultList;
   }
 
-
-  @override
-  void dispose() {
-    _taskController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadTodos() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final String? todosString = prefs.getString('todos');
-      if (todosString != null) {
-        final List<dynamic> todoListJson = jsonDecode(todosString);
-        _todos = todoListJson.map((json) => TodoItem.fromJson(json)).toList();
-      }
-    } catch (e) {
-      developer.log("TodoListScreen Error loading todos: $e", name: "TodoListScreen");
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _applyFilters();
-        });
-      }
-    }
-  }
-
-  Future<void> _saveTodos() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final String todosString = jsonEncode(_todos.map((todo) => todo.toJson()).toList());
-      await prefs.setString('todos', todosString);
-    } catch (e) {
-      developer.log("TodoListScreen Error saving todos: $e", name: "TodoListScreen");
-    }
-  }
-
-  void _addTodo(AppLocalizations s) {
+  void _addTodo(AppLocalizations s) async {
+    if (!mounted) return; // Ensure mounted
     final String newTaskTitle = _taskController.text.trim();
     if (newTaskTitle.isNotEmpty) {
       final newItem = TodoItem(
         title: newTaskTitle,
         listName: _currentList == s.allListsTitle ? null : (_currentList == s.defaultList ? null : _currentList), // Corrected defaultList handling
       );
-      setState(() {
-        _todos.add(newItem);
-        _applyFilters();
-        if (_getFilteredTodos().contains(newItem)) {
-          _listKey.currentState?.insertItem(_getFilteredTodos().indexOf(newItem), duration: const Duration(milliseconds: 300));
-        }
-      });
-      _taskController.clear();
-      _saveTodos();
-      HapticFeedback.lightImpact();
-      showAppSnackBar(context, s.taskAdded, icon: Icons.task_alt, iconColor: Colors.green);
 
-      _scheduleNotification(newItem, s);
+      await Provider.of<TodoSummaryProvider>(context, listen: false).saveTodo(newItem); // Save via provider
+
+      _taskController.clear();
+      HapticFeedback.lightImpact();
+      if (mounted) { // Ensure mounted
+        showAppSnackBar(context, s.taskAdded, icon: Icons.task_alt, iconColor: Colors.green);
+      }
+
+      await _scheduleNotification(newItem, s); // Schedule notification
     } else {
       showAppSnackBar(context, s.emptyTaskError, icon: Icons.warning_amber_outlined, iconColor: Colors.orange);
     }
   }
 
-  void _toggleTodoCompletion(int index) {
+  void _toggleTodoCompletion(int index) async {
+    if (!mounted) return; // Ensure mounted
     final s = AppLocalizations.of(context)!;
     final TodoItem itemToToggle = _getFilteredTodos()[index];
-    final int originalIndex = _todos.indexWhere(
-            (todo) => todo.title == itemToToggle.title && todo.creationDate == itemToToggle.creationDate
+
+    // Create a copy to modify its completion status
+    final updatedItem = TodoItem(
+      title: itemToToggle.title,
+      isCompleted: !itemToToggle.isCompleted, // Toggle status
+      dueDate: itemToToggle.dueDate,
+      dueTime: itemToToggle.dueTime,
+      isRepeating: itemToToggle.isRepeating,
+      repeatInterval: itemToToggle.repeatInterval,
+      listName: itemToToggle.listName,
+      creationDate: itemToToggle.creationDate,
     );
 
-    if (originalIndex != -1) {
-      setState(() {
-        _todos[originalIndex].isCompleted = !_todos[originalIndex].isCompleted;
-        _applyFilters();
-      });
-      _saveTodos();
-      HapticFeedback.lightImpact();
-      if (_todos[originalIndex].isCompleted) {
+    await Provider.of<TodoSummaryProvider>(context, listen: false).saveTodo(updatedItem); // Save via provider
+
+    HapticFeedback.lightImpact();
+    if (mounted) { // Ensure mounted
+      if (updatedItem.isCompleted) {
         showAppSnackBar(context, s.taskCompleted, icon: Icons.check_circle_outline, iconColor: Colors.green);
         flutterLocalNotificationsPlugin.cancel(itemToToggle.hashCode);
       } else {
         showAppSnackBar(context, s.taskReactivated, icon: Icons.refresh, iconColor: Colors.blue);
-        _scheduleNotification(itemToToggle, s);
+        await _scheduleNotification(updatedItem, s); // Re-schedule if reactivated
       }
     }
   }
 
-  void _deleteTodo(int index) {
+  void _deleteTodo(int index) async {
+    if (!mounted) return; // Ensure mounted
     final s = AppLocalizations.of(context)!;
     final TodoItem itemToDelete = _getFilteredTodos()[index];
-    final int originalIndexInFullList = _todos.indexWhere((todo) => todo.title == itemToDelete.title && todo.creationDate == itemToDelete.creationDate);
 
-    if (originalIndexInFullList != -1) {
-      _listKey.currentState?.removeItem(
-        index,
-            (context, animation) => SizeTransition(
-          sizeFactor: animation,
-          child: _buildTodoCard(context, itemToDelete, index, s),
-        ),
-        duration: const Duration(milliseconds: 300),
-      );
+    // Removed AnimatedList removeItem for simpler ListView.builder handling
+    // _listKey.currentState?.removeItem(...);
 
-      setState(() {
-        _todos.removeAt(originalIndexInFullList);
-        _applyFilters();
-      });
-      _saveTodos();
-      HapticFeedback.lightImpact();
+    await Provider.of<TodoSummaryProvider>(context, listen: false).deleteTodo(itemToDelete); // Delete via provider
+
+    HapticFeedback.lightImpact();
+    if (mounted) { // Ensure mounted
       showAppSnackBar(context, s.taskDeleted, icon: Icons.delete_outline, iconColor: Colors.red);
       flutterLocalNotificationsPlugin.cancel(itemToDelete.hashCode);
     }
@@ -301,7 +292,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
 
   List<TodoItem> _getFilteredTodos() {
     final s = AppLocalizations.of(context)!;
-    List<TodoItem> filteredTodos = _todos.where((todo) {
+    List<TodoItem> filteredTodos = _todos.where((todo) { // Filter _todos (which comes from Provider.allTodos)
       if (_currentList != s.allListsTitle) {
         if (todo.listName == null && _currentList == s.defaultList) {
           return true;
@@ -334,45 +325,13 @@ class _TodoListScreenState extends State<TodoListScreen> {
   }
 
   void _applyFilters() {
-    if(mounted) {
+    if(mounted) { // Ensure mounted
       setState(() { });
     }
   }
 
-  // NOTE: This function is not currently used in the TodoListScreen build method
-  // Map<String, List<TodoItem>> _groupTodos(List<TodoItem> todos, AppLocalizations s) {
-  //   final Map<String, List<TodoItem>> grouped = {
-  //     s.overdueTasks: [],
-  //     s.todayTasks: [],
-  //     s.tomorrowTasks: [],
-  //     s.thisWeekTasks: [],
-  //     s.laterTasks: [],
-  //     s.noDateTasks: [],
-  //   };
-  //
-  //   for (var todo in todos) {
-  //     if (todo.isCompleted) continue;
-  //
-  //     if (todo.isOverdue) {
-  //       grouped[s.overdueTasks]!.add(todo);
-  //     } else if (todo.isToday) {
-  //       grouped[s.todayTasks]!.add(todo);
-  //     } else if (todo.isTomorrow) {
-  //       grouped[s.tomorrowTasks]!.add(todo);
-  //     } else if (todo.isThisWeek) {
-  //       grouped[s.thisWeekTasks]!.add(todo);
-  //     } else if (todo.dueDate == null) {
-  //       grouped[s.noDateTasks]!.add(todo);
-  //     } else {
-  //       grouped[s.laterTasks]!.add(todo);
-  //     }
-  //   }
-  //
-  //   grouped.removeWhere((key, value) => value.isEmpty);
-  //   return grouped;
-  // }
-
   Future<void> _scheduleNotification(TodoItem task, AppLocalizations s) async {
+    if (!mounted) return; // Ensure mounted
     // Access the global flutterLocalNotificationsPlugin from main.dart via Provider
     final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     Provider.of<FlutterLocalNotificationsPlugin>(context, listen: false);
@@ -465,7 +424,8 @@ class _TodoListScreenState extends State<TodoListScreen> {
     ];
 
     final DateTime today = DateTime.now();
-    final List<TodoItem> todayTasks = _todos.where((todo) =>
+    // Use provider's allTodos for calculating these stats
+    final List<TodoItem> todayTasks = Provider.of<TodoSummaryProvider>(context).allTodos.where((todo) =>
     todo.dueDate != null &&
         todo.dueDate!.year == today.year &&
         todo.dueDate!.month == today.month &&
@@ -572,19 +532,17 @@ class _TodoListScreenState extends State<TodoListScreen> {
               ),
             ),
           Expanded(
+            // Replaced AnimatedList with ListView.builder for robustness
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : displayedTodos.isEmpty
                 ? _buildEmptyState(Icons.task_alt_outlined, _searchQuery.isNotEmpty ? s.noMatchingTasks : s.noTasksIllustrationText)
-                : AnimatedList(
-              key: _listKey,
-              initialItemCount: displayedTodos.length,
-              itemBuilder: (context, index, animation) {
+                : ListView.builder(
+              padding: const EdgeInsets.all(8.0),
+              itemCount: displayedTodos.length,
+              itemBuilder: (context, index) {
                 final todo = displayedTodos[index];
-                return SizeTransition(
-                  sizeFactor: animation,
-                  child: _buildTodoCard(context, todo, index, s),
-                );
+                return _buildTodoCard(context, todo, index, s);
               },
             ),
           ),
@@ -626,22 +584,16 @@ class _TodoListScreenState extends State<TodoListScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           HapticFeedback.lightImpact();
-          final result = await Navigator.of(context).push(
+          // No need to await result for saving, as TodoDetailScreen saves directly
+          await Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) {
                 return const TodoDetailScreen();
               },
             ),
           );
-          if (result != null && result is TodoItem) {
-            setState(() {
-              _todos.add(result);
-              _applyFilters();
-              _saveTodos();
-            });
-            showAppSnackBar(context, s.taskSaved, icon: Icons.check, iconColor: Colors.green);
-            _scheduleNotification(result, s);
-          }
+          // On returning, the TodoListScreen's listener to TodoSummaryProvider will
+          // trigger a refresh, so no explicit refresh needed here.
         },
         child: const Icon(Icons.add),
       ),
@@ -727,38 +679,19 @@ class _TodoListScreenState extends State<TodoListScreen> {
         ),
         onTap: () async {
           HapticFeedback.lightImpact();
-          final editedTodo = await Navigator.of(context).push(
+          // Pass the original TodoItem for editing
+          await Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) {
                 return TodoDetailScreen(
-                  todoItem: TodoItem(
-                    title: todo.title,
-                    isCompleted: todo.isCompleted,
-                    dueDate: todo.dueDate,
-                    dueTime: todo.dueTime,
-                    isRepeating: todo.isRepeating,
-                    repeatInterval: todo.repeatInterval,
-                    listName: todo.listName,
-                    creationDate: todo.creationDate,
-                  ),
+                  todoItem: todo, // Pass the actual todo object
                 );
               },
             ),
           );
-
-          if (editedTodo != null && editedTodo is TodoItem) {
-            final int originalIndex = _todos.indexWhere(
-                    (t) => t.title == todo.title && t.creationDate == todo.creationDate
-            );
-            if (originalIndex != -1) {
-              setState(() {
-                _todos[originalIndex] = editedTodo;
-                _applyFilters();
-                _saveTodos();
-              });
-              _scheduleNotification(editedTodo, s);
-            }
-          }
+          // Saving is now handled by TodoDetailScreen itself.
+          // Re-schedule notification based on potential edits after returning.
+          await _scheduleNotification(todo, s);
         },
       ),
     );
@@ -781,7 +714,7 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
   String? _selectedRepeatInterval;
   String? _selectedListName;
   bool _isEditing = false;
-  late DateTime _creationDate;
+  late DateTime _creationDate; // Use creationDate as a stable ID for edits
   bool _notificationsEnabled = true;
 
   @override
@@ -797,7 +730,7 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
       _creationDate = widget.todoItem!.creationDate;
       _notificationsEnabled = (widget.todoItem!.dueDate != null && widget.todoItem!.dueTime != null);
     } else {
-      _creationDate = DateTime.now();
+      _creationDate = DateTime.now(); // For new tasks, set creation date now
       _notificationsEnabled = false;
     }
   }
@@ -818,6 +751,7 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
       locale: Localizations.localeOf(context),
     );
     if (picked != null && picked != _selectedDate) {
+      if (!mounted) return; // Mounted check
       setState(() {
         _selectedDate = picked;
         if (_selectedTime == null) {
@@ -841,6 +775,7 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
       },
     );
     if (picked != null && picked != _selectedTime) {
+      if (!mounted) return; // Mounted check
       setState(() {
         _selectedTime = picked;
         if (_selectedDate == null) {
@@ -851,7 +786,8 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
     }
   }
 
-  void _saveTask(AppLocalizations s) {
+  void _saveTask(AppLocalizations s) async { // Made async
+    if (!mounted) return; // Mounted check
     final String title = _titleController.text.trim();
     if (title.isEmpty) {
       showAppSnackBar(context, s.emptyTaskError, icon: Icons.warning_amber_outlined, iconColor: Colors.orange);
@@ -869,8 +805,7 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
       finalRepeatInterval = null;
     }
 
-
-    final newTodoItem = TodoItem(
+    final TodoItem todoToSave = TodoItem(
       title: title,
       isCompleted: widget.todoItem?.isCompleted ?? false,
       dueDate: finalDueDate,
@@ -878,11 +813,98 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
       isRepeating: finalRepeatInterval != null && finalRepeatInterval != s.noRepeat,
       repeatInterval: finalRepeatInterval == s.noRepeat ? null : finalRepeatInterval,
       listName: _selectedListName == s.defaultList ? null : _selectedListName,
-      creationDate: _creationDate,
+      creationDate: _creationDate, // Use the original creation date for existing tasks
     );
 
-    Navigator.pop(context, newTodoItem);
+    // Use the TodoSummaryProvider to save the task
+    await Provider.of<TodoSummaryProvider>(context, listen: false).saveTodo(todoToSave);
+
+    // Schedule notification (if any) after saving
+    await _scheduleNotification(todoToSave, s);
+
+    if (mounted) { // Mounted check before showing snackbar and popping
+      showAppSnackBar(context, s.taskSaved, icon: Icons.check, iconColor: Colors.green);
+      Navigator.pop(context); // Pop without returning, as saving is handled here
+    }
   }
+
+  Future<void> _scheduleNotification(TodoItem task, AppLocalizations s) async {
+    if (!mounted) return; // Mounted check
+    final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    Provider.of<FlutterLocalNotificationsPlugin>(context, listen: false);
+
+    if (task.dueDate == null || task.dueTime == null || task.isCompleted) {
+      flutterLocalNotificationsPlugin.cancel(task.hashCode);
+      return;
+    }
+
+    final now = DateTime.now();
+    DateTime scheduleDateTime = DateTime(
+      task.dueDate!.year,
+      task.dueDate!.month,
+      task.dueDate!.day,
+      task.dueTime!.hour,
+      task.dueTime!.minute,
+    );
+
+    if (scheduleDateTime.isBefore(now)) {
+      developer.log("Notification not scheduled: Task time is in the past for '${task.title}'.", name: "Notifications");
+      return;
+    }
+
+    final tz.TZDateTime tzScheduleDateTime = tz.TZDateTime.from(
+      scheduleDateTime,
+      tz.local,
+    );
+
+
+    const AndroidNotificationDetails androidNotificationDetails =
+    AndroidNotificationDetails(
+      'task_reminders_channel',
+      'Task Reminders',
+      channelDescription: 'Reminders for your ECCAT Study Station tasks',
+      importance: Importance.max,
+      priority: Priority.high,
+      ticker: 'ticker',
+    );
+    const DarwinNotificationDetails darwinNotificationDetails = DarwinNotificationDetails();
+    final NotificationDetails notificationDetails = NotificationDetails(
+      android: androidNotificationDetails,
+      iOS: darwinNotificationDetails,
+    );
+
+    DateTimeComponents? dateTimeComponents;
+    if (task.isRepeating) {
+      if (task.repeatInterval == s.daily) {
+        dateTimeComponents = DateTimeComponents.time;
+      } else if (task.repeatInterval == s.weekly) {
+        dateTimeComponents = DateTimeComponents.dayOfWeekAndTime;
+      } else if (task.repeatInterval == s.monthly) {
+        dateTimeComponents = DateTimeComponents.dayOfMonthAndTime;
+      } else if (task.repeatInterval == s.everyXDays(2)) { // This one won't repeat with DateTimeComponents
+        dateTimeComponents = null;
+      } else if (task.repeatInterval == s.weekdays) {
+        dateTimeComponents = DateTimeComponents.dayOfWeekAndTime;
+      } else if (task.repeatInterval == s.weekends) {
+        dateTimeComponents = DateTimeComponents.dayOfWeekAndTime;
+      }
+    }
+
+    await flutterLocalNotificationsPlugin.zonedSchedule(
+      task.hashCode,
+      s.appTitle,
+      '${s.notificationReminderBody} ${task.title}',
+      tzScheduleDateTime,
+      notificationDetails,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: dateTimeComponents,
+      payload: 'task_id:${task.hashCode}',
+    );
+
+    developer.log("Notification scheduled for task '${task.title}' at $scheduleDateTime. Repeat: ${task.repeatInterval}", name: "Notifications");
+  }
+
 
   @override
   Widget build(BuildContext context) {

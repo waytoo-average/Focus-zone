@@ -601,4 +601,69 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get githubProfile => 'ملف GitHub الشخصي';
+
+  @override
+  String get recentFiles => 'الملفات الأخيرة';
+
+  @override
+  String get noRecentFiles => 'لا توجد ملفات حديثة لعرضها.';
+
+  @override
+  String get quickSettings => 'الإعدادات السريعة';
+
+  @override
+  String get quickLinks => 'روابط سريعة';
+
+  @override
+  String welcomeUser(Object userName) {
+    return 'أهلاً بك، $userName!';
+  }
+
+  @override
+  String get yourStudyActivity => 'نشاطك الدراسي';
+
+  @override
+  String get lastOpened => 'آخر فتح';
+
+  @override
+  String documentsViewedThisWeek(Object count) {
+    return 'المستندات التي تمت مشاهدتها هذا الأسبوع: $count';
+  }
+
+  @override
+  String get keepLearning => 'استمر في التعلم، الاتساق هو المفتاح!';
+
+  @override
+  String get todoSnapshot => 'نظرة عامة على المهام';
+
+  @override
+  String get nextDeadline => 'الموعد النهائي القادم';
+
+  @override
+  String get noUpcomingTasks => 'لا توجد مهام قادمة حاليًا!';
+
+  @override
+  String dailyTaskProgress(Object completed, Object total) {
+    return 'تقدم اليوم: تم إكمال $completed من $total مهمة';
+  }
+
+  @override
+  String overdueTasksDashboard(Object count) {
+    return 'المهام المتأخرة: $count';
+  }
+
+  @override
+  String get yourStudyZone => 'منطقة دراستك';
+
+  @override
+  String get exploreSubjects => 'استكشاف المواد';
+
+  @override
+  String get findNewMaterials => 'ابحث عن مواد ومحاضرات جديدة.';
+
+  @override
+  String get createStudyGoal => 'إنشاء هدف دراسي';
+
+  @override
+  String get planYourNextTask => 'خطط لمهمتك الدراسية أو تذكيرك التالي.';
 }

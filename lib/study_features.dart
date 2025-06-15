@@ -523,7 +523,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     final s = AppLocalizations.of(context);
     if (s == null) {
       developer.log("_checkAndLoadPdf (${widget.fileId}): Localizations not available yet.", name: 'PdfViewerScreen');
-      if (mounted) {
+      if (mounted) { // Ensure mounted before setState
         setState(() {
           _loadingError = "Error: Localizations not ready.";
           _isCheckingCache = false;
@@ -534,7 +534,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
 
     if (widget.fileUrl == null || widget.fileUrl!.isEmpty || widget.fileId.isEmpty) {
       developer.log("_checkAndLoadPdf (${widget.fileId}): Missing fileUrl or fileId.", name: 'PdfViewerScreen');
-      if (mounted) {
+      if (mounted) { // Ensure mounted before setState
         setState(() {
           _loadingError = s.errorNoUrlProvided;
           _isCheckingCache = false;
@@ -549,17 +549,29 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     try {
       if (await localFile.exists()) {
         developer.log("_checkAndLoadPdf (${widget.fileId}): File found in cache at ${localFile.path}", name: 'PdfViewerScreen');
-        if (mounted) {
+        if (mounted) { // Ensure mounted before setState
           setState(() {
             _localFilePath = localFile.path;
             _isCheckingCache = false;
             _isLoadingFromServer = false;
             _loadingError = null;
           });
+          // Add to recent files
+          if (mounted) { // Ensure mounted before Provider.of
+            Provider.of<RecentFilesProvider>(context, listen: false).addRecentFile(
+              RecentFile(
+                id: widget.fileId,
+                name: widget.fileName ?? 'PDF Document',
+                url: widget.fileUrl,
+                mimeType: 'application/pdf',
+                accessTime: DateTime.now(),
+              ),
+            );
+          }
         }
       } else {
         developer.log("_checkAndLoadPdf (${widget.fileId}): File not in cache. Preparing to download.", name: 'PdfViewerScreen');
-        if (mounted) {
+        if (mounted) { // Ensure mounted before setState
           setState(() {
             _isCheckingCache = false;
             _isLoadingFromServer = true;
@@ -571,7 +583,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       }
     } catch (e) {
       developer.log("_checkAndLoadPdf (${widget.fileId}): Error during cache check or initiating download: $e", name: 'PdfViewerScreen');
-      if (mounted) {
+      if (mounted) { // Ensure mounted before setState
         setState(() {
           _loadingError = s.failedToLoadPdf(e.toString());
           _isCheckingCache = false;
@@ -594,7 +606,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         localFile.path,
         cancelToken: _cancelToken,
         onReceiveProgress: (received, total) {
-          if (total != -1 && mounted) {
+          if (total != -1 && mounted) { // Ensure mounted before setState
             final progress = received / total;
             setState(() {
               _downloadProgress = progress;
@@ -603,17 +615,29 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         },
       );
       developer.log("_downloadPdf (${widget.fileId}): Download complete.", name: 'PdfViewerScreen');
-      if (mounted) {
+      if (mounted) { // Ensure mounted before setState
         setState(() {
           _localFilePath = localFile.path;
           _isLoadingFromServer = false;
           _loadingError = null;
         });
+        // Add to recent files after successful download
+        if (mounted) { // Ensure mounted before Provider.of
+          Provider.of<RecentFilesProvider>(context, listen: false).addRecentFile(
+            RecentFile(
+              id: widget.fileId,
+              name: widget.fileName ?? 'PDF Document',
+              url: widget.fileUrl,
+              mimeType: 'application/pdf',
+              accessTime: DateTime.now(),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (e is DioException && e.type == DioExceptionType.cancel) {
         developer.log('_downloadPdf (${widget.fileId}): Download cancelled: ${e.message}', name: 'PdfViewerScreen');
-        if (mounted) {
+        if (mounted) { // Ensure mounted before setState
           setState(() {
             _isLoadingFromServer = false;
             if (_loadingError == null && _localFilePath == null) {
@@ -623,13 +647,13 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         }
       } else {
         developer.log('_downloadPdf (${widget.fileId}): Download error: $e', name: 'PdfViewerScreen');
-        if (mounted) {
+        if (mounted) { // Ensure mounted before setState
           if (await localFile.exists()) {
             try {
               await localFile.delete();
-              developer.log("_downloadPdf (${widget.fileId}): Error deleting partial file: $e", name: 'PdfViewerScreen');
+              developer.log("Error deleting partial file: $e", name: 'PdfViewerScreen');
             } catch (delErr) {
-              developer.log("_downloadPdf (${widget.fileId}): Error deleting partial file during exception handling: $delErr", name: 'PdfViewerScreen');
+              developer.log("Error deleting partial file during exception handling: $delErr", name: 'PdfViewerScreen');
             }
           }
           setState(() {
@@ -655,7 +679,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     final s = AppLocalizations.of(context);
     if (s == null) {
       developer.log("_deleteAndRetry (${widget.fileId}): Localizations null, cannot proceed.", name: 'PdfViewerScreen');
-      if (mounted) {
+      if (mounted) { // Ensure mounted before setState
         setState(() {
           _loadingError = "Localization error during retry.";
           _isCheckingCache = false;
@@ -670,12 +694,12 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       if (await localFile.exists()) {
         try {
           await localFile.delete();
-          developer.log("_deleteAndRetry (${widget.fileId}): Deleted cached PDF: ${localFile.path}", name: "PdfViewerScreen");
+          developer.log("Deleted cached PDF: ${localFile.path}", name: "PdfViewerScreen");
         } catch (e) {
-          developer.log("_deleteAndRetry (${widget.fileId}): Error deleting cached PDF: $e", name: 'PdfViewerScreen');
+          developer.log("Error deleting cached PDF: $e", name: 'PdfViewerScreen');
         }
       }
-      if (mounted) {
+      if (mounted) { // Ensure mounted before setState
         setState(() {
           _isCheckingCache = true;
           _localFilePath = null;
@@ -691,7 +715,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       }
     } else {
       developer.log("_deleteAndRetry (${widget.fileId}): fileId is empty, cannot retry.", name: 'PdfViewerScreen');
-      if (mounted) {
+      if (mounted) { // Ensure mounted before setState
         setState(() {
           _loadingError = s.errorFileIdMissing;
           _isCheckingCache = false;
@@ -784,7 +808,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
           key: _pdfViewerKey,
           onDocumentLoadFailed: (details) {
             developer.log('Local PDF load failed for $_localFilePath (${widget.fileId}): ${details.description}', name: 'PdfViewerScreen');
-            if (mounted && s != null) {
+            if (mounted && s != null) { // Ensure mounted
               _deleteAndRetry();
             }
           },
@@ -803,7 +827,17 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
 // Google Drive Viewer Screen (Unchanged from previous provided code)
 class GoogleDriveViewerScreen extends StatefulWidget {
   final String? embedUrl;
-  const GoogleDriveViewerScreen({super.key, this.embedUrl});
+  final String? fileId; // Added for recent files
+  final String? fileName; // Added for recent files
+  final String? mimeType; // Added for recent files
+
+  const GoogleDriveViewerScreen({
+    super.key,
+    this.embedUrl,
+    this.fileId,
+    this.fileName,
+    this.mimeType,
+  });
   @override
   State<GoogleDriveViewerScreen> createState() => _GoogleDriveViewerScreenState();
 }
@@ -827,10 +861,28 @@ class _GoogleDriveViewerScreenState extends State<GoogleDriveViewerScreen> {
         NavigationDelegate(
           onProgress: (int progress) {},
           onPageStarted: (String url) { if (mounted) setState(() => _isLoading = true); },
-          onPageFinished: (String url) { if (mounted) setState(() => _isLoading = false); },
+          onPageFinished: (String url) {
+            if (mounted) { // Ensure mounted before setState
+              setState(() => _isLoading = false);
+              // Add to recent files after page finishes loading
+              if (widget.fileId != null && widget.fileName != null) {
+                if (mounted) { // Ensure mounted before Provider.of
+                  Provider.of<RecentFilesProvider>(context, listen: false).addRecentFile(
+                    RecentFile(
+                      id: widget.fileId!,
+                      name: widget.fileName!,
+                      url: widget.embedUrl,
+                      mimeType: widget.mimeType ?? 'application/octet-stream', // Default if not provided
+                      accessTime: DateTime.now(),
+                    ),
+                  );
+                }
+              }
+            }
+          },
           onWebResourceError: (WebResourceError error) {
             developer.log('Page resource error in WebView: URL: ${error.url}, code: ${error.errorCode}, description: ${error.description}', name: 'GoogleDriveViewer');
-            if (mounted) {
+            if (mounted) { // Ensure mounted
               final s = AppLocalizations.of(context);
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s?.errorLoadingContent(error.description) ?? "Error loading content: ${error.description}")));
             }
@@ -847,7 +899,7 @@ class _GoogleDriveViewerScreenState extends State<GoogleDriveViewerScreen> {
       _controller.loadRequest(Uri.parse(widget.embedUrl!));
     } else {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
+        if (mounted) { // Ensure mounted
           final s = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s?.errorNoUrlProvided ?? "Error: No URL provided")));
           setState(() => _isLoading = false);
@@ -858,7 +910,7 @@ class _GoogleDriveViewerScreenState extends State<GoogleDriveViewerScreen> {
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context);
-    final String appBarTitle = s?.lectureContent ?? "Content Viewer";
+    final String appBarTitle = widget.fileName ?? s?.lectureContent ?? "Content Viewer";
     return Scaffold(
       appBar: AppBar(title: Text(appBarTitle), leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context))),
       body: Stack(
@@ -938,14 +990,14 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
 
   Future<void> _handleSignIn() async {
     final signInProvider = Provider.of<SignInProvider>(context, listen: false);
-    if(mounted){
+    if(mounted){ // Ensure mounted before setState
       setState(() {
         _isLoading = true;
         _error = null;
       });
     }
     await signInProvider.signIn();
-    if (signInProvider.currentUser != null && mounted) {
+    if (signInProvider.currentUser != null && mounted) { // Ensure mounted before accessing context and setState
       _fetchDriveFiles();
     } else if (signInProvider.currentUser == null && mounted && s != null) {
       setState(() {
@@ -959,7 +1011,7 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
     if (!mounted) return;
 
     if (s == null) {
-      if (mounted) {
+      if (mounted) { // Ensure mounted before setState
         setState(() {
           _error = AppLocalizations.of(context)?.error ?? "Localization service not available.";
           _isLoading = false;
@@ -975,12 +1027,12 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
       _selectedFiles.clear();
     });
 
-    final signInProvider = Provider.of<SignInProvider>(context, listen: false);
+    final signInProvider = Provider.of<SignInProvider>(context, listen: false); // Safe, listen: false
     final http.Client? authenticatedClient =
     await signInProvider.authenticatedHttpClient;
 
     if (authenticatedClient == null) {
-      if(mounted){
+      if(mounted){ // Ensure mounted before setState
         setState(() {
           _error = s!.notSignedInClientNotAvailable;
           _isLoading = false;
@@ -990,7 +1042,7 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
     }
 
     if (_currentFolderId == null) {
-      if(mounted){
+      if(mounted){ // Ensure mounted before setState
         setState(() {
           _error = s!.errorMissingFolderId;
           _isLoading = false;
@@ -1008,7 +1060,7 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
         orderBy: 'folder,name',
       );
 
-      if(mounted){
+      if(mounted){ // Ensure mounted before setState
         setState(() {
           _files = result.files;
           _isLoading = false;
@@ -1016,7 +1068,7 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
         });
       }
     } catch (e) {
-      if(mounted){
+      if(mounted){ // Ensure mounted before setState
         setState(() {
           _error = s!.failedToLoadFiles(e.toString());
           _isLoading = false;
@@ -1090,7 +1142,12 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
           Navigator.pushNamed(
             context,
             '/googleDriveViewer',
-            arguments: file.webViewLink,
+            arguments: {
+              'embedUrl': file.webViewLink,
+              'fileId': file.id, // Pass fileId for recent files
+              'fileName': file.name, // Pass fileName for recent files
+              'mimeType': file.mimeType, // Pass mimeType for recent files
+            },
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1122,10 +1179,10 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
         if(!manageStatus.isGranted){
           manageStatus = await Permission.manageExternalStorage.request();
         }
-        if (!manageStatus.isGranted && mounted) {
+        if (!manageStatus.isGranted && mounted) { // Ensure mounted
           showAppSnackBar(context, s!.permissionDenied);
         }
-      } else if (mounted) {
+      } else if (mounted) { // Ensure mounted
         showAppSnackBar(context, s!.permissionDenied);
       }
     }
@@ -1137,7 +1194,7 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
 
     await _requestStoragePermission();
 
-    final downloadPathProvider = Provider.of<DownloadPathProvider>(context, listen: false);
+    final downloadPathProvider = Provider.of<DownloadPathProvider>(context, listen: false); // Safe, listen: false
 
     String effectiveDownloadPath = await downloadPathProvider.getEffectiveDownloadPath();
 
@@ -1148,7 +1205,7 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
         developer.log("Created app-specific download directory: ${effectiveDownloadPath}", name: "DownloadFiles");
       } catch (e) {
         developer.log("Failed to create app-specific directory ${effectiveDownloadPath}: $e", name: "DownloadFiles");
-        if(mounted) {
+        if(mounted) { // Ensure mounted
           showAppSnackBar(context, s!.failedToCreateDirectory(e.toString()));
         }
         return;
@@ -1181,7 +1238,7 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
       _cancelTokens[fileId] = cancelToken;
 
       try {
-        if (mounted) {
+        if (mounted) { // Ensure mounted before setState
           setState(() { _downloadProgressMap[fileId] = 0.0; });
         }
 
@@ -1192,16 +1249,16 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
           filePath,
           cancelToken: cancelToken,
           onReceiveProgress: (received, total) {
-            if (total != -1 && mounted) {
+            if (total != -1 && mounted) { // Ensure mounted before setState
               setState(() {
                 _downloadProgressMap[fileId] = received / total;
               });
             }
           },
-          options: Options(headers: await Provider.of<SignInProvider>(context, listen: false).currentUser?.authHeaders),
+          options: Options(headers: await (mounted ? Provider.of<SignInProvider>(context, listen: false).currentUser?.authHeaders : Future.value({}))), // Safe, check mounted
         );
 
-        if (mounted) {
+        if (mounted) { // Ensure mounted before setState
           setState(() { _downloadProgressMap[fileId] = 1.0; });
           showAppSnackBar(
             context,
@@ -1214,16 +1271,26 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
       } on DioException catch (e) {
         if (e.type == DioExceptionType.cancel) {
           developer.log("Download cancelled for $fileName", name: "DownloadFiles");
-          if (mounted) showAppSnackBar(context, s!.downloadCancelled(fileName));
+          if (mounted) showAppSnackBar(context, s!.downloadCancelled(fileName)); // Ensure mounted
         } else {
           developer.log("Dio download failed for $fileName (app-specific): $e", name: "DownloadFiles");
-          if (mounted) showAppSnackBar(context, s!.downloadFailed(fileName, e.message ?? e.toString()));
+          if (mounted) { // Ensure mounted
+            final partialFile = File(filePath); // Correctly define partialFile within scope
+            if (await partialFile.exists()) {
+              try {
+                await partialFile.delete(); // Delete partial file
+                developer.log("Deleted partial file: $filePath", name: 'LectureFolderBrowser');
+              } catch (delErr) {
+                developer.log("Error deleting partial file during exception handling: $delErr", name: 'LectureFolderBrowser');
+              }
+            }
+            showAppSnackBar(context, s!.downloadFailed(fileName, e.toString()));
+            setState(() { _downloadProgressMap.remove(fileId); });
+          }
         }
-        if (mounted) setState(() { _downloadProgressMap.remove(fileId); });
-
       } catch (e) {
         developer.log("Generic download error for $fileName (app-specific): $e", name: "DownloadFiles");
-        if (mounted) {
+        if (mounted) { // Ensure mounted
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s!.downloadFailed(fileName, e.toString()))));
           setState(() { _downloadProgressMap.remove(fileId); });
         }
@@ -1232,7 +1299,7 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
       }
     }
 
-    if(mounted){
+    if(mounted){ // Ensure mounted
       setState(() {
         _isDownloadingMultiple = false;
         _cancelSelectionMode();
@@ -1256,7 +1323,7 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
   }
 
   void _viewSelectedFileDetails() {
-    if (!mounted || s == null) return;
+    if (!mounted || s == null) return; // Ensure mounted
 
     if (_selectedFiles.length == 1) {
       final file = _selectedFiles.first;

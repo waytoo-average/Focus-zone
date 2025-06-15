@@ -1,4 +1,5 @@
 // Imports that will be needed across many core components
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -202,13 +203,11 @@ class ThemeProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final themeString = prefs.getString('themeMode') ?? 'system';
     _themeMode = ThemeMode.values.firstWhere((e) => e.toString().split('.').last == themeString, orElse: () => ThemeMode.system);
-    developer.log('Loaded theme mode: $_themeMode', name: 'ThemeProvider'); // Log theme loading
     notifyListeners();
   }
 
   void setThemeMode(ThemeMode newMode) async {
     if (newMode != _themeMode) {
-      developer.log('Setting theme mode from $_themeMode to $newMode', name: 'ThemeProvider'); // Log theme change
       _themeMode = newMode;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('themeMode', newMode.toString().split('.').last);
@@ -235,7 +234,7 @@ class LanguageProvider extends ChangeNotifier {
     if (newLocale != _locale) {
       _locale = newLocale;
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('languageCode', newLocale.languageCode); // FIX: Corrected this line
+      await prefs.setString('languageCode', newLocale.languageCode);
       notifyListeners();
     }
   }
@@ -288,6 +287,200 @@ class DownloadPathProvider extends ChangeNotifier {
     return await getEffectiveDownloadPath();
   }
 }
+
+// --- RecentFile Model for Dashboard ---
+class RecentFile {
+  final String id;
+  final String name;
+  final String? url; // Can be a webViewLink or direct download link
+  final String mimeType;
+  final DateTime accessTime;
+
+  RecentFile({
+    required this.id,
+    required this.name,
+    this.url,
+    required this.mimeType,
+    required this.accessTime,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'url': url,
+    'mimeType': mimeType,
+    'accessTime': accessTime.toIso8601String(),
+  };
+
+  factory RecentFile.fromJson(Map<String, dynamic> json) => RecentFile(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    url: json['url'] as String?,
+    mimeType: json['mimeType'] as String,
+    accessTime: DateTime.parse(json['accessTime'] as String),
+  );
+}
+
+// --- RecentFilesProvider ---
+class RecentFilesProvider extends ChangeNotifier {
+  static const _kRecentFilesKey = 'recentFiles';
+  List<RecentFile> _recentFiles = [];
+  List<RecentFile> get recentFiles => _recentFiles;
+
+  RecentFilesProvider() {
+    _loadRecentFiles();
+  }
+
+  Future<void> _loadRecentFiles() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? recentFilesString = prefs.getString(_kRecentFilesKey);
+    if (recentFilesString != null) {
+      final List<dynamic> jsonList = jsonDecode(recentFilesString) as List<dynamic>;
+      _recentFiles = jsonList.map((json) => RecentFile.fromJson(json as Map<String, dynamic>)).toList();
+    }
+    notifyListeners();
+  }
+
+  Future<void> _saveRecentFiles() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String jsonString = jsonEncode(_recentFiles.map((file) => file.toJson()).toList());
+    await prefs.setString(_kRecentFilesKey, jsonString);
+  }
+
+  void addRecentFile(RecentFile file) {
+    // Remove if already exists to move it to the top
+    _recentFiles.removeWhere((f) => f.id == file.id);
+    _recentFiles.insert(0, file); // Add to the beginning
+    // Keep only the latest N files (e.g., 5)
+    if (_recentFiles.length > 5) {
+      _recentFiles = _recentFiles.sublist(0, 5);
+    }
+    _saveRecentFiles();
+    notifyListeners();
+  }
+}
+
+// --- TodoSummaryProvider (now handles persistence as well) ---
+class TodoSummaryProvider extends ChangeNotifier {
+  static const _kTodosKey = 'todos'; // Key for SharedPreferences
+
+  List<TodoItem> _allTodos = []; // Master list of all todos
+
+  int _totalTasks = 0;
+  int _completedToday = 0;
+  int _overdueTasks = 0;
+  TodoItem? _nextUpcomingTask; // New: for the next upcoming task
+
+  List<TodoItem> get allTodos => _allTodos; // Expose the full list
+  int get totalTasks => _totalTasks;
+  int get completedToday => _completedToday;
+  int get overdueTasks => _overdueTasks;
+  TodoItem? get nextUpcomingTask => _nextUpcomingTask; // New getter
+
+  TodoSummaryProvider() {
+    _loadTodosAndSummary();
+  }
+
+  // Combined method to load all todos and update summary stats
+  Future<void> _loadTodosAndSummary() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? todosString = prefs.getString(_kTodosKey);
+      List<dynamic> todoListJson = [];
+      if (todosString != null) {
+        todoListJson = jsonDecode(todosString);
+      }
+
+      _allTodos = todoListJson.map((json) => TodoItem.fromJson(json)).toList();
+
+      _updateSummaryStats(); // Calculate stats from _allTodos
+
+    } catch (e) {
+      developer.log("TodoSummaryProvider Error loading todos: $e", name: "TodoSummaryProvider");
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  // Internal method to calculate summary stats from _allTodos
+  void _updateSummaryStats() {
+    _totalTasks = _allTodos.length;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    _completedToday = _allTodos.where((todo) =>
+    todo.isCompleted &&
+        todo.dueDate != null &&
+        DateTime(todo.dueDate!.year, todo.dueDate!.month, todo.dueDate!.day).isAtSameMomentAs(today)
+    ).length;
+
+    _overdueTasks = _allTodos.where((todo) => todo.isOverdue && !todo.isCompleted).length;
+
+    // Calculate next upcoming task
+    _nextUpcomingTask = null;
+    DateTime? closestDueDate;
+
+    for (var todo in _allTodos) {
+      if (!todo.isCompleted && todo.dueDate != null) {
+        DateTime taskDateTime;
+        if (todo.dueTime != null) {
+          taskDateTime = DateTime(todo.dueDate!.year, todo.dueDate!.month, todo.dueDate!.day, todo.dueTime!.hour, todo.dueTime!.minute);
+        } else {
+          // If no time, consider beginning of day for comparison
+          taskDateTime = DateTime(todo.dueDate!.year, todo.dueDate!.month, todo.dueDate!.day);
+        }
+
+        if (taskDateTime.isAfter(now)) { // Only consider future tasks
+          if (closestDueDate == null || taskDateTime.isBefore(closestDueDate)) {
+            closestDueDate = taskDateTime;
+            _nextUpcomingTask = todo;
+          }
+        }
+      }
+    }
+  }
+
+  // Public method to trigger a refresh of stats
+  void refreshSummary() {
+    _loadTodosAndSummary(); // Reloads all, then updates summary
+  }
+
+  // Method to save a new or updated todo item
+  Future<void> saveTodo(TodoItem todoItem) async {
+    int existingIndex = _allTodos.indexWhere((t) => t.creationDate == todoItem.creationDate);
+
+    if (existingIndex != -1) {
+      // Update existing item
+      _allTodos[existingIndex] = todoItem;
+    } else {
+      // Add new item
+      _allTodos.add(todoItem);
+    }
+    await _persistTodos();
+    notifyListeners(); // Notify after changes are persisted
+  }
+
+  // Method to delete a todo item
+  Future<void> deleteTodo(TodoItem todoItem) async {
+    _allTodos.removeWhere((t) => t.creationDate == todoItem.creationDate);
+    await _persistTodos();
+    notifyListeners(); // Notify after changes are persisted
+  }
+
+  // Private method to persist the current _allTodos list to SharedPreferences
+  Future<void> _persistTodos() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String todosString = jsonEncode(_allTodos.map((todo) => todo.toJson()).toList());
+      await prefs.setString(_kTodosKey, todosString);
+      _updateSummaryStats(); // Recalculate summary after persistence
+    } catch (e) {
+      developer.log("TodoSummaryProvider Error saving todos: $e", name: "TodoSummaryProvider");
+    }
+  }
+}
+
 
 // --- Basic Error Screen ---
 class ErrorScreen extends StatelessWidget {
@@ -535,7 +728,7 @@ class RootScreenState extends State<RootScreen> { // Made public
   }
 }
 
-// Dashboard Screen - NO LONGER HAS ITS OWN SCAFFOLD OR APPBAR
+// Dashboard Screen with modern UI and activity states
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
@@ -543,65 +736,272 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
     final signInProvider = Provider.of<SignInProvider>(context);
+    final todoSummary = Provider.of<TodoSummaryProvider>(context);
+    final recentFilesProvider = Provider.of<RecentFilesProvider>(context);
+
     final user = signInProvider.currentUser;
 
-    return Column(
-      children: [
-        AppBar(
-          title: Text(s.appTitle),
-          automaticallyImplyLeading: false,
-          actions: [
-            if (user == null)
-              TextButton(
-                onPressed: signInProvider.signIn,
-                style: TextButton.styleFrom(foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16.0)),
-                child: Text(s.signIn, style: const TextStyle(fontSize: 16)),
-              )
-            else
-              GestureDetector(
-                onTap: () => showAppSnackBar(context, s.signedInAs(user.displayName ?? user.email ?? s.unknownUser), action: SnackBarAction(label: s.signOut, onPressed: signInProvider.signOut), icon: Icons.person_outline),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: CircleAvatar(
-                    radius: 16,
-                    backgroundColor: Colors.white,
-                    backgroundImage: user.photoUrl != null ? NetworkImage(user.photoUrl!) : null,
-                    child: user.photoUrl == null ? Text(user.displayName?.isNotEmpty == true ? user.displayName![0].toUpperCase() : (user.email.isNotEmpty == true ? user.email[0].toUpperCase() : '?'), style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 14)) : null,
-                  ),
+    return Scaffold(
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 120.0, // This is the height when fully expanded
+            floating: true,
+            pinned: true,
+            snap: false,
+            elevation: 0,
+            backgroundColor: Theme.of(context).primaryColor,
+            automaticallyImplyLeading: false, // Control leading widget manually
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 16.0, top: 16.0), // Adjust padding as needed
+              child: Opacity(
+                opacity: user != null ? 1.0 : 0.0, // Fade out if not signed in
+                child: CircleAvatar(
+                  radius: 20, // Smaller radius for app bar icon
+                  backgroundColor: Colors.white,
+                  backgroundImage: user?.photoUrl != null ? NetworkImage(user!.photoUrl!) : null,
+                  child: user?.photoUrl == null ? Text(user?.displayName?.isNotEmpty == true ? user!.displayName![0].toUpperCase() : (user?.email?.isNotEmpty == true ? user!.email![0].toUpperCase() : '?'), style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 18)) : null,
                 ),
               ),
-          ],
-        ),
-        Expanded(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+            ),
+            flexibleSpace: FlexibleSpaceBar( // Re-introduced FlexibleSpaceBar for title animation
+              // Adjusted titlePadding to be more left-aligned with a gap from leading widget
+              titlePadding: const EdgeInsets.only(left: 72.0, bottom: 16.0),
+              centerTitle: false, // Title aligns to the start
+              title: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.dashboard_outlined, size: 80, color: Theme.of(context).colorScheme.onBackground.withOpacity(0.4)),
-                  const SizedBox(height: 20),
-                  Text(
-                    s.dashboardPlaceholder,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
+                  Text(s.appTitle, style: Theme.of(context).appBarTheme.titleTextStyle?.copyWith(fontSize: 18)),
+                  if (user != null)
+                    Text(
+                      s.welcomeUser(user.displayName ?? user.email!),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70, fontSize: 14),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    s.dashboardComingSoon,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
-                    ),
-                  ),
                 ],
               ),
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Theme.of(context).primaryColor, Theme.of(context).colorScheme.primary.withOpacity(0.7)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+                // Removed the CircleAvatar from here as it's now in 'leading'
+              ),
+            ),
+            actions: [
+              if (user == null)
+                TextButton(
+                  onPressed: signInProvider.signIn,
+                  style: TextButton.styleFrom(foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16.0)),
+                  child: Text(s.signIn, style: const TextStyle(fontSize: 16)),
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.logout, color: Colors.white),
+                  onPressed: signInProvider.signOut,
+                  tooltip: s.signOut,
+                ),
+            ],
+          ),
+          SliverList(
+            delegate: SliverChildListDelegate(
+              [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Your Study Activity Card
+                      _buildDashboardCard(
+                        context,
+                        title: s.yourStudyActivity,
+                        icon: Icons.school_outlined,
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.history_toggle_off),
+                            title: Text(s.lastOpened),
+                            subtitle: recentFilesProvider.recentFiles.isNotEmpty
+                                ? Text(recentFilesProvider.recentFiles.first.name)
+                                : Text(s.noRecentFiles),
+                            trailing: recentFilesProvider.recentFiles.isNotEmpty
+                                ? Icon(Icons.arrow_forward_ios, size: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))
+                                : null,
+                            onTap: recentFilesProvider.recentFiles.isNotEmpty
+                                ? () {
+                              final file = recentFilesProvider.recentFiles.first;
+                              if (file.mimeType.contains('pdf')) {
+                                Navigator.of(context, rootNavigator: true).pushNamed(
+                                  '/pdfViewer',
+                                  arguments: {'fileUrl': file.url, 'fileId': file.id, 'fileName': file.name},
+                                );
+                              } else if (file.url != null) {
+                                Navigator.of(context, rootNavigator: true).pushNamed(
+                                  '/googleDriveViewer',
+                                  arguments: {'embedUrl': file.url, 'fileId': file.id, 'fileName': file.name, 'mimeType': file.mimeType},
+                                );
+                              } else {
+                                showAppSnackBar(context, s.cannotOpenFileType);
+                              }
+                            }
+                                : null,
+                          ),
+                          Divider(indent: 16, endIndent: 16, color: Theme.of(context).dividerColor.withOpacity(0.2)),
+                          ListTile(
+                            leading: const Icon(Icons.view_carousel_outlined),
+                            title: Text(s.documentsViewedThisWeek(recentFilesProvider.recentFiles.length)), // Simple count of recent files
+                            subtitle: Text(s.keepLearning),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // To-Do Snapshot Card
+                      _buildDashboardCard(
+                        context,
+                        title: s.todoSnapshot,
+                        icon: Icons.task_alt_outlined,
+                        children: [
+                          ListTile(
+                            leading: Icon(Icons.event_note, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
+                            title: Text(s.nextDeadline),
+                            subtitle: todoSummary.nextUpcomingTask != null
+                                ? Text('${todoSummary.nextUpcomingTask!.title} (${todoSummary.nextUpcomingTask!.formatDueDate(context, s)})')
+                                : Text(s.noUpcomingTasks),
+                            trailing: todoSummary.nextUpcomingTask != null
+                                ? Icon(Icons.arrow_forward_ios, size: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))
+                                : null,
+                            onTap: todoSummary.nextUpcomingTask != null
+                                ? () {
+                              rootScreenKey.currentState?.setState(() => rootScreenKey.currentState?._selectedIndex = 2); // Go to To-Do List
+                            } : null,
+                          ),
+                          Divider(indent: 16, endIndent: 16, color: Theme.of(context).dividerColor.withOpacity(0.2)),
+                          ListTile(
+                            leading: Icon(Icons.check_circle_outline, color: Theme.of(context).colorScheme.secondary),
+                            title: Text(s.dailyTaskProgress(todoSummary.completedToday, todoSummary.totalTasks)),
+                            subtitle: LinearProgressIndicator(
+                              value: todoSummary.totalTasks > 0 ? todoSummary.completedToday / todoSummary.totalTasks : 0.0,
+                              backgroundColor: Theme.of(context).colorScheme.onBackground.withOpacity(0.2),
+                              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.secondary),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          if (todoSummary.overdueTasks > 0)
+                            Column(
+                              children: [
+                                Divider(indent: 16, endIndent: 16, color: Theme.of(context).dividerColor.withOpacity(0.2)),
+                                ListTile(
+                                  leading: const Icon(Icons.error_outline, color: Colors.red),
+                                  title: Text(s.overdueTasksDashboard(todoSummary.overdueTasks)),
+                                  onTap: () {
+                                    rootScreenKey.currentState?.setState(() => rootScreenKey.currentState?._selectedIndex = 2); // Go to To-Do List
+                                  },
+                                ),
+                              ],
+                            ),
+                          const SizedBox(height: 15),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                HapticFeedback.lightImpact();
+                                await Navigator.of(context, rootNavigator: true).push(
+                                  MaterialPageRoute(
+                                    builder: (context) {
+                                      return const TodoDetailScreen();
+                                    },
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.add_task),
+                              label: Text(s.addTask),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(120, 40),
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Your Study Zone Card
+                      _buildDashboardCard(
+                        context,
+                        title: s.yourStudyZone,
+                        icon: Icons.lightbulb_outline,
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.explore_outlined),
+                            title: Text(s.exploreSubjects),
+                            subtitle: Text(s.findNewMaterials),
+                            trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+                            onTap: () {
+                              rootScreenKey.currentState?.setState(() => rootScreenKey.currentState?._selectedIndex = 1); // Go to Study tab
+                            },
+                          ),
+                          Divider(indent: 16, endIndent: 16, color: Theme.of(context).dividerColor.withOpacity(0.2)),
+                          ListTile(
+                            leading: const Icon(Icons.add_circle_outline),
+                            title: Text(s.createStudyGoal),
+                            subtitle: Text(s.planYourNextTask),
+                            trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+                            onTap: () async {
+                              HapticFeedback.lightImpact();
+                              await Navigator.of(context, rootNavigator: true).push(
+                                MaterialPageRoute(
+                                  builder: (context) {
+                                    return const TodoDetailScreen();
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // Helper method to build consistent looking cards
+  Widget _buildDashboardCard(BuildContext context, {required String title, required IconData icon, required List<Widget> children}) {
+    return Card(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 6, // Slightly higher elevation for modern look
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 24, color: Theme.of(context).colorScheme.secondary),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ...children,
+          ],
         ),
-      ],
+      ),
     );
   }
 }

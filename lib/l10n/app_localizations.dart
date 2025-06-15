@@ -1141,6 +1141,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'GitHub Profile'**
   String get githubProfile;
+
+  /// No description provided for @recentFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Files'**
+  String get recentFiles;
+
+  /// No description provided for @noRecentFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent files to display.'**
+  String get noRecentFiles;
+
+  /// No description provided for @quickSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Settings'**
+  String get quickSettings;
+
+  /// No description provided for @quickLinks.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Links'**
+  String get quickLinks;
+
+  /// No description provided for @welcomeUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome, {userName}!'**
+  String welcomeUser(Object userName);
+
+  /// No description provided for @yourStudyActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Study Activity'**
+  String get yourStudyActivity;
+
+  /// No description provided for @lastOpened.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Opened'**
+  String get lastOpened;
+
+  /// No description provided for @documentsViewedThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Documents viewed this week: {count}'**
+  String documentsViewedThisWeek(Object count);
+
+  /// No description provided for @keepLearning.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep learning, consistency is key!'**
+  String get keepLearning;
+
+  /// No description provided for @todoSnapshot.
+  ///
+  /// In en, this message translates to:
+  /// **'To-Do Snapshot'**
+  String get todoSnapshot;
+
+  /// No description provided for @nextDeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Next Deadline'**
+  String get nextDeadline;
+
+  /// No description provided for @noUpcomingTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'No upcoming tasks right now!'**
+  String get noUpcomingTasks;
+
+  /// No description provided for @dailyTaskProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s Progress: {completed} of {total} tasks completed'**
+  String dailyTaskProgress(Object completed, Object total);
+
+  /// No description provided for @overdueTasksDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Overdue Tasks: {count}'**
+  String overdueTasksDashboard(Object count);
+
+  /// No description provided for @yourStudyZone.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Study Zone'**
+  String get yourStudyZone;
+
+  /// No description provided for @exploreSubjects.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore Subjects'**
+  String get exploreSubjects;
+
+  /// No description provided for @findNewMaterials.
+  ///
+  /// In en, this message translates to:
+  /// **'Find new materials and lectures.'**
+  String get findNewMaterials;
+
+  /// No description provided for @createStudyGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a Study Goal'**
+  String get createStudyGoal;
+
+  /// No description provided for @planYourNextTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan your next study task or reminder.'**
+  String get planYourNextTask;
 }
 
 class _AppLocalizationsDelegate

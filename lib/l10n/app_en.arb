@@ -178,5 +178,45 @@
   "errorAttemptedGlobalPush": "Attempted to open content outside the current tab's navigation. Please try again from the main tab, or report this issue if it persists.",
   "downloadFolderNotFound": "Download folder not found. It might have been moved or deleted.",
   "discordProfile": "Discord Profile",
-  "githubProfile": "GitHub Profile"
+  "githubProfile": "GitHub Profile",
+  "recentFiles": "Recent Files",
+  "noRecentFiles": "No recent files to display.",
+  "quickSettings": "Quick Settings",
+  "quickLinks": "Quick Links",
+  "welcomeUser": "Welcome, {userName}!",
+  "@welcomeUser": {
+    "placeholders": {
+      "userName": {}
+    }
+  },
+  "yourStudyActivity": "Your Study Activity",
+  "lastOpened": "Last Opened",
+  "documentsViewedThisWeek": "Documents viewed this week: {count}",
+  "@documentsViewedThisWeek": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "keepLearning": "Keep learning, consistency is key!",
+  "todoSnapshot": "To-Do Snapshot",
+  "nextDeadline": "Next Deadline",
+  "noUpcomingTasks": "No upcoming tasks right now!",
+  "dailyTaskProgress": "Today's Progress: {completed} of {total} tasks completed",
+  "@dailyTaskProgress": {
+    "placeholders": {
+      "completed": {},
+      "total": {}
+    }
+  },
+  "overdueTasksDashboard": "Overdue Tasks: {count}",
+  "@overdueTasksDashboard": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yourStudyZone": "Your Study Zone",
+  "exploreSubjects": "Explore Subjects",
+  "findNewMaterials": "Find new materials and lectures.",
+  "createStudyGoal": "Create a Study Goal",
+  "planYourNextTask": "Plan your next study task or reminder."
 }

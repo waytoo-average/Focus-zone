@@ -604,4 +604,69 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get githubProfile => 'GitHub Profile';
+
+  @override
+  String get recentFiles => 'Recent Files';
+
+  @override
+  String get noRecentFiles => 'No recent files to display.';
+
+  @override
+  String get quickSettings => 'Quick Settings';
+
+  @override
+  String get quickLinks => 'Quick Links';
+
+  @override
+  String welcomeUser(Object userName) {
+    return 'Welcome, $userName!';
+  }
+
+  @override
+  String get yourStudyActivity => 'Your Study Activity';
+
+  @override
+  String get lastOpened => 'Last Opened';
+
+  @override
+  String documentsViewedThisWeek(Object count) {
+    return 'Documents viewed this week: $count';
+  }
+
+  @override
+  String get keepLearning => 'Keep learning, consistency is key!';
+
+  @override
+  String get todoSnapshot => 'To-Do Snapshot';
+
+  @override
+  String get nextDeadline => 'Next Deadline';
+
+  @override
+  String get noUpcomingTasks => 'No upcoming tasks right now!';
+
+  @override
+  String dailyTaskProgress(Object completed, Object total) {
+    return 'Today\'s Progress: $completed of $total tasks completed';
+  }
+
+  @override
+  String overdueTasksDashboard(Object count) {
+    return 'Overdue Tasks: $count';
+  }
+
+  @override
+  String get yourStudyZone => 'Your Study Zone';
+
+  @override
+  String get exploreSubjects => 'Explore Subjects';
+
+  @override
+  String get findNewMaterials => 'Find new materials and lectures.';
+
+  @override
+  String get createStudyGoal => 'Create a Study Goal';
+
+  @override
+  String get planYourNextTask => 'Plan your next study task or reminder.';
 }

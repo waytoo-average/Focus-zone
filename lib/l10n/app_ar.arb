@@ -178,5 +178,45 @@
   "errorAttemptedGlobalPush": "تمت محاولة فتح المحتوى خارج التنقل الحالي للعلامة التبويب. يرجى المحاولة مرة أخرى من علامة التبويب الرئيسية، أو الإبلاغ عن هذه المشكلة إذا استمرت.",
   "downloadFolderNotFound": "مجلد التنزيلات غير موجود. ربما تم نقله أو حذفه.",
   "githubProfile": "ملف GitHub الشخصي",
-  "discordProfile": "ملف Discord الشخصي"
+  "discordProfile": "ملف Discord الشخصي",
+  "recentFiles": "الملفات الأخيرة",
+  "noRecentFiles": "لا توجد ملفات حديثة لعرضها.",
+  "quickSettings": "الإعدادات السريعة",
+  "quickLinks": "روابط سريعة",
+  "welcomeUser": "أهلاً بك، {userName}!",
+  "@welcomeUser": {
+    "placeholders": {
+      "userName": {}
+    }
+  },
+  "yourStudyActivity": "نشاطك الدراسي",
+  "lastOpened": "آخر فتح",
+  "documentsViewedThisWeek": "المستندات التي تمت مشاهدتها هذا الأسبوع: {count}",
+  "@documentsViewedThisWeek": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "keepLearning": "استمر في التعلم، الاتساق هو المفتاح!",
+  "todoSnapshot": "نظرة عامة على المهام",
+  "nextDeadline": "الموعد النهائي القادم",
+  "noUpcomingTasks": "لا توجد مهام قادمة حاليًا!",
+  "dailyTaskProgress": "تقدم اليوم: تم إكمال {completed} من {total} مهمة",
+  "@dailyTaskProgress": {
+    "placeholders": {
+      "completed": {},
+      "total": {}
+    }
+  },
+  "overdueTasksDashboard": "المهام المتأخرة: {count}",
+  "@overdueTasksDashboard": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "yourStudyZone": "منطقة دراستك",
+  "exploreSubjects": "استكشاف المواد",
+  "findNewMaterials": "ابحث عن مواد ومحاضرات جديدة.",
+  "createStudyGoal": "إنشاء هدف دراسي",
+  "planYourNextTask": "خطط لمهمتك الدراسية أو تذكيرك التالي."
 }
