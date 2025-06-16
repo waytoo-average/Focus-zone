@@ -701,4 +701,27 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get permissionDeniedForever =>
       'تم رفض إذن التخزين بشكل دائم. يرجى منحه من إعدادات التطبيق.';
+
+  @override
+  String get permissionDeniedAllFilesAccess =>
+      'تم رفض إذن الوصول لجميع الملفات. يرجى منحه يدويًا من إعدادات التطبيق للحصول على الوظائف الكاملة.';
+
+  @override
+  String get openSettings => 'فتح الإعدادات';
+
+  @override
+  String get allFilesAccessRationale =>
+      'لتمكين تنزيل وإدارة ملفات PDF، يحتاج تطبيق ECCAT Study Station إلى إذن \'الوصول إلى جميع الملفات\'. يتيح ذلك للتطبيق حفظ الملفات وفتحها في موقع التنزيل الذي تختاره.';
+
+  @override
+  String get permissionNeeded => 'إذن مطلوب';
+
+  @override
+  String couldNotOpenChosenFolder(Object error) {
+    return 'تعذر فتح المجلد المختار: $error. محاولة فتح مجلد التطبيق الافتراضي.';
+  }
+
+  @override
+  String get couldNotOpenDefaultFolder =>
+      'تعذر فتح مجلد التنزيل الافتراضي للتطبيق.';
 }

@@ -54,21 +54,39 @@ class SettingsScreen extends StatelessWidget {
     bool granted = await pathProvider.requestStoragePermissions(context, s);
     if (!granted) {
       developer.log("Permission not granted for opening download folder.", name: "SettingsScreen");
+      // The showAppSnackBar inside requestStoragePermissions already guides the user.
       return; // Stop if permissions are not granted
     }
 
     final String currentDownloadPath = await pathProvider.getEffectiveDownloadPath();
+    final String appDefaultDownloadPath = await pathProvider.getAppSpecificDownloadPath(); // Get the app's default path
+
     developer.log("Attempting to open path: $currentDownloadPath", name: "SettingsScreen");
     try {
       final result = await OpenFilex.open(currentDownloadPath);
       if (result.type != ResultType.done) {
-        developer.log("Failed to open folder: ${result.message}", name: "SettingsScreen");
+        developer.log("Failed to open chosen folder: ${result.message}", name: "SettingsScreen");
         if (context.mounted) {
-          showAppSnackBar(context, s.couldNotOpenFolder(result.message ?? 'Unknown error'), icon: Icons.folder_off_outlined, iconColor: Colors.red);
+          // If user's chosen folder failed to open, try opening app's default download folder instead
+          showAppSnackBar(
+            context,
+            s.couldNotOpenChosenFolder(result.message ?? 'Unknown error'), // New localization key
+            icon: Icons.folder_off_outlined,
+            iconColor: Colors.red,
+            duration: const Duration(seconds: 7), // Give user time to read
+          );
+          // Fallback: try to open the app's default download folder
+          if (currentDownloadPath != appDefaultDownloadPath) {
+            developer.log("Attempting to open app's default download folder as fallback: $appDefaultDownloadPath", name: "SettingsScreen");
+            final fallbackResult = await OpenFilex.open(appDefaultDownloadPath);
+            if (fallbackResult.type != ResultType.done && context.mounted) {
+              showAppSnackBar(context, s.couldNotOpenDefaultFolder, icon: Icons.folder_off_outlined, iconColor: Colors.red); // New localization key
+            }
+          }
         }
       }
     } catch (e) {
-      developer.log("Could not open download folder: $e", name: "SettingsScreen");
+      developer.log("Could not open download folder (exception): $e", name: "SettingsScreen");
       if (context.mounted) {
         showAppSnackBar(context, s.couldNotOpenFolder(e.toString()), icon: Icons.folder_off_outlined, iconColor: Colors.red);
       }
@@ -83,6 +101,7 @@ class SettingsScreen extends StatelessWidget {
     bool granted = await pathProvider.requestStoragePermissions(context, s);
     if (!granted) {
       developer.log("Permission not granted for choosing download location.", name: "SettingsScreen");
+      // The showAppSnackBar inside requestStoragePermissions already guides the user.
       return; // Stop if permissions are not granted
     }
 

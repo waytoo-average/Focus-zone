@@ -32,7 +32,7 @@ String formatBytesSimplified(int bytes, int decimals, AppLocalizations s) {
 }
 
 // --- Helper for showing SnackBar Messages ---
-void showAppSnackBar(BuildContext context, String message, {IconData? icon, Color? iconColor, SnackBarAction? action, Color? backgroundColor}) {
+void showAppSnackBar(BuildContext context, String message, {IconData? icon, Color? iconColor, SnackBarAction? action, Color? backgroundColor, Duration? duration}) { // MODIFIED: Added Duration? duration
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Row(
@@ -51,7 +51,7 @@ void showAppSnackBar(BuildContext context, String message, {IconData? icon, Colo
       ),
       backgroundColor: backgroundColor ?? Theme.of(context).primaryColor, // Default to primary color
       action: action,
-      duration: const Duration(seconds: 3), // Default duration
+      duration: duration ?? const Duration(seconds: 5), // MODIFIED: Use provided duration or default to 5 seconds
       behavior: SnackBarBehavior.floating, // Make it float
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), // Rounded corners
       margin: const EdgeInsets.all(10), // Margin from edges
@@ -244,6 +244,7 @@ class LanguageProvider extends ChangeNotifier {
 // --- DownloadPathProvider ---
 class DownloadPathProvider extends ChangeNotifier {
   static const String _kCustomDownloadPathKey = 'customDownloadPath';
+  static const String _kHasSeenAllFilesAccessPromptKey = 'hasSeenAllFilesAccessPrompt'; // NEW: For permission dialog flag
   String? _appSpecificDownloadPath; // Stores the resolved app-specific path
   String? _customDownloadPath;      // Stores the user-selected custom path
 
@@ -333,32 +334,54 @@ class DownloadPathProvider extends ChangeNotifier {
     return await getEffectiveDownloadPath();
   }
 
+  // NEW: Check if the user has already seen the all files access prompt
+  Future<bool> hasSeenAllFilesAccessPrompt() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kHasSeenAllFilesAccessPromptKey) ?? false;
+  }
+
+  // NEW: Set that the user has seen the all files access prompt
+  Future<void> setSeenAllFilesAccessPrompt(bool seen) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kHasSeenAllFilesAccessPromptKey, seen);
+  }
+
+
   // NEW: Centralized function to request storage permissions
   Future<bool> requestStoragePermissions(BuildContext context, AppLocalizations s) async {
-    PermissionStatus status = await Permission.storage.status;
+    // First, check if MANAGE_EXTERNAL_STORAGE is already granted
+    PermissionStatus manageStatus = await Permission.manageExternalStorage.status;
 
-    if (status.isGranted) {
-      developer.log("Storage permission already granted.", name: "Permissions");
-      return true; // Permission already granted, proceed
+    if (manageStatus.isGranted) {
+      developer.log("MANAGE_EXTERNAL_STORAGE permission already granted.", name: "Permissions");
+      return true; // Already has full access, no further action needed.
     }
 
-    status = await Permission.storage.request();
+    // If not granted, try to request it. This specifically aims to open the "All files access" settings page.
+    manageStatus = await Permission.manageExternalStorage.request();
 
-    if (!status.isGranted) {
-      if (Platform.isAndroid) {
-        // For Android 11 (API 30) and above, MANAGE_EXTERNAL_STORAGE is required
-        // if the app needs broad file access (e.g., picking arbitrary directories).
-        PermissionStatus manageExternalStorageStatus = await Permission.manageExternalStorage.request();
-        if (!manageExternalStorageStatus.isGranted && context.mounted) {
-          showAppSnackBar(context, s.permissionDeniedForever, action: SnackBarAction(label: s.settings, onPressed: () => openAppSettings()));
-          return false;
-        }
-      } else if (context.mounted) {
-        showAppSnackBar(context, s.permissionDenied);
-        return false;
+    if (manageStatus.isGranted) {
+      developer.log("MANAGE_EXTERNAL_STORAGE permission granted after request.", name: "Permissions");
+      return true;
+    } else {
+      // If MANAGE_EXTERNAL_STORAGE is still not granted (user denied or did not toggle in settings),
+      // inform them more clearly and offer to open app settings.
+      developer.log("MANAGE_EXTERNAL_STORAGE permission NOT granted. Current status: ${manageStatus.name}", name: "Permissions");
+      if (context.mounted) {
+        showAppSnackBar(
+          context,
+          s.permissionDeniedAllFilesAccess, // New localization key
+          action: SnackBarAction(
+            label: s.openSettings, // New localization key
+            onPressed: () => openAppSettings(), // This should lead to the general app settings where "All files access" can be found.
+          ),
+          icon: Icons.error_outline,
+          iconColor: Colors.red,
+          duration: const Duration(seconds: 10), // Give user more time to read and act
+        );
       }
+      return false; // Permission still not granted.
     }
-    return status.isGranted; // Return true if permission is granted, false otherwise
   }
 }
 
@@ -626,13 +649,54 @@ class RootScreenState extends State<RootScreen> { // Made public
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Request permissions when the root screen loads and localizations are available
+    _handleInitialPermissions(); // NEW: Call the permission handler here
+  }
+
+  // NEW: Function to handle initial permission request with a dialog
+  Future<void> _handleInitialPermissions() async {
     final downloadPathProvider = Provider.of<DownloadPathProvider>(context, listen: false);
     final s = AppLocalizations.of(context);
-    if (s != null) {
+
+    if (s == null) {
+      developer.log("Localizations not ready for initial permission handling.", name: "RootScreen");
+      return;
+    }
+
+    // Only show the dialog if user hasn't seen it and permission is not granted yet
+    bool hasSeenPrompt = await downloadPathProvider.hasSeenAllFilesAccessPrompt();
+    PermissionStatus manageStatus = await Permission.manageExternalStorage.status;
+
+    if (!hasSeenPrompt && !manageStatus.isGranted) {
+      if (context.mounted) {
+        // Show the explanatory dialog
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false, // User must interact with the dialog
+          builder: (BuildContext dialogContext) {
+            return AlertDialog(
+              title: Text(s.permissionNeeded), // Assuming this key exists
+              content: Text(s.allFilesAccessRationale), // NEW localization key
+              actions: <Widget>[
+                TextButton(
+                  child: Text(s.ok), // Assuming this key exists
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop();
+                    // Request permission after dialog is dismissed
+                    await downloadPathProvider.requestStoragePermissions(context, s);
+                    await downloadPathProvider.setSeenAllFilesAccessPrompt(true); // Mark as seen
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
+    } else if (!manageStatus.isGranted && context.mounted) {
+      // If prompt was seen but permission not granted, re-request without dialog
       downloadPathProvider.requestStoragePermissions(context, s);
     }
   }
+
 
   void _onItemTapped(int index) {
     if (_selectedIndex == index) {

@@ -1303,6 +1303,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Storage permission denied permanently. Please grant it from app settings.'**
   String get permissionDeniedForever;
+
+  /// No description provided for @permissionDeniedAllFilesAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'All files access permission denied. Please grant it manually from app settings for full functionality.'**
+  String get permissionDeniedAllFilesAccess;
+
+  /// No description provided for @openSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get openSettings;
+
+  /// No description provided for @allFilesAccessRationale.
+  ///
+  /// In en, this message translates to:
+  /// **'To enable downloading and managing PDF files, ECCAT Study Station needs \'All files access\' permission. This allows the app to save and open files in your chosen download location.'**
+  String get allFilesAccessRationale;
+
+  /// No description provided for @permissionNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission Needed'**
+  String get permissionNeeded;
+
+  /// No description provided for @couldNotOpenChosenFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open chosen folder: {error}. Trying app\'s default.'**
+  String couldNotOpenChosenFolder(Object error);
+
+  /// No description provided for @couldNotOpenDefaultFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open app\'s default download folder.'**
+  String get couldNotOpenDefaultFolder;
 }
 
 class _AppLocalizationsDelegate
