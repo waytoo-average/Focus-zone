@@ -8,6 +8,7 @@ import 'dart:io'; // For File operations
 import 'package:open_filex/open_filex.dart'; // For opening download folder
 import 'package:permission_handler/permission_handler.dart'; // For permissions
 import 'dart:developer' as developer; // For logging
+import 'package:file_picker/file_picker.dart'; // NEW: For choosing download location
 
 // Core app imports (from app_core.dart)
 import 'package:app/app_core.dart';
@@ -47,6 +48,15 @@ class SettingsScreen extends StatelessWidget {
 
   // Modified function to open app-specific download path directly
   Future<void> _openAppDownloadPath(BuildContext context, AppLocalizations s, DownloadPathProvider pathProvider) async {
+    if (!context.mounted) return;
+
+    // Request permissions using the centralized method
+    bool granted = await pathProvider.requestStoragePermissions(context, s);
+    if (!granted) {
+      developer.log("Permission not granted for opening download folder.", name: "SettingsScreen");
+      return; // Stop if permissions are not granted
+    }
+
     final String currentDownloadPath = await pathProvider.getEffectiveDownloadPath();
     developer.log("Attempting to open path: $currentDownloadPath", name: "SettingsScreen");
     try {
@@ -61,6 +71,34 @@ class SettingsScreen extends StatelessWidget {
       developer.log("Could not open download folder: $e", name: "SettingsScreen");
       if (context.mounted) {
         showAppSnackBar(context, s.couldNotOpenFolder(e.toString()), icon: Icons.folder_off_outlined, iconColor: Colors.red);
+      }
+    }
+  }
+
+  // NEW: Function to pick a new download location
+  Future<void> _chooseDownloadLocation(BuildContext context, AppLocalizations s, DownloadPathProvider pathProvider) async {
+    if (!context.mounted) return;
+
+    // Request permissions using the centralized method
+    bool granted = await pathProvider.requestStoragePermissions(context, s);
+    if (!granted) {
+      developer.log("Permission not granted for choosing download location.", name: "SettingsScreen");
+      return; // Stop if permissions are not granted
+    }
+
+    try {
+      final String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+
+      if (selectedDirectory != null && context.mounted) {
+        await pathProvider.setCustomDownloadPath(selectedDirectory);
+        showAppSnackBar(context, s.downloadLocationUpdated(selectedDirectory), icon: Icons.check_circle_outline, iconColor: Colors.green);
+      } else if (context.mounted) {
+        showAppSnackBar(context, s.noLocationSelected);
+      }
+    } catch (e) {
+      developer.log("Error picking download location: $e", name: "SettingsScreen");
+      if (context.mounted) {
+        showAppSnackBar(context, s.failedToSetDownloadLocation(e.toString()), icon: Icons.error_outline, iconColor: Colors.red);
       }
     }
   }
@@ -208,7 +246,41 @@ class SettingsScreen extends StatelessWidget {
                   }
               ),
               onTap: () {
-                _openAppDownloadPath(context, s, downloadPathProvider);
+                showModalBottomSheet(
+                  context: context,
+                  builder: (BuildContext sheetContext) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        ListTile(
+                          leading: const Icon(Icons.folder_outlined),
+                          title: Text(s.chooseNewLocation),
+                          onTap: () {
+                            Navigator.pop(sheetContext);
+                            _chooseDownloadLocation(context, s, downloadPathProvider);
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.open_in_new),
+                          title: Text(s.openCurrentLocation),
+                          onTap: () {
+                            Navigator.pop(sheetContext);
+                            _openAppDownloadPath(context, s, downloadPathProvider);
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(Icons.refresh),
+                          title: Text(s.resetToDefault),
+                          onTap: () async {
+                            Navigator.pop(sheetContext);
+                            await downloadPathProvider.resetDownloadPath();
+                            showAppSnackBar(context, s.downloadLocationReset, icon: Icons.check_circle_outline, iconColor: Colors.green);
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                );
               },
             ),
 

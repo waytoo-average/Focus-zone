@@ -1168,33 +1168,16 @@ class _LectureFolderBrowserScreenState extends State<LectureFolderBrowserScreen>
     }
   }
 
-  Future<void> _requestStoragePermission() async {
-    var status = await Permission.storage.status;
-    if (!status.isGranted) {
-      status = await Permission.storage.request();
-    }
-    if (!status.isGranted) {
-      if (Platform.isAndroid) {
-        var manageStatus = await Permission.manageExternalStorage.status;
-        if(!manageStatus.isGranted){
-          manageStatus = await Permission.manageExternalStorage.request();
-        }
-        if (!manageStatus.isGranted && mounted) { // Ensure mounted
-          showAppSnackBar(context, s!.permissionDenied);
-        }
-      } else if (mounted) { // Ensure mounted
-        showAppSnackBar(context, s!.permissionDenied);
-      }
-    }
-  }
-
-
   Future<void> _downloadSelectedFiles() async {
     if (!mounted || s == null || _selectedFiles.isEmpty) return;
 
-    await _requestStoragePermission();
-
-    final downloadPathProvider = Provider.of<DownloadPathProvider>(context, listen: false); // Safe, listen: false
+    final downloadPathProvider = Provider.of<DownloadPathProvider>(context, listen: false);
+    // Request permissions using the centralized method
+    bool granted = await downloadPathProvider.requestStoragePermissions(context, s!);
+    if (!granted) {
+      developer.log("Permission not granted, aborting download.", name: "DownloadFiles");
+      return; // Stop if permissions are not granted
+    }
 
     String effectiveDownloadPath = await downloadPathProvider.getEffectiveDownloadPath();
 

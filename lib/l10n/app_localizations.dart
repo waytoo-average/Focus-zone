@@ -185,7 +185,7 @@ abstract class AppLocalizations {
   /// No description provided for @notSignedInClientNotAvailable.
   ///
   /// In en, this message translates to:
-  /// **'Not signed in. Google Drive client not available.'**
+  /// **'Not signed in or client not available. Please sign in.'**
   String get notSignedInClientNotAvailable;
 
   /// No description provided for @firstGrade.
@@ -305,7 +305,7 @@ abstract class AppLocalizations {
   /// No description provided for @errorMissingFolderId.
   ///
   /// In en, this message translates to:
-  /// **'Folder ID is missing. Cannot browse content.'**
+  /// **'Error: Missing folder ID.'**
   String get errorMissingFolderId;
 
   /// No description provided for @failedToLoadFiles.
@@ -317,7 +317,7 @@ abstract class AppLocalizations {
   /// No description provided for @errorNoUrlProvided.
   ///
   /// In en, this message translates to:
-  /// **'No URL provided for content. Cannot display.'**
+  /// **'Error: No URL provided.'**
   String get errorNoUrlProvided;
 
   /// No description provided for @failedToLoadPdf.
@@ -329,13 +329,13 @@ abstract class AppLocalizations {
   /// No description provided for @errorDownloadCancelled.
   ///
   /// In en, this message translates to:
-  /// **'Download was cancelled.'**
+  /// **'Download cancelled.'**
   String get errorDownloadCancelled;
 
   /// No description provided for @errorFileIdMissing.
   ///
   /// In en, this message translates to:
-  /// **'File ID is missing. Cannot open or download.'**
+  /// **'Error: File ID is missing.'**
   String get errorFileIdMissing;
 
   /// No description provided for @downloading.
@@ -353,14 +353,14 @@ abstract class AppLocalizations {
   /// No description provided for @cannotOpenFileType.
   ///
   /// In en, this message translates to:
-  /// **'Cannot open this file type directly in the app.'**
+  /// **'Cannot open this file type directly.'**
   String get cannotOpenFileType;
 
   /// No description provided for @downloadStarted.
   ///
   /// In en, this message translates to:
-  /// **'Download started for {count} items.'**
-  String downloadStarted(Object count);
+  /// **'Starting {count,plural, =1{1 download} other{{count} downloads}}...'**
+  String downloadStarted(num count);
 
   /// No description provided for @downloadCompleted.
   ///
@@ -383,13 +383,13 @@ abstract class AppLocalizations {
   /// No description provided for @downloadCancelled.
   ///
   /// In en, this message translates to:
-  /// **'Download cancelled for {fileName}.'**
+  /// **'Download cancelled for: {fileName}'**
   String downloadCancelled(Object fileName);
 
   /// No description provided for @allDownloadsCompleted.
   ///
   /// In en, this message translates to:
-  /// **'All selected downloads completed.'**
+  /// **'All downloads completed!'**
   String get allDownloadsCompleted;
 
   /// No description provided for @openFolder.
@@ -437,7 +437,7 @@ abstract class AppLocalizations {
   /// No description provided for @noItemSelectedForDetails.
   ///
   /// In en, this message translates to:
-  /// **'No item selected for details.'**
+  /// **'Please select exactly one item to view details.'**
   String get noItemSelectedForDetails;
 
   /// No description provided for @fileDetails.
@@ -539,7 +539,7 @@ abstract class AppLocalizations {
   /// No description provided for @permissionDenied.
   ///
   /// In en, this message translates to:
-  /// **'Permission denied.'**
+  /// **'Permission denied. Cannot access storage.'**
   String get permissionDenied;
 
   /// No description provided for @noDirectorySelected.
@@ -551,7 +551,7 @@ abstract class AppLocalizations {
   /// No description provided for @failedToCreateDirectory.
   ///
   /// In en, this message translates to:
-  /// **'Failed to create directory: {error}'**
+  /// **'Failed to create download directory: {error}'**
   String failedToCreateDirectory(Object error);
 
   /// No description provided for @failedToChooseDownloadPath.
@@ -1019,7 +1019,7 @@ abstract class AppLocalizations {
   /// No description provided for @noFilesIllustrationText.
   ///
   /// In en, this message translates to:
-  /// **'Looks like this folder is empty. Time to upload some materials!'**
+  /// **'It looks like there are no files in this folder, or you haven\'t selected a subject yet.'**
   String get noFilesIllustrationText;
 
   /// No description provided for @emptySearchIllustrationText.
@@ -1255,6 +1255,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Plan your next study task or reminder.'**
   String get planYourNextTask;
+
+  /// No description provided for @chooseNewLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose New Location'**
+  String get chooseNewLocation;
+
+  /// No description provided for @openCurrentLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Current Location'**
+  String get openCurrentLocation;
+
+  /// No description provided for @resetToDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to Default'**
+  String get resetToDefault;
+
+  /// No description provided for @downloadLocationUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Download location updated to: {path}'**
+  String downloadLocationUpdated(Object path);
+
+  /// No description provided for @downloadLocationReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Download location reset to default.'**
+  String get downloadLocationReset;
+
+  /// No description provided for @noLocationSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No location selected.'**
+  String get noLocationSelected;
+
+  /// No description provided for @failedToSetDownloadLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to set download location: {error}'**
+  String failedToSetDownloadLocation(Object error);
+
+  /// No description provided for @permissionDeniedForever.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage permission denied permanently. Please grant it from app settings.'**
+  String get permissionDeniedForever;
 }
 
 class _AppLocalizationsDelegate

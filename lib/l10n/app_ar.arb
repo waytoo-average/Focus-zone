@@ -218,5 +218,88 @@
   "exploreSubjects": "استكشاف المواد",
   "findNewMaterials": "ابحث عن مواد ومحاضرات جديدة.",
   "createStudyGoal": "إنشاء هدف دراسي",
-  "planYourNextTask": "خطط لمهمتك الدراسية أو تذكيرك التالي."
+  "planYourNextTask": "خطط لمهمتك الدراسية أو تذكيرك التالي.",
+  "chooseNewLocation": "اختيار موقع جديد",
+  "openCurrentLocation": "فتح الموقع الحالي",
+  "resetToDefault": "إعادة تعيين إلى الافتراضي",
+  "downloadLocationUpdated": "تم تحديث موقع التنزيل إلى: {path}",
+  "@downloadLocationUpdated": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "downloadLocationReset": "تمت إعادة تعيين موقع التنزيل إلى الافتراضي.",
+  "noLocationSelected": "لم يتم اختيار موقع.",
+  "failedToSetDownloadLocation": "فشل تعيين موقع التنزيل: {error}",
+  "@failedToSetDownloadLocation": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "permissionDenied": "تم رفض الإذن. لا يمكن الوصول إلى التخزين.",
+  "failedToCreateDirectory": "فشل إنشاء مجلد التنزيل: {error}",
+  "@failedToCreateDirectory": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "downloadInProgressPleaseWait": "التنزيل قيد التقدم. يرجى الانتظار.",
+  "downloadStarted": "بدء {count,plural, =1{1 تنزيل} other{{count} تنزيلات}}...",
+  "@downloadStarted": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "downloadCompleted": "اكتمل التنزيل: {fileName}",
+  "@downloadCompleted": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "openFile": "فتح الملف",
+  "allDownloadsCompleted": "اكتملت جميع التنزيلات!",
+  "openFolder": "فتح المجلد",
+  "downloadCancelled": "تم إلغاء التنزيل لـ: {fileName}",
+  "@downloadCancelled": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "noItemSelectedForDetails": "يرجى تحديد عنصر واحد فقط لعرض التفاصيل.",
+  "unnamedItem": "عنصر بدون اسم",
+  "fileNameField": "اسم الملف",
+  "fileTypeField": "نوع الملف",
+  "fileSizeField": "حجم الملف",
+  "lastModifiedField": "آخر تعديل",
+  "fileDetails": "تفاصيل الملف",
+  "ok": "موافق",
+  "lectureContent": "محتوى المحاضرة",
+  "notSignedInClientNotAvailable": "لم يتم تسجيل الدخول أو العميل غير متاح. يرجى تسجيل الدخول.",
+  "errorMissingFolderId": "خطأ: معرف المجلد مفقود.",
+  "failedToLoadFiles": "فشل تحميل الملفات: {error}",
+  "@failedToLoadFiles": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "errorFileIdMissing": "خطأ: معرف الملف مفقود.",
+  "cannotOpenFileType": "لا يمكن فتح هذا النوع من الملفات مباشرة.",
+  "errorLoadingContent": "خطأ في تحميل المحتوى: {description}",
+  "@errorLoadingContent": {
+    "placeholders": {
+      "description": {}
+    }
+  },
+  "errorNoUrlProvided": "خطأ: لم يتم توفير عنوان URL.",
+  "errorDownloadCancelled": "تم إلغاء التنزيل.",
+  "failedToLoadPdf": "فشل تحميل ملف PDF: {error}",
+  "@failedToLoadPdf": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "retry": "إعادة المحاولة",
+  "downloading": "جار التحميل",
+  "noFilesIllustrationText": "يبدو أنه لا توجد ملفات في هذا المجلد، أو لم تختر مادة بعد.",
+  "permissionDeniedForever": "تم رفض إذن التخزين بشكل دائم. يرجى منحه من إعدادات التطبيق."
 }

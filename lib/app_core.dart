@@ -14,6 +14,7 @@ import 'package:google_sign_in/google_sign_in.dart'; // For SignInProvider
 import 'package:googleapis/drive/v3.dart' as drive; // For SignInProvider
 import 'package:http/http.dart' as http; // For GoogleHttpClient
 import 'package:app/l10n/app_localizations.dart'; // For localization
+import 'package:permission_handler/permission_handler.dart'; // NEW: For permissions in provider
 
 // Imports specific to RootScreen's functionality, now pointing to combined feature files
 import 'package:app/study_features.dart'; // For GradeSelectionScreen, DepartmentSelectionScreen, etc.
@@ -242,10 +243,19 @@ class LanguageProvider extends ChangeNotifier {
 
 // --- DownloadPathProvider ---
 class DownloadPathProvider extends ChangeNotifier {
+  static const String _kCustomDownloadPathKey = 'customDownloadPath';
   String? _appSpecificDownloadPath; // Stores the resolved app-specific path
+  String? _customDownloadPath;      // Stores the user-selected custom path
 
   DownloadPathProvider() {
-    _initAppSpecificDownloadPath();
+    _initPaths();
+  }
+
+  // Initialize both app-specific and custom download paths
+  Future<void> _initPaths() async {
+    await _initAppSpecificDownloadPath();
+    await _loadCustomDownloadPath();
+    notifyListeners(); // Notify after both paths are potentially loaded
   }
 
   // Initialize and store the app-specific download path
@@ -269,13 +279,49 @@ class DownloadPathProvider extends ChangeNotifier {
     }
     _appSpecificDownloadPath = appDownloadDir.path;
     developer.log("Initialized app-specific download path: $_appSpecificDownloadPath", name: "DownloadPathProvider");
-    notifyListeners(); // Notify listeners that the path is now available
+  }
+
+  // Load custom download path from SharedPreferences
+  Future<void> _loadCustomDownloadPath() async {
+    final prefs = await SharedPreferences.getInstance();
+    _customDownloadPath = prefs.getString(_kCustomDownloadPathKey);
+    developer.log("Loaded custom download path: $_customDownloadPath", name: "DownloadPathProvider");
+  }
+
+  // Set and persist a new custom download path
+  Future<void> setCustomDownloadPath(String? path) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (path != null) {
+      await prefs.setString(_kCustomDownloadPathKey, path);
+    } else {
+      await prefs.remove(_kCustomDownloadPathKey); // Clear custom path
+    }
+    _customDownloadPath = path;
+    developer.log("Set custom download path: $_customDownloadPath", name: "DownloadPathProvider");
+    notifyListeners();
+  }
+
+  // Reset to the app-specific default path
+  Future<void> resetDownloadPath() async {
+    await setCustomDownloadPath(null); // Clear custom path
   }
 
   // This is the primary method to get the path to use for downloads
   // It always returns the fixed app-specific path.
   Future<String> getEffectiveDownloadPath() async {
-    // Ensure the path is initialized before returning
+    // Prioritize custom path if set, otherwise use app-specific path
+    if (_customDownloadPath != null && _customDownloadPath!.isNotEmpty) {
+      final customDir = Directory(_customDownloadPath!);
+      if (await customDir.exists()) {
+        return _customDownloadPath!;
+      } else {
+        // If custom path no longer exists, clear it and fall back to app-specific
+        developer.log("Custom download path $_customDownloadPath does not exist. Resetting.", name: "DownloadPathProvider");
+        await resetDownloadPath();
+      }
+    }
+
+    // Ensure the app-specific path is initialized before returning
     if (_appSpecificDownloadPath == null) {
       await _initAppSpecificDownloadPath();
     }
@@ -285,6 +331,34 @@ class DownloadPathProvider extends ChangeNotifier {
   // Retain this for legacy calls or specific needs, but it now directly returns the effective path
   Future<String> getAppSpecificDownloadPath() async {
     return await getEffectiveDownloadPath();
+  }
+
+  // NEW: Centralized function to request storage permissions
+  Future<bool> requestStoragePermissions(BuildContext context, AppLocalizations s) async {
+    PermissionStatus status = await Permission.storage.status;
+
+    if (status.isGranted) {
+      developer.log("Storage permission already granted.", name: "Permissions");
+      return true; // Permission already granted, proceed
+    }
+
+    status = await Permission.storage.request();
+
+    if (!status.isGranted) {
+      if (Platform.isAndroid) {
+        // For Android 11 (API 30) and above, MANAGE_EXTERNAL_STORAGE is required
+        // if the app needs broad file access (e.g., picking arbitrary directories).
+        PermissionStatus manageExternalStorageStatus = await Permission.manageExternalStorage.request();
+        if (!manageExternalStorageStatus.isGranted && context.mounted) {
+          showAppSnackBar(context, s.permissionDeniedForever, action: SnackBarAction(label: s.settings, onPressed: () => openAppSettings()));
+          return false;
+        }
+      } else if (context.mounted) {
+        showAppSnackBar(context, s.permissionDenied);
+        return false;
+      }
+    }
+    return status.isGranted; // Return true if permission is granted, false otherwise
   }
 }
 
@@ -548,6 +622,17 @@ class RootScreenState extends State<RootScreen> { // Made public
     3: GlobalKey<NavigatorState>(), // Up-coming
     4: GlobalKey<NavigatorState>(), // Settings
   };
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Request permissions when the root screen loads and localizations are available
+    final downloadPathProvider = Provider.of<DownloadPathProvider>(context, listen: false);
+    final s = AppLocalizations.of(context);
+    if (s != null) {
+      downloadPathProvider.requestStoragePermissions(context, s);
+    }
+  }
 
   void _onItemTapped(int index) {
     if (_selectedIndex == index) {

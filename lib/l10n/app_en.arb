@@ -218,5 +218,88 @@
   "exploreSubjects": "Explore Subjects",
   "findNewMaterials": "Find new materials and lectures.",
   "createStudyGoal": "Create a Study Goal",
-  "planYourNextTask": "Plan your next study task or reminder."
+  "planYourNextTask": "Plan your next study task or reminder.",
+  "chooseNewLocation": "Choose New Location",
+  "openCurrentLocation": "Open Current Location",
+  "resetToDefault": "Reset to Default",
+  "downloadLocationUpdated": "Download location updated to: {path}",
+  "@downloadLocationUpdated": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "downloadLocationReset": "Download location reset to default.",
+  "noLocationSelected": "No location selected.",
+  "failedToSetDownloadLocation": "Failed to set download location: {error}",
+  "@failedToSetDownloadLocation": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "permissionDenied": "Permission denied. Cannot access storage.",
+  "failedToCreateDirectory": "Failed to create download directory: {error}",
+  "@failedToCreateDirectory": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "downloadInProgressPleaseWait": "Download in progress. Please wait.",
+  "downloadStarted": "Starting {count,plural, =1{1 download} other{{count} downloads}}...",
+  "@downloadStarted": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "downloadCompleted": "Download completed: {fileName}",
+  "@downloadCompleted": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "openFile": "Open File",
+  "allDownloadsCompleted": "All downloads completed!",
+  "openFolder": "Open Folder",
+  "downloadCancelled": "Download cancelled for: {fileName}",
+  "@downloadCancelled": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "noItemSelectedForDetails": "Please select exactly one item to view details.",
+  "unnamedItem": "Unnamed Item",
+  "fileNameField": "File Name",
+  "fileTypeField": "File Type",
+  "fileSizeField": "File Size",
+  "lastModifiedField": "Last Modified",
+  "fileDetails": "File Details",
+  "ok": "OK",
+  "lectureContent": "Lecture Content",
+  "notSignedInClientNotAvailable": "Not signed in or client not available. Please sign in.",
+  "errorMissingFolderId": "Error: Missing folder ID.",
+  "failedToLoadFiles": "Failed to load files: {error}",
+  "@failedToLoadFiles": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "errorFileIdMissing": "Error: File ID is missing.",
+  "cannotOpenFileType": "Cannot open this file type directly.",
+  "errorLoadingContent": "Error loading content: {description}",
+  "@errorLoadingContent": {
+    "placeholders": {
+      "description": {}
+    }
+  },
+  "errorNoUrlProvided": "Error: No URL provided.",
+  "errorDownloadCancelled": "Download cancelled.",
+  "failedToLoadPdf": "Failed to load PDF: {error}",
+  "@failedToLoadPdf": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "retry": "Retry",
+  "downloading": "Downloading",
+  "noFilesIllustrationText": "It looks like there are no files in this folder, or you haven't selected a subject yet.",
+  "permissionDeniedForever": "Storage permission denied permanently. Please grant it from app settings."
 }

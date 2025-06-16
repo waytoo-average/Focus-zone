@@ -34,7 +34,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get unknownUser => 'مستخدم غير معروف';
 
   @override
-  String get unnamedItem => 'عنصر غير مسمى';
+  String get unnamedItem => 'عنصر بدون اسم';
 
   @override
   String get loadingLocalizations => 'جاري تحميل اللغات...';
@@ -55,7 +55,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get notSignedInClientNotAvailable =>
-      'لم يتم تسجيل الدخول. عميل جوجل درايف غير متاح.';
+      'لم يتم تسجيل الدخول أو العميل غير متاح. يرجى تسجيل الدخول.';
 
   @override
   String get firstGrade => 'الفرقة الأولى';
@@ -121,7 +121,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get errorMissingFolderId => 'معرف المجلد مفقود. لا يمكن تصفح المحتوى.';
+  String get errorMissingFolderId => 'خطأ: معرف المجلد مفقود.';
 
   @override
   String failedToLoadFiles(Object error) {
@@ -129,22 +129,21 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get errorNoUrlProvided => 'لا يوجد رابط للمحتوى. لا يمكن العرض.';
+  String get errorNoUrlProvided => 'خطأ: لم يتم توفير عنوان URL.';
 
   @override
   String failedToLoadPdf(Object error) {
-    return 'فشل تحميل ملف الـ PDF: $error';
+    return 'فشل تحميل ملف PDF: $error';
   }
 
   @override
   String get errorDownloadCancelled => 'تم إلغاء التنزيل.';
 
   @override
-  String get errorFileIdMissing =>
-      'معرف الملف مفقود. لا يمكن الفتح أو التنزيل.';
+  String get errorFileIdMissing => 'خطأ: معرف الملف مفقود.';
 
   @override
-  String get downloading => 'جاري التنزيل';
+  String get downloading => 'جار التحميل';
 
   @override
   String errorLoadingContent(Object description) {
@@ -152,12 +151,17 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get cannotOpenFileType =>
-      'لا يمكن فتح هذا النوع من الملفات مباشرة في التطبيق.';
+  String get cannotOpenFileType => 'لا يمكن فتح هذا النوع من الملفات مباشرة.';
 
   @override
-  String downloadStarted(Object count) {
-    return 'بدأ تنزيل $count عنصر.';
+  String downloadStarted(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count تنزيلات',
+      one: '1 تنزيل',
+    );
+    return 'بدء $_temp0...';
   }
 
   @override
@@ -175,11 +179,11 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String downloadCancelled(Object fileName) {
-    return 'تم إلغاء تنزيل $fileName.';
+    return 'تم إلغاء التنزيل لـ: $fileName';
   }
 
   @override
-  String get allDownloadsCompleted => 'اكتملت جميع التنزيلات المحددة.';
+  String get allDownloadsCompleted => 'اكتملت جميع التنزيلات!';
 
   @override
   String get openFolder => 'فتح المجلد';
@@ -208,7 +212,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get downloadAction => 'تنزيل';
 
   @override
-  String get noItemSelectedForDetails => 'لم يتم تحديد أي عنصر للتفاصيل.';
+  String get noItemSelectedForDetails =>
+      'يرجى تحديد عنصر واحد فقط لعرض التفاصيل.';
 
   @override
   String get fileDetails => 'تفاصيل الملف';
@@ -262,14 +267,14 @@ class AppLocalizationsAr extends AppLocalizations {
       'تم رفض إذن التخزين. لا يمكن اختيار موقع التنزيل.';
 
   @override
-  String get permissionDenied => 'تم رفض الإذن.';
+  String get permissionDenied => 'تم رفض الإذن. لا يمكن الوصول إلى التخزين.';
 
   @override
   String get noDirectorySelected => 'لم يتم تحديد دليل.';
 
   @override
   String failedToCreateDirectory(Object error) {
-    return 'فشل في إنشاء الدليل: $error';
+    return 'فشل إنشاء مجلد التنزيل: $error';
   }
 
   @override
@@ -528,7 +533,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noFilesIllustrationText =>
-      'يبدو أن هذا المجلد فارغ. حان الوقت لتحميل بعض المواد!';
+      'يبدو أنه لا توجد ملفات في هذا المجلد، أو لم تختر مادة بعد.';
 
   @override
   String get emptySearchIllustrationText =>
@@ -666,4 +671,34 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get planYourNextTask => 'خطط لمهمتك الدراسية أو تذكيرك التالي.';
+
+  @override
+  String get chooseNewLocation => 'اختيار موقع جديد';
+
+  @override
+  String get openCurrentLocation => 'فتح الموقع الحالي';
+
+  @override
+  String get resetToDefault => 'إعادة تعيين إلى الافتراضي';
+
+  @override
+  String downloadLocationUpdated(Object path) {
+    return 'تم تحديث موقع التنزيل إلى: $path';
+  }
+
+  @override
+  String get downloadLocationReset =>
+      'تمت إعادة تعيين موقع التنزيل إلى الافتراضي.';
+
+  @override
+  String get noLocationSelected => 'لم يتم اختيار موقع.';
+
+  @override
+  String failedToSetDownloadLocation(Object error) {
+    return 'فشل تعيين موقع التنزيل: $error';
+  }
+
+  @override
+  String get permissionDeniedForever =>
+      'تم رفض إذن التخزين بشكل دائم. يرجى منحه من إعدادات التطبيق.';
 }

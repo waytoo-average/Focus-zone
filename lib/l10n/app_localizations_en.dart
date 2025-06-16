@@ -55,7 +55,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notSignedInClientNotAvailable =>
-      'Not signed in. Google Drive client not available.';
+      'Not signed in or client not available. Please sign in.';
 
   @override
   String get firstGrade => 'First Grade';
@@ -121,8 +121,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get errorMissingFolderId =>
-      'Folder ID is missing. Cannot browse content.';
+  String get errorMissingFolderId => 'Error: Missing folder ID.';
 
   @override
   String failedToLoadFiles(Object error) {
@@ -130,8 +129,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get errorNoUrlProvided =>
-      'No URL provided for content. Cannot display.';
+  String get errorNoUrlProvided => 'Error: No URL provided.';
 
   @override
   String failedToLoadPdf(Object error) {
@@ -139,11 +137,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get errorDownloadCancelled => 'Download was cancelled.';
+  String get errorDownloadCancelled => 'Download cancelled.';
 
   @override
-  String get errorFileIdMissing =>
-      'File ID is missing. Cannot open or download.';
+  String get errorFileIdMissing => 'Error: File ID is missing.';
 
   @override
   String get downloading => 'Downloading';
@@ -154,12 +151,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get cannotOpenFileType =>
-      'Cannot open this file type directly in the app.';
+  String get cannotOpenFileType => 'Cannot open this file type directly.';
 
   @override
-  String downloadStarted(Object count) {
-    return 'Download started for $count items.';
+  String downloadStarted(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count downloads',
+      one: '1 download',
+    );
+    return 'Starting $_temp0...';
   }
 
   @override
@@ -177,11 +179,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String downloadCancelled(Object fileName) {
-    return 'Download cancelled for $fileName.';
+    return 'Download cancelled for: $fileName';
   }
 
   @override
-  String get allDownloadsCompleted => 'All selected downloads completed.';
+  String get allDownloadsCompleted => 'All downloads completed!';
 
   @override
   String get openFolder => 'Open Folder';
@@ -210,7 +212,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloadAction => 'Download';
 
   @override
-  String get noItemSelectedForDetails => 'No item selected for details.';
+  String get noItemSelectedForDetails =>
+      'Please select exactly one item to view details.';
 
   @override
   String get fileDetails => 'File Details';
@@ -264,14 +267,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Storage permission denied. Cannot choose download location.';
 
   @override
-  String get permissionDenied => 'Permission denied.';
+  String get permissionDenied => 'Permission denied. Cannot access storage.';
 
   @override
   String get noDirectorySelected => 'No directory selected.';
 
   @override
   String failedToCreateDirectory(Object error) {
-    return 'Failed to create directory: $error';
+    return 'Failed to create download directory: $error';
   }
 
   @override
@@ -531,7 +534,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noFilesIllustrationText =>
-      'Looks like this folder is empty. Time to upload some materials!';
+      'It looks like there are no files in this folder, or you haven\'t selected a subject yet.';
 
   @override
   String get emptySearchIllustrationText =>
@@ -669,4 +672,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get planYourNextTask => 'Plan your next study task or reminder.';
+
+  @override
+  String get chooseNewLocation => 'Choose New Location';
+
+  @override
+  String get openCurrentLocation => 'Open Current Location';
+
+  @override
+  String get resetToDefault => 'Reset to Default';
+
+  @override
+  String downloadLocationUpdated(Object path) {
+    return 'Download location updated to: $path';
+  }
+
+  @override
+  String get downloadLocationReset => 'Download location reset to default.';
+
+  @override
+  String get noLocationSelected => 'No location selected.';
+
+  @override
+  String failedToSetDownloadLocation(Object error) {
+    return 'Failed to set download location: $error';
+  }
+
+  @override
+  String get permissionDeniedForever =>
+      'Storage permission denied permanently. Please grant it from app settings.';
 }
