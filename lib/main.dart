@@ -1,5 +1,4 @@
 // lib/main.dart
-// main.dart - MINIMAL CODE - Final complete version with all features and fixes
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Import for SystemNavigator.pop() and Clipboard
