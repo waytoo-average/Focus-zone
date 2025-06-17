@@ -171,7 +171,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
   String _currentList = 'INITIAL_PLACEHOLDER';
   String _searchQuery = '';
 
-  // Removed GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
+  late TodoSummaryProvider _todoSummaryProvider;
 
   @override
   void initState() {
@@ -185,6 +185,8 @@ class _TodoListScreenState extends State<TodoListScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _todoSummaryProvider =
+        Provider.of<TodoSummaryProvider>(context, listen: false);
     final s = AppLocalizations.of(context);
 
     if (s != null) {
@@ -199,8 +201,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
   @override
   void dispose() {
     // Ensure the listener is removed to prevent memory leaks and "deactivated widget" errors
-    Provider.of<TodoSummaryProvider>(context, listen: false)
-        .removeListener(_onTodosChanged);
+    _todoSummaryProvider.removeListener(_onTodosChanged);
     _taskController.dispose();
     super.dispose();
   }

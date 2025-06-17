@@ -393,7 +393,7 @@ class SettingsScreen extends StatelessWidget {
 
               try {
                 final newPath =
-                path.join(path.dirname(file.path), '$newName$extension');
+                    path.join(path.dirname(file.path), '$newName$extension');
                 await file.rename(newPath);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -486,10 +486,10 @@ class SettingsScreen extends StatelessWidget {
 
   // Modified function to open app-specific download path directly
   Future<void> _openDownloadFolder(
-      BuildContext context,
-      AppLocalizations s,
-      DownloadPathProvider pathProvider,
-      ) async {
+    BuildContext context,
+    AppLocalizations s,
+    DownloadPathProvider pathProvider,
+  ) async {
     if (!context.mounted) return;
 
     // Request permissions using the centralized method
@@ -501,7 +501,7 @@ class SettingsScreen extends StatelessWidget {
     }
 
     final String currentDownloadPath =
-    await pathProvider.getEffectiveDownloadPath();
+        await pathProvider.getEffectiveDownloadPath();
     developer.log("Attempting to open path: $currentDownloadPath",
         name: "SettingsScreen");
 
@@ -627,13 +627,13 @@ class SettingsScreen extends StatelessWidget {
                   radius: 40,
                   child: user.photoUrl == null
                       ? Text(
-                    user.displayName?.isNotEmpty == true
-                        ? user.displayName![0].toUpperCase()
-                        : (user.email.isNotEmpty == true
-                        ? user.email[0].toUpperCase()
-                        : '?'),
-                    style: const TextStyle(fontSize: 30),
-                  )
+                          user.displayName?.isNotEmpty == true
+                              ? user.displayName![0].toUpperCase()
+                              : (user.email.isNotEmpty == true
+                                  ? user.email[0].toUpperCase()
+                                  : '?'),
+                          style: const TextStyle(fontSize: 30),
+                        )
                       : null,
                 ),
               ),
@@ -664,7 +664,7 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: 30),
             ElevatedButton(
               onPressed:
-              user == null ? signInProvider.signIn : signInProvider.signOut,
+                  user == null ? signInProvider.signIn : signInProvider.signOut,
               style: ElevatedButton.styleFrom(
                 backgroundColor: user == null
                     ? Theme.of(context).primaryColor
@@ -672,11 +672,11 @@ class SettingsScreen extends StatelessWidget {
                 foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 50),
                 padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
                 textStyle:
-                const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
               ),
               child: Text(user == null ? s.signInWithGoogle : s.signOut),
             ),
@@ -703,40 +703,40 @@ class SettingsScreen extends StatelessWidget {
                             .colorScheme
                             .onSurface
                             .withOpacity(0.6))), onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext dialogContext) {
-                      return AlertDialog(
-                        title: Text(s.chooseLanguage),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            RadioListTile<Locale>(
-                                title: Text(s.english),
-                                value: const Locale('en'),
-                                groupValue: languageProvider.locale,
-                                onChanged: (Locale? value) {
-                                  if (value != null) {
-                                    languageProvider.setLocale(value);
-                                    Navigator.of(dialogContext).pop();
-                                  }
-                                }),
-                            RadioListTile<Locale>(
-                                title: Text(s.arabic),
-                                value: const Locale('ar'),
-                                groupValue: languageProvider.locale,
-                                onChanged: (Locale? value) {
-                                  if (value != null) {
-                                    languageProvider.setLocale(value);
-                                    Navigator.of(dialogContext).pop();
-                                  }
-                                }),
-                          ],
-                        ),
-                      );
-                    },
+              showDialog(
+                context: context,
+                builder: (BuildContext dialogContext) {
+                  return AlertDialog(
+                    title: Text(s.chooseLanguage),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        RadioListTile<Locale>(
+                            title: Text(s.english),
+                            value: const Locale('en'),
+                            groupValue: languageProvider.locale,
+                            onChanged: (Locale? value) {
+                              if (value != null) {
+                                languageProvider.setLocale(value);
+                                Navigator.of(dialogContext).pop();
+                              }
+                            }),
+                        RadioListTile<Locale>(
+                            title: Text(s.arabic),
+                            value: const Locale('ar'),
+                            groupValue: languageProvider.locale,
+                            onChanged: (Locale? value) {
+                              if (value != null) {
+                                languageProvider.setLocale(value);
+                                Navigator.of(dialogContext).pop();
+                              }
+                            }),
+                      ],
+                    ),
                   );
-                }),
+                },
+              );
+            }),
             _buildSettingsItem(context,
                 s: s,
                 icon: Icons.brightness_6_outlined,
@@ -745,57 +745,57 @@ class SettingsScreen extends StatelessWidget {
                     themeProvider.themeMode == ThemeMode.light
                         ? s.lightTheme
                         : themeProvider.themeMode == ThemeMode.dark
-                        ? s.darkTheme
-                        : s.systemDefault,
+                            ? s.darkTheme
+                            : s.systemDefault,
                     style: TextStyle(
                         color: Theme.of(context)
                             .colorScheme
                             .onSurface
                             .withOpacity(0.6))), onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext dialogContext) {
-                      return AlertDialog(
-                        title: Text(s.chooseTheme),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            RadioListTile<ThemeMode>(
-                                title: Text(s.lightTheme),
-                                value: ThemeMode.light,
-                                groupValue: themeProvider.themeMode,
-                                onChanged: (ThemeMode? value) {
-                                  if (value != null) {
-                                    themeProvider.setThemeMode(value);
-                                    Navigator.of(dialogContext).pop();
-                                  }
-                                }),
-                            RadioListTile<ThemeMode>(
-                                title: Text(s.darkTheme),
-                                value: ThemeMode.dark,
-                                groupValue: themeProvider.themeMode,
-                                onChanged: (ThemeMode? value) {
-                                  if (value != null) {
-                                    themeProvider.setThemeMode(value);
-                                    Navigator.of(dialogContext).pop();
-                                  }
-                                }),
-                            RadioListTile<ThemeMode>(
-                                title: Text(s.systemDefault),
-                                value: ThemeMode.system,
-                                groupValue: themeProvider.themeMode,
-                                onChanged: (ThemeMode? value) {
-                                  if (value != null) {
-                                    themeProvider.setThemeMode(value);
-                                    Navigator.of(dialogContext).pop();
-                                  }
-                                }),
-                          ],
-                        ),
-                      );
-                    },
+              showDialog(
+                context: context,
+                builder: (BuildContext dialogContext) {
+                  return AlertDialog(
+                    title: Text(s.chooseTheme),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        RadioListTile<ThemeMode>(
+                            title: Text(s.lightTheme),
+                            value: ThemeMode.light,
+                            groupValue: themeProvider.themeMode,
+                            onChanged: (ThemeMode? value) {
+                              if (value != null) {
+                                Navigator.of(dialogContext).pop();
+                                themeProvider.setThemeMode(value);
+                              }
+                            }),
+                        RadioListTile<ThemeMode>(
+                            title: Text(s.darkTheme),
+                            value: ThemeMode.dark,
+                            groupValue: themeProvider.themeMode,
+                            onChanged: (ThemeMode? value) {
+                              if (value != null) {
+                                Navigator.of(dialogContext).pop();
+                                themeProvider.setThemeMode(value);
+                              }
+                            }),
+                        RadioListTile<ThemeMode>(
+                            title: Text(s.systemDefault),
+                            value: ThemeMode.system,
+                            groupValue: themeProvider.themeMode,
+                            onChanged: (ThemeMode? value) {
+                              if (value != null) {
+                                Navigator.of(dialogContext).pop();
+                                themeProvider.setThemeMode(value);
+                              }
+                            }),
+                      ],
+                    ),
                   );
-                }),
+                },
+              );
+            }),
             _buildSettingsItem(
               context,
               s: s,
@@ -841,8 +841,8 @@ class SettingsScreen extends StatelessWidget {
                           onTap: () {
                             Navigator.pop(sheetContext);
                             final pathProvider =
-                            Provider.of<DownloadPathProvider>(context,
-                                listen: false);
+                                Provider.of<DownloadPathProvider>(context,
+                                    listen: false);
 
                             pathProvider
                                 .getEffectiveDownloadPath()
@@ -916,7 +916,7 @@ class SettingsScreen extends StatelessWidget {
             ),
           ]
               .map((item) => Padding(
-              padding: const EdgeInsets.only(bottom: 0), child: item))
+                  padding: const EdgeInsets.only(bottom: 0), child: item))
               .toList(),
         ),
       ),
@@ -925,10 +925,10 @@ class SettingsScreen extends StatelessWidget {
 
   Widget _buildSettingsItem(BuildContext context,
       {required AppLocalizations s,
-        required IconData icon,
-        required String text,
-        Widget? trailing,
-        required VoidCallback onTap}) {
+      required IconData icon,
+      required String text,
+      Widget? trailing,
+      required VoidCallback onTap}) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6.0),
       child: ListTile(
@@ -1192,20 +1192,20 @@ class CollegeInfoScreen extends StatelessWidget {
           const SizedBox(height: 16),
           Card(
               child: ListTile(
-                leading: const Icon(Icons.facebook, color: Color(0xFF1877F2)),
-                title: Text(s.facebookPage),
-                trailing: const Icon(Icons.open_in_new_outlined, size: 20),
-                onTap: () => _launchUrl(context, facebookUrl),
-              )),
+            leading: const Icon(Icons.facebook, color: Color(0xFF1877F2)),
+            title: Text(s.facebookPage),
+            trailing: const Icon(Icons.open_in_new_outlined, size: 20),
+            onTap: () => _launchUrl(context, facebookUrl),
+          )),
           const SizedBox(height: 10),
           Card(
               child: ListTile(
-                leading: const Icon(Icons.location_on_outlined,
-                    color: Color(0xFFDB4437)),
-                title: Text(s.collegeLocation),
-                trailing: const Icon(Icons.open_in_new_outlined, size: 20),
-                onTap: () => _launchUrl(context, googleMapsUrl),
-              )),
+            leading: const Icon(Icons.location_on_outlined,
+                color: Color(0xFFDB4437)),
+            title: Text(s.collegeLocation),
+            trailing: const Icon(Icons.open_in_new_outlined, size: 20),
+            onTap: () => _launchUrl(context, googleMapsUrl),
+          )),
           const Divider(height: 40, thickness: 1),
         ],
       ),

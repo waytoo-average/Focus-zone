@@ -377,7 +377,6 @@ class MyApp extends StatelessWidget {
         final languageProvider = Provider.of<LanguageProvider>(context);
 
         return MaterialApp(
-          key: ValueKey(themeProvider.themeMode),
           title: 'ECCAT Study Station',
           debugShowCheckedModeBanner: false,
           themeMode: themeProvider.themeMode,

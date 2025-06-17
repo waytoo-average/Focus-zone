@@ -1878,7 +1878,6 @@ class FileDetailsDialog extends StatelessWidget {
             .substring(0, 16); // Fallback
       }
     }
-
     String fileSize = file.size != null
         ? formatBytesSimplified(int.tryParse(file.size!) ?? 0, 2, s)
         : s.notAvailableNow;
