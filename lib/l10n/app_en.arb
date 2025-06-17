@@ -291,7 +291,7 @@
     }
   },
   "errorNoUrlProvided": "Error: No URL provided.",
-  "errorDownloadCancelled": "Download cancelled.",
+  "errorDownloadCancelled": "Download cancelled!",
   "failedToLoadPdf": "Failed to load PDF: {error}",
   "@failedToLoadPdf": {
     "placeholders": {

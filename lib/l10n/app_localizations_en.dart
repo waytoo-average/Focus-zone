@@ -137,7 +137,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get errorDownloadCancelled => 'Download cancelled.';
+  String get errorDownloadCancelled => 'Download cancelled!';
 
   @override
   String get errorFileIdMissing => 'Error: File ID is missing.';

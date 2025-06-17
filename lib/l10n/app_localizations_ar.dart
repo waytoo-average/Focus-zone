@@ -24,7 +24,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cancel => 'إلغاء';
 
   @override
-  String get retry => 'إعادة المحاولة';
+  String get retry => 'إعادة المحاولة!';
 
   @override
   String get notAvailableNow =>

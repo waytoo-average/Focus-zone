@@ -1070,7 +1070,6 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
 
     _selectedRepeatInterval ??= s.noRepeat;
     _selectedListName ??= s.defaultList;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? s.editTaskTitle : s.newTaskTitle),

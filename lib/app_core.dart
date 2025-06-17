@@ -1407,6 +1407,5 @@ class FirstLaunchProvider with ChangeNotifier {
     _hasShownPermissionDialog = true;
     notifyListeners();
   }
-
   bool get hasShownPermissionDialog => _hasShownPermissionDialog;
 }

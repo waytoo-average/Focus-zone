@@ -1,4 +1,6 @@
 // Imports specific to Settings features
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:path/path.dart' as path;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart'; // For launching URLs
@@ -52,9 +54,442 @@ class SettingsScreen extends StatelessWidget {
     }
   }
 
+  Future<void> pickFolder() async {
+    String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+    if (selectedDirectory != null) {
+      // Do something with the folder path
+      print("User selected folder: $selectedDirectory");
+    }
+  }
+
+  Future<void> openFolderInListView({
+    required BuildContext context,
+    required String folderPath,
+  }) async {
+    // Enhanced permission check
+    bool hasPermission = false;
+
+    if (Platform.isAndroid) {
+      final androidInfo = await DeviceInfoPlugin().androidInfo;
+
+      if (androidInfo.version.sdkInt >= 30) {
+        hasPermission =
+            (await Permission.manageExternalStorage.request()).isGranted;
+      } else {
+        hasPermission = (await Permission.storage.request()).isGranted;
+      }
+    } else {
+      hasPermission = true;
+    }
+
+    if (!hasPermission) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Storage permission is required.")),
+      );
+      return;
+    }
+
+    final dir = Directory(folderPath);
+
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+
+    try {
+      final allEntities = dir.listSync();
+      final files = allEntities.whereType<File>().toList();
+
+      if (files.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text("No files found in: ${path.basename(folderPath)}")),
+        );
+        return;
+      }
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        builder: (context) => DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.6,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          builder: (_, controller) => Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        "Files in ${path.basename(folderPath)} (${files.length})",
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.folder_open),
+                      onPressed: () => Navigator.pop(context),
+                      tooltip: 'Close',
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView.builder(
+                  controller: controller,
+                  itemCount: files.length,
+                  itemBuilder: (_, i) {
+                    final file = files[i];
+                    final fileName = path.basename(file.path);
+                    final extension = path.extension(file.path).toLowerCase();
+
+                    IconData icon = switch (extension) {
+                      '.md' => Icons.description,
+                      '.apk' => Icons.android,
+                      '.pdf' => Icons.picture_as_pdf,
+                      '.txt' => Icons.text_snippet,
+                      _ => Icons.insert_drive_file,
+                    };
+
+                    return ListTile(
+                      leading: Icon(icon),
+                      title: Text(fileName),
+                      subtitle: Text(
+                          "${extension.toUpperCase()} • ${_getFileSize(file)}"),
+                      trailing: PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert),
+                        onSelected: (value) async {
+                          switch (value) {
+                            case 'open':
+                              Navigator.pop(context);
+                              try {
+                                await OpenFilex.open(file.path);
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content: Text("Cannot open file: $e")),
+                                );
+                              }
+                              break;
+                            case 'delete':
+                              _showDeleteConfirmation(context, file, () {
+                                Navigator.pop(context);
+                                openFolderInListView(
+                                    context: context, folderPath: folderPath);
+                              });
+                              break;
+                            case 'rename':
+                              _showRenameDialog(context, file, () {
+                                Navigator.pop(context);
+                                openFolderInListView(
+                                    context: context, folderPath: folderPath);
+                              });
+                              break;
+                            case 'info':
+                              _showFileInfo(context, file);
+                              break;
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'open',
+                            child: Row(children: [
+                              Icon(Icons.open_in_new),
+                              SizedBox(width: 8),
+                              Text('Open')
+                            ]),
+                          ),
+                          const PopupMenuItem(
+                            value: 'rename',
+                            child: Row(children: [
+                              Icon(Icons.edit),
+                              SizedBox(width: 8),
+                              Text('Rename')
+                            ]),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(children: [
+                              Icon(Icons.delete, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('Delete',
+                                  style: TextStyle(color: Colors.red))
+                            ]),
+                          ),
+                          const PopupMenuItem(
+                            value: 'info',
+                            child: Row(children: [
+                              Icon(Icons.info_outline),
+                              SizedBox(width: 8),
+                              Text('Properties')
+                            ]),
+                          ),
+                        ],
+                      ),
+                      onTap: () async {
+                        Navigator.pop(context);
+                        try {
+                          await OpenFilex.open(file.path);
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Cannot open file: $e")),
+                          );
+                        }
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error accessing folder: $e")),
+      );
+    }
+  }
+
+// Helper function to show path selection dialog
+  Future<String?> _showPathSelectionDialog(BuildContext context) async {
+    final TextEditingController pathController = TextEditingController();
+    pathController.text = '/storage/emulated/0/Download';
+
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Folder Path'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: pathController,
+              decoration: const InputDecoration(
+                hintText: '/storage/emulated/0/YourFolder',
+                prefixIcon: Icon(Icons.folder),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text('Quick Options:',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildQuickPathChip('Downloads', '/storage/emulated/0/Download',
+                    pathController),
+                _buildQuickPathChip('Documents',
+                    '/storage/emulated/0/Documents', pathController),
+                _buildQuickPathChip(
+                    'DCIM', '/storage/emulated/0/DCIM', pathController),
+                _buildQuickPathChip(
+                    'Music', '/storage/emulated/0/Music', pathController),
+                _buildQuickPathChip(
+                    'Pictures', '/storage/emulated/0/Pictures', pathController),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, pathController.text.trim()),
+            child: const Text('Open'),
+          ),
+        ],
+      ),
+    );
+  }
+
+// Helper function to build quick path chips
+  Widget _buildQuickPathChip(
+      String label, String path, TextEditingController controller) {
+    return ActionChip(
+      label: Text(label),
+      onPressed: () => controller.text = path,
+      avatar: const Icon(Icons.folder, size: 16),
+    );
+  }
+
+// Helper function to show delete confirmation
+  void _showDeleteConfirmation(
+      BuildContext context, File file, VoidCallback onDeleted) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete File'),
+        content: Text(
+            'Are you sure you want to delete "${path.basename(file.path)}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await file.delete();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                      content: Text('Deleted ${path.basename(file.path)}')),
+                );
+                onDeleted();
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Failed to delete file: $e')),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+// Helper function to show rename dialog
+  void _showRenameDialog(
+      BuildContext context, File file, VoidCallback onRenamed) {
+    final TextEditingController nameController = TextEditingController();
+    final currentName = path.basenameWithoutExtension(file.path);
+    final extension = path.extension(file.path);
+    nameController.text = currentName;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rename File'),
+        content: TextField(
+          controller: nameController,
+          decoration: InputDecoration(
+            labelText: 'New name',
+            suffixText: extension,
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newName = nameController.text.trim();
+              if (newName.isEmpty) return;
+
+              try {
+                final newPath =
+                path.join(path.dirname(file.path), '$newName$extension');
+                await file.rename(newPath);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Renamed to $newName$extension')),
+                );
+                onRenamed();
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Failed to rename file: $e')),
+                );
+              }
+            },
+            child: const Text('Rename'),
+          ),
+        ],
+      ),
+    );
+  }
+
+// Helper function to show file info
+  void _showFileInfo(BuildContext context, File file) {
+    final fileName = path.basename(file.path);
+    final fileSize = _getFileSize(file);
+    final filePath = file.path;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('File Properties'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildInfoRow('Name:', fileName),
+            _buildInfoRow('Size:', fileSize),
+            _buildInfoRow('Path:', filePath),
+            _buildInfoRow('Type:', path.extension(file.path).toUpperCase()),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+// Helper function to build info rows
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 60,
+            child: Text(label,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
+
+  String _getFileSize1(File file) {
+    try {
+      final bytes = file.lengthSync();
+      if (bytes < 1024) return '${bytes}B';
+      if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
+    } catch (e) {
+      return 'Unknown size';
+    }
+  }
+
+  String _getFileSize(File file) {
+    try {
+      final bytes = file.lengthSync();
+      if (bytes < 1024) return '${bytes}B';
+      if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
+    } catch (e) {
+      return 'Unknown size';
+    }
+  }
+
   // Modified function to open app-specific download path directly
-  Future<void> _openDownloadFolder(BuildContext context, AppLocalizations s,
-      DownloadPathProvider pathProvider) async {
+  Future<void> _openDownloadFolder(
+      BuildContext context,
+      AppLocalizations s,
+      DownloadPathProvider pathProvider,
+      ) async {
     if (!context.mounted) return;
 
     // Request permissions using the centralized method
@@ -62,33 +497,29 @@ class SettingsScreen extends StatelessWidget {
     if (!granted) {
       developer.log("Permission not granted for opening download folder.",
           name: "SettingsScreen");
-      return; // Stop if permissions are not granted
+      return;
     }
 
     final String currentDownloadPath =
-        await pathProvider.getEffectiveDownloadPath();
+    await pathProvider.getEffectiveDownloadPath();
     developer.log("Attempting to open path: $currentDownloadPath",
         name: "SettingsScreen");
 
+    final folder = Directory(currentDownloadPath);
+    if (!await folder.exists()) {
+      developer.log("Folder does not exist: $currentDownloadPath",
+          name: "SettingsScreen");
+      if (context.mounted) {
+        showAppSnackBar(context, s.couldNotOpenFolder("Folder does not exist."),
+            icon: Icons.folder_off_outlined, iconColor: Colors.red);
+      }
+      return;
+    }
+
     try {
-      if (Platform.isAndroid) {
-        // For Android, use file URI to open the folder
-        final Uri uri = Uri.file(currentDownloadPath);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else {
-          // Fallback to OpenFilex if url_launcher fails
-          final result = await OpenFilex.open(currentDownloadPath);
-          if (result.type != ResultType.done) {
-            throw Exception(result.message ?? 'Unknown error');
-          }
-        }
-      } else {
-        // For other platforms, use OpenFilex
-        final result = await OpenFilex.open(currentDownloadPath);
-        if (result.type != ResultType.done) {
-          throw Exception(result.message ?? 'Unknown error');
-        }
+      final result = await OpenFilex.open(currentDownloadPath);
+      if (result.type != ResultType.done) {
+        throw Exception(result.message ?? 'Unknown error');
       }
     } catch (e) {
       developer.log("Could not open download folder: $e",
@@ -171,6 +602,7 @@ class SettingsScreen extends StatelessWidget {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final languageProvider = Provider.of<LanguageProvider>(context);
     final downloadPathProvider = Provider.of<DownloadPathProvider>(context);
+
     final s = AppLocalizations.of(context);
     if (s == null) {
       return Scaffold(
@@ -195,13 +627,13 @@ class SettingsScreen extends StatelessWidget {
                   radius: 40,
                   child: user.photoUrl == null
                       ? Text(
-                          user.displayName?.isNotEmpty == true
-                              ? user.displayName![0].toUpperCase()
-                              : (user.email.isNotEmpty == true
-                                  ? user.email[0].toUpperCase()
-                                  : '?'),
-                          style: const TextStyle(fontSize: 30),
-                        )
+                    user.displayName?.isNotEmpty == true
+                        ? user.displayName![0].toUpperCase()
+                        : (user.email.isNotEmpty == true
+                        ? user.email[0].toUpperCase()
+                        : '?'),
+                    style: const TextStyle(fontSize: 30),
+                  )
                       : null,
                 ),
               ),
@@ -232,7 +664,7 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: 30),
             ElevatedButton(
               onPressed:
-                  user == null ? signInProvider.signIn : signInProvider.signOut,
+              user == null ? signInProvider.signIn : signInProvider.signOut,
               style: ElevatedButton.styleFrom(
                 backgroundColor: user == null
                     ? Theme.of(context).primaryColor
@@ -240,11 +672,11 @@ class SettingsScreen extends StatelessWidget {
                 foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 50),
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
                 textStyle:
-                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
               ),
               child: Text(user == null ? s.signInWithGoogle : s.signOut),
             ),
@@ -271,40 +703,40 @@ class SettingsScreen extends StatelessWidget {
                             .colorScheme
                             .onSurface
                             .withOpacity(0.6))), onTap: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext dialogContext) {
-                  return AlertDialog(
-                    title: Text(s.chooseLanguage),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        RadioListTile<Locale>(
-                            title: Text(s.english),
-                            value: const Locale('en'),
-                            groupValue: languageProvider.locale,
-                            onChanged: (Locale? value) {
-                              if (value != null) {
-                                languageProvider.setLocale(value);
-                                Navigator.of(dialogContext).pop();
-                              }
-                            }),
-                        RadioListTile<Locale>(
-                            title: Text(s.arabic),
-                            value: const Locale('ar'),
-                            groupValue: languageProvider.locale,
-                            onChanged: (Locale? value) {
-                              if (value != null) {
-                                languageProvider.setLocale(value);
-                                Navigator.of(dialogContext).pop();
-                              }
-                            }),
-                      ],
-                    ),
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext dialogContext) {
+                      return AlertDialog(
+                        title: Text(s.chooseLanguage),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            RadioListTile<Locale>(
+                                title: Text(s.english),
+                                value: const Locale('en'),
+                                groupValue: languageProvider.locale,
+                                onChanged: (Locale? value) {
+                                  if (value != null) {
+                                    languageProvider.setLocale(value);
+                                    Navigator.of(dialogContext).pop();
+                                  }
+                                }),
+                            RadioListTile<Locale>(
+                                title: Text(s.arabic),
+                                value: const Locale('ar'),
+                                groupValue: languageProvider.locale,
+                                onChanged: (Locale? value) {
+                                  if (value != null) {
+                                    languageProvider.setLocale(value);
+                                    Navigator.of(dialogContext).pop();
+                                  }
+                                }),
+                          ],
+                        ),
+                      );
+                    },
                   );
-                },
-              );
-            }),
+                }),
             _buildSettingsItem(context,
                 s: s,
                 icon: Icons.brightness_6_outlined,
@@ -313,57 +745,57 @@ class SettingsScreen extends StatelessWidget {
                     themeProvider.themeMode == ThemeMode.light
                         ? s.lightTheme
                         : themeProvider.themeMode == ThemeMode.dark
-                            ? s.darkTheme
-                            : s.systemDefault,
+                        ? s.darkTheme
+                        : s.systemDefault,
                     style: TextStyle(
                         color: Theme.of(context)
                             .colorScheme
                             .onSurface
                             .withOpacity(0.6))), onTap: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext dialogContext) {
-                  return AlertDialog(
-                    title: Text(s.chooseTheme),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        RadioListTile<ThemeMode>(
-                            title: Text(s.lightTheme),
-                            value: ThemeMode.light,
-                            groupValue: themeProvider.themeMode,
-                            onChanged: (ThemeMode? value) {
-                              if (value != null) {
-                                themeProvider.setThemeMode(value);
-                                Navigator.of(dialogContext).pop();
-                              }
-                            }),
-                        RadioListTile<ThemeMode>(
-                            title: Text(s.darkTheme),
-                            value: ThemeMode.dark,
-                            groupValue: themeProvider.themeMode,
-                            onChanged: (ThemeMode? value) {
-                              if (value != null) {
-                                themeProvider.setThemeMode(value);
-                                Navigator.of(dialogContext).pop();
-                              }
-                            }),
-                        RadioListTile<ThemeMode>(
-                            title: Text(s.systemDefault),
-                            value: ThemeMode.system,
-                            groupValue: themeProvider.themeMode,
-                            onChanged: (ThemeMode? value) {
-                              if (value != null) {
-                                themeProvider.setThemeMode(value);
-                                Navigator.of(dialogContext).pop();
-                              }
-                            }),
-                      ],
-                    ),
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext dialogContext) {
+                      return AlertDialog(
+                        title: Text(s.chooseTheme),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            RadioListTile<ThemeMode>(
+                                title: Text(s.lightTheme),
+                                value: ThemeMode.light,
+                                groupValue: themeProvider.themeMode,
+                                onChanged: (ThemeMode? value) {
+                                  if (value != null) {
+                                    themeProvider.setThemeMode(value);
+                                    Navigator.of(dialogContext).pop();
+                                  }
+                                }),
+                            RadioListTile<ThemeMode>(
+                                title: Text(s.darkTheme),
+                                value: ThemeMode.dark,
+                                groupValue: themeProvider.themeMode,
+                                onChanged: (ThemeMode? value) {
+                                  if (value != null) {
+                                    themeProvider.setThemeMode(value);
+                                    Navigator.of(dialogContext).pop();
+                                  }
+                                }),
+                            RadioListTile<ThemeMode>(
+                                title: Text(s.systemDefault),
+                                value: ThemeMode.system,
+                                groupValue: themeProvider.themeMode,
+                                onChanged: (ThemeMode? value) {
+                                  if (value != null) {
+                                    themeProvider.setThemeMode(value);
+                                    Navigator.of(dialogContext).pop();
+                                  }
+                                }),
+                          ],
+                        ),
+                      );
+                    },
                   );
-                },
-              );
-            }),
+                }),
             _buildSettingsItem(
               context,
               s: s,
@@ -408,8 +840,16 @@ class SettingsScreen extends StatelessWidget {
                           title: Text(s.openCurrentLocation),
                           onTap: () {
                             Navigator.pop(sheetContext);
-                            _openDownloadFolder(
-                                context, s, downloadPathProvider);
+                            final pathProvider =
+                            Provider.of<DownloadPathProvider>(context,
+                                listen: false);
+
+                            pathProvider
+                                .getEffectiveDownloadPath()
+                                .then((folderPath) {
+                              openFolderInListView(
+                                  context: context, folderPath: folderPath);
+                            });
                           },
                         ),
                         ListTile(
@@ -476,7 +916,7 @@ class SettingsScreen extends StatelessWidget {
             ),
           ]
               .map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 0), child: item))
+              padding: const EdgeInsets.only(bottom: 0), child: item))
               .toList(),
         ),
       ),
@@ -485,10 +925,10 @@ class SettingsScreen extends StatelessWidget {
 
   Widget _buildSettingsItem(BuildContext context,
       {required AppLocalizations s,
-      required IconData icon,
-      required String text,
-      Widget? trailing,
-      required VoidCallback onTap}) {
+        required IconData icon,
+        required String text,
+        Widget? trailing,
+        required VoidCallback onTap}) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6.0),
       child: ListTile(
@@ -752,20 +1192,20 @@ class CollegeInfoScreen extends StatelessWidget {
           const SizedBox(height: 16),
           Card(
               child: ListTile(
-            leading: const Icon(Icons.facebook, color: Color(0xFF1877F2)),
-            title: Text(s.facebookPage),
-            trailing: const Icon(Icons.open_in_new_outlined, size: 20),
-            onTap: () => _launchUrl(context, facebookUrl),
-          )),
+                leading: const Icon(Icons.facebook, color: Color(0xFF1877F2)),
+                title: Text(s.facebookPage),
+                trailing: const Icon(Icons.open_in_new_outlined, size: 20),
+                onTap: () => _launchUrl(context, facebookUrl),
+              )),
           const SizedBox(height: 10),
           Card(
               child: ListTile(
-            leading: const Icon(Icons.location_on_outlined,
-                color: Color(0xFFDB4437)),
-            title: Text(s.collegeLocation),
-            trailing: const Icon(Icons.open_in_new_outlined, size: 20),
-            onTap: () => _launchUrl(context, googleMapsUrl),
-          )),
+                leading: const Icon(Icons.location_on_outlined,
+                    color: Color(0xFFDB4437)),
+                title: Text(s.collegeLocation),
+                trailing: const Icon(Icons.open_in_new_outlined, size: 20),
+                onTap: () => _launchUrl(context, googleMapsUrl),
+              )),
           const Divider(height: 40, thickness: 1),
         ],
       ),

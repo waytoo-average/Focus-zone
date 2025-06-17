@@ -372,7 +372,6 @@ class MyApp extends StatelessWidget {
         labelSmall: TextStyle(color: Colors.grey[600]),
       ),
     );
-
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         final languageProvider = Provider.of<LanguageProvider>(context);

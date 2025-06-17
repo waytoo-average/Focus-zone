@@ -329,7 +329,7 @@ abstract class AppLocalizations {
   /// No description provided for @errorDownloadCancelled.
   ///
   /// In en, this message translates to:
-  /// **'Download cancelled.'**
+  /// **'Download cancelled!'**
   String get errorDownloadCancelled;
 
   /// No description provided for @errorFileIdMissing.
