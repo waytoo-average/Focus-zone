@@ -18,9 +18,8 @@ import 'package:permission_handler/permission_handler.dart'; // NEW: For permiss
 
 // Imports specific to RootScreen's functionality, now pointing to combined feature files
 import 'package:app/study_features.dart'; // For GradeSelectionScreen, DepartmentSelectionScreen, etc.
-import 'package:app/todo_features.dart';   // For TodoListScreen, TodoDetailScreen
+import 'package:app/todo_features.dart'; // For TodoListScreen, TodoDetailScreen
 import 'package:app/settings_features.dart'; // For SettingsScreen, AboutScreen, CollegeInfoScreen
-
 
 // --- Helper for File Size Formatting ---
 String formatBytesSimplified(int bytes, int decimals, AppLocalizations s) {
@@ -32,7 +31,11 @@ String formatBytesSimplified(int bytes, int decimals, AppLocalizations s) {
 }
 
 // --- Helper for showing SnackBar Messages ---
-void showAppSnackBar(BuildContext context, String message, {IconData? icon, Color? iconColor, SnackBarAction? action, Color? backgroundColor, Duration? duration}) { // MODIFIED: Added Duration? duration
+void showAppSnackBar(BuildContext context, String message,
+    {IconData? icon,
+    Color? iconColor,
+    SnackBarAction? action,
+    Color? backgroundColor}) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Row(
@@ -49,11 +52,13 @@ void showAppSnackBar(BuildContext context, String message, {IconData? icon, Colo
           ),
         ],
       ),
-      backgroundColor: backgroundColor ?? Theme.of(context).primaryColor, // Default to primary color
+      backgroundColor: backgroundColor ??
+          Theme.of(context).primaryColor, // Default to primary color
       action: action,
-      duration: duration ?? const Duration(seconds: 5), // MODIFIED: Use provided duration or default to 5 seconds
+      duration: const Duration(seconds: 3), // Default duration
       behavior: SnackBarBehavior.floating, // Make it float
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), // Rounded corners
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10)), // Rounded corners
       margin: const EdgeInsets.all(10), // Margin from edges
     ),
   );
@@ -198,12 +203,16 @@ class ThemeProvider extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
   ThemeMode get themeMode => _themeMode;
 
-  ThemeProvider() { _loadThemeMode(); }
+  ThemeProvider() {
+    _loadThemeMode();
+  }
 
   void _loadThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
     final themeString = prefs.getString('themeMode') ?? 'system';
-    _themeMode = ThemeMode.values.firstWhere((e) => e.toString().split('.').last == themeString, orElse: () => ThemeMode.system);
+    _themeMode = ThemeMode.values.firstWhere(
+        (e) => e.toString().split('.').last == themeString,
+        orElse: () => ThemeMode.system);
     notifyListeners();
   }
 
@@ -222,7 +231,9 @@ class LanguageProvider extends ChangeNotifier {
   Locale _locale = const Locale('en');
   Locale get locale => _locale;
 
-  LanguageProvider() { _loadLocale(); }
+  LanguageProvider() {
+    _loadLocale();
+  }
 
   void _loadLocale() async {
     final prefs = await SharedPreferences.getInstance();
@@ -244,9 +255,8 @@ class LanguageProvider extends ChangeNotifier {
 // --- DownloadPathProvider ---
 class DownloadPathProvider extends ChangeNotifier {
   static const String _kCustomDownloadPathKey = 'customDownloadPath';
-  static const String _kHasSeenAllFilesAccessPromptKey = 'hasSeenAllFilesAccessPrompt'; // NEW: For permission dialog flag
   String? _appSpecificDownloadPath; // Stores the resolved app-specific path
-  String? _customDownloadPath;      // Stores the user-selected custom path
+  String? _customDownloadPath; // Stores the user-selected custom path
 
   DownloadPathProvider() {
     _initPaths();
@@ -272,21 +282,27 @@ class DownloadPathProvider extends ChangeNotifier {
     if (!await appDownloadDir.exists()) {
       try {
         await appDownloadDir.create(recursive: true);
-        developer.log("Created app-specific download directory: ${appDownloadDir.path}", name: "DownloadPathProvider");
+        developer.log(
+            "Created app-specific download directory: ${appDownloadDir.path}",
+            name: "DownloadPathProvider");
       } catch (e) {
-        developer.log("Error creating app-specific download directory: $e", name: "DownloadPathProvider");
+        developer.log("Error creating app-specific download directory: $e",
+            name: "DownloadPathProvider");
         // Handle error, maybe show a persistent message to the user
       }
     }
     _appSpecificDownloadPath = appDownloadDir.path;
-    developer.log("Initialized app-specific download path: $_appSpecificDownloadPath", name: "DownloadPathProvider");
+    developer.log(
+        "Initialized app-specific download path: $_appSpecificDownloadPath",
+        name: "DownloadPathProvider");
   }
 
   // Load custom download path from SharedPreferences
   Future<void> _loadCustomDownloadPath() async {
     final prefs = await SharedPreferences.getInstance();
     _customDownloadPath = prefs.getString(_kCustomDownloadPathKey);
-    developer.log("Loaded custom download path: $_customDownloadPath", name: "DownloadPathProvider");
+    developer.log("Loaded custom download path: $_customDownloadPath",
+        name: "DownloadPathProvider");
   }
 
   // Set and persist a new custom download path
@@ -298,7 +314,8 @@ class DownloadPathProvider extends ChangeNotifier {
       await prefs.remove(_kCustomDownloadPathKey); // Clear custom path
     }
     _customDownloadPath = path;
-    developer.log("Set custom download path: $_customDownloadPath", name: "DownloadPathProvider");
+    developer.log("Set custom download path: $_customDownloadPath",
+        name: "DownloadPathProvider");
     notifyListeners();
   }
 
@@ -308,21 +325,40 @@ class DownloadPathProvider extends ChangeNotifier {
   }
 
   // This is the primary method to get the path to use for downloads
-  // It always returns the fixed app-specific path.
   Future<String> getEffectiveDownloadPath() async {
-    // Prioritize custom path if set, otherwise use app-specific path
+    if (Platform.isIOS) {
+      if (_appSpecificDownloadPath == null) {
+        await _initAppSpecificDownloadPath();
+      }
+      return _appSpecificDownloadPath!;
+    }
+
+    // Android: Prioritize custom path if set and valid
     if (_customDownloadPath != null && _customDownloadPath!.isNotEmpty) {
       final customDir = Directory(_customDownloadPath!);
       if (await customDir.exists()) {
-        return _customDownloadPath!;
+        // Verify write access
+        try {
+          final testFile = File('${_customDownloadPath}/.test_write');
+          await testFile.writeAsString('test');
+          await testFile.delete();
+          return _customDownloadPath!;
+        } catch (e) {
+          developer.log("Custom path not writable: $e",
+              name: "DownloadPathProvider");
+          // Fall back to app-specific path if custom path is not writable
+          await resetDownloadPath();
+        }
       } else {
         // If custom path no longer exists, clear it and fall back to app-specific
-        developer.log("Custom download path $_customDownloadPath does not exist. Resetting.", name: "DownloadPathProvider");
+        developer.log(
+            "Custom download path $_customDownloadPath does not exist. Resetting.",
+            name: "DownloadPathProvider");
         await resetDownloadPath();
       }
     }
 
-    // Ensure the app-specific path is initialized before returning
+    // Fall back to app-specific path
     if (_appSpecificDownloadPath == null) {
       await _initAppSpecificDownloadPath();
     }
@@ -334,54 +370,88 @@ class DownloadPathProvider extends ChangeNotifier {
     return await getEffectiveDownloadPath();
   }
 
-  // NEW: Check if the user has already seen the all files access prompt
-  Future<bool> hasSeenAllFilesAccessPrompt() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_kHasSeenAllFilesAccessPromptKey) ?? false;
-  }
-
-  // NEW: Set that the user has seen the all files access prompt
-  Future<void> setSeenAllFilesAccessPrompt(bool seen) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_kHasSeenAllFilesAccessPromptKey, seen);
-  }
-
-
-  // NEW: Centralized function to request storage permissions
-  Future<bool> requestStoragePermissions(BuildContext context, AppLocalizations s) async {
-    // First, check if MANAGE_EXTERNAL_STORAGE is already granted
-    PermissionStatus manageStatus = await Permission.manageExternalStorage.status;
-
-    if (manageStatus.isGranted) {
-      developer.log("MANAGE_EXTERNAL_STORAGE permission already granted.", name: "Permissions");
-      return true; // Already has full access, no further action needed.
-    }
-
-    // If not granted, try to request it. This specifically aims to open the "All files access" settings page.
-    manageStatus = await Permission.manageExternalStorage.request();
-
-    if (manageStatus.isGranted) {
-      developer.log("MANAGE_EXTERNAL_STORAGE permission granted after request.", name: "Permissions");
-      return true;
-    } else {
-      // If MANAGE_EXTERNAL_STORAGE is still not granted (user denied or did not toggle in settings),
-      // inform them more clearly and offer to open app settings.
-      developer.log("MANAGE_EXTERNAL_STORAGE permission NOT granted. Current status: ${manageStatus.name}", name: "Permissions");
-      if (context.mounted) {
-        showAppSnackBar(
-          context,
-          s.permissionDeniedAllFilesAccess, // New localization key
-          action: SnackBarAction(
-            label: s.openSettings, // New localization key
-            onPressed: () => openAppSettings(), // This should lead to the general app settings where "All files access" can be found.
-          ),
-          icon: Icons.error_outline,
-          iconColor: Colors.red,
-          duration: const Duration(seconds: 10), // Give user more time to read and act
-        );
+  // Modified: Centralized function to request storage permissions
+  Future<bool> requestStoragePermissions(
+      BuildContext context, AppLocalizations s) async {
+    if (Platform.isAndroid) {
+      // For Android 11 (API 30) and above, we need MANAGE_EXTERNAL_STORAGE
+      if (await Permission.manageExternalStorage.isGranted) {
+        developer.log("MANAGE_EXTERNAL_STORAGE permission already granted.",
+            name: "Permissions");
+        return true;
       }
-      return false; // Permission still not granted.
+
+      // Check if this is first launch and permission dialog hasn't been shown
+      final firstLaunchProvider =
+          Provider.of<FirstLaunchProvider>(context, listen: false);
+      if (!firstLaunchProvider.hasShownPermissionDialog) {
+        // For Android 11+, we need to open settings directly for MANAGE_EXTERNAL_STORAGE
+        if (context.mounted) {
+          await Future.delayed(Duration.zero, () {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext dialogContext) {
+                return AlertDialog(
+                  title: Text(s.storagePermissionTitle),
+                  content: Text(
+                    'This app needs storage permission to download and save files.',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  actions: <Widget>[
+                    TextButton(
+                      child: Text(s.cancel),
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                      },
+                    ),
+                    TextButton(
+                      child: Text(s.settings),
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                        Permission.manageExternalStorage.request();
+                      },
+                    ),
+                  ],
+                );
+              },
+            );
+          });
+        }
+        await firstLaunchProvider.markPermissionDialogShown();
+        return false;
+      } else {
+        // For subsequent launches, check if we have the permission
+        if (await Permission.manageExternalStorage.isGranted) {
+          return true;
+        }
+
+        // If not granted, show a snackbar to open settings
+        if (context.mounted) {
+          await Future.delayed(Duration.zero, () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(s.permissionDeniedForever),
+                action: SnackBarAction(
+                  label: s.settings,
+                  onPressed: () {
+                    Permission.manageExternalStorage.request();
+                  },
+                ),
+              ),
+            );
+          });
+        }
+        return false;
+      }
+    } else if (Platform.isIOS) {
+      // For iOS, we only need photos permission
+      PermissionStatus photosStatus = await Permission.photos.request();
+      return photosStatus.isGranted;
     }
+    return false;
   }
 }
 
@@ -402,20 +472,20 @@ class RecentFile {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'url': url,
-    'mimeType': mimeType,
-    'accessTime': accessTime.toIso8601String(),
-  };
+        'id': id,
+        'name': name,
+        'url': url,
+        'mimeType': mimeType,
+        'accessTime': accessTime.toIso8601String(),
+      };
 
   factory RecentFile.fromJson(Map<String, dynamic> json) => RecentFile(
-    id: json['id'] as String,
-    name: json['name'] as String,
-    url: json['url'] as String?,
-    mimeType: json['mimeType'] as String,
-    accessTime: DateTime.parse(json['accessTime'] as String),
-  );
+        id: json['id'] as String,
+        name: json['name'] as String,
+        url: json['url'] as String?,
+        mimeType: json['mimeType'] as String,
+        accessTime: DateTime.parse(json['accessTime'] as String),
+      );
 }
 
 // --- RecentFilesProvider ---
@@ -432,15 +502,19 @@ class RecentFilesProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final String? recentFilesString = prefs.getString(_kRecentFilesKey);
     if (recentFilesString != null) {
-      final List<dynamic> jsonList = jsonDecode(recentFilesString) as List<dynamic>;
-      _recentFiles = jsonList.map((json) => RecentFile.fromJson(json as Map<String, dynamic>)).toList();
+      final List<dynamic> jsonList =
+          jsonDecode(recentFilesString) as List<dynamic>;
+      _recentFiles = jsonList
+          .map((json) => RecentFile.fromJson(json as Map<String, dynamic>))
+          .toList();
     }
     notifyListeners();
   }
 
   Future<void> _saveRecentFiles() async {
     final prefs = await SharedPreferences.getInstance();
-    final String jsonString = jsonEncode(_recentFiles.map((file) => file.toJson()).toList());
+    final String jsonString =
+        jsonEncode(_recentFiles.map((file) => file.toJson()).toList());
     await prefs.setString(_kRecentFilesKey, jsonString);
   }
 
@@ -491,9 +565,9 @@ class TodoSummaryProvider extends ChangeNotifier {
       _allTodos = todoListJson.map((json) => TodoItem.fromJson(json)).toList();
 
       _updateSummaryStats(); // Calculate stats from _allTodos
-
     } catch (e) {
-      developer.log("TodoSummaryProvider Error loading todos: $e", name: "TodoSummaryProvider");
+      developer.log("TodoSummaryProvider Error loading todos: $e",
+          name: "TodoSummaryProvider");
     } finally {
       notifyListeners();
     }
@@ -506,13 +580,16 @@ class TodoSummaryProvider extends ChangeNotifier {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    _completedToday = _allTodos.where((todo) =>
-    todo.isCompleted &&
-        todo.dueDate != null &&
-        DateTime(todo.dueDate!.year, todo.dueDate!.month, todo.dueDate!.day).isAtSameMomentAs(today)
-    ).length;
+    _completedToday = _allTodos
+        .where((todo) =>
+            todo.isCompleted &&
+            todo.dueDate != null &&
+            DateTime(todo.dueDate!.year, todo.dueDate!.month, todo.dueDate!.day)
+                .isAtSameMomentAs(today))
+        .length;
 
-    _overdueTasks = _allTodos.where((todo) => todo.isOverdue && !todo.isCompleted).length;
+    _overdueTasks =
+        _allTodos.where((todo) => todo.isOverdue && !todo.isCompleted).length;
 
     // Calculate next upcoming task
     _nextUpcomingTask = null;
@@ -522,13 +599,16 @@ class TodoSummaryProvider extends ChangeNotifier {
       if (!todo.isCompleted && todo.dueDate != null) {
         DateTime taskDateTime;
         if (todo.dueTime != null) {
-          taskDateTime = DateTime(todo.dueDate!.year, todo.dueDate!.month, todo.dueDate!.day, todo.dueTime!.hour, todo.dueTime!.minute);
+          taskDateTime = DateTime(todo.dueDate!.year, todo.dueDate!.month,
+              todo.dueDate!.day, todo.dueTime!.hour, todo.dueTime!.minute);
         } else {
           // If no time, consider beginning of day for comparison
-          taskDateTime = DateTime(todo.dueDate!.year, todo.dueDate!.month, todo.dueDate!.day);
+          taskDateTime = DateTime(
+              todo.dueDate!.year, todo.dueDate!.month, todo.dueDate!.day);
         }
 
-        if (taskDateTime.isAfter(now)) { // Only consider future tasks
+        if (taskDateTime.isAfter(now)) {
+          // Only consider future tasks
           if (closestDueDate == null || taskDateTime.isBefore(closestDueDate)) {
             closestDueDate = taskDateTime;
             _nextUpcomingTask = todo;
@@ -545,7 +625,8 @@ class TodoSummaryProvider extends ChangeNotifier {
 
   // Method to save a new or updated todo item
   Future<void> saveTodo(TodoItem todoItem) async {
-    int existingIndex = _allTodos.indexWhere((t) => t.creationDate == todoItem.creationDate);
+    int existingIndex =
+        _allTodos.indexWhere((t) => t.creationDate == todoItem.creationDate);
 
     if (existingIndex != -1) {
       // Update existing item
@@ -569,15 +650,16 @@ class TodoSummaryProvider extends ChangeNotifier {
   Future<void> _persistTodos() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final String todosString = jsonEncode(_allTodos.map((todo) => todo.toJson()).toList());
+      final String todosString =
+          jsonEncode(_allTodos.map((todo) => todo.toJson()).toList());
       await prefs.setString(_kTodosKey, todosString);
       _updateSummaryStats(); // Recalculate summary after persistence
     } catch (e) {
-      developer.log("TodoSummaryProvider Error saving todos: $e", name: "TodoSummaryProvider");
+      developer.log("TodoSummaryProvider Error saving todos: $e",
+          name: "TodoSummaryProvider");
     }
   }
 }
-
 
 // --- Basic Error Screen ---
 class ErrorScreen extends StatelessWidget {
@@ -587,11 +669,14 @@ class ErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)?.error ?? "Error")),
+      appBar:
+          AppBar(title: Text(AppLocalizations.of(context)?.error ?? "Error")),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red, fontSize: 16)),
+          child: Text(message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red, fontSize: 16)),
         ),
       ),
     );
@@ -604,20 +689,29 @@ class SplashScreen extends StatefulWidget {
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
+
 class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
     Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) Navigator.pushReplacementNamed(context, '/rootScreen'); // Navigate to RootScreen
+      if (mounted)
+        Navigator.pushReplacementNamed(
+            context, '/rootScreen'); // Navigate to RootScreen
     });
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).primaryColor,
       body: const Center(
-        child: Text('ECCAT', style: TextStyle(fontSize: 50, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2.0)),
+        child: Text('ECCAT',
+            style: TextStyle(
+                fontSize: 50,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 2.0)),
       ),
     );
   }
@@ -631,10 +725,12 @@ class RootScreen extends StatefulWidget {
   const RootScreen({super.key});
 
   @override
-  State<RootScreen> createState() => RootScreenState(); // Changed to public RootScreenState
+  State<RootScreen> createState() =>
+      RootScreenState(); // Changed to public RootScreenState
 }
 
-class RootScreenState extends State<RootScreen> { // Made public
+class RootScreenState extends State<RootScreen> {
+  // Made public
   int _selectedIndex = 0;
 
   // GlobalKey for each nested Navigator to manage their respective stacks.
@@ -649,58 +745,26 @@ class RootScreenState extends State<RootScreen> { // Made public
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _handleInitialPermissions(); // NEW: Call the permission handler here
-  }
-
-  // NEW: Function to handle initial permission request with a dialog
-  Future<void> _handleInitialPermissions() async {
-    final downloadPathProvider = Provider.of<DownloadPathProvider>(context, listen: false);
+    // Request permissions when the root screen loads and localizations are available
+    final downloadPathProvider =
+        Provider.of<DownloadPathProvider>(context, listen: false);
+    final firstLaunchProvider =
+        Provider.of<FirstLaunchProvider>(context, listen: false);
     final s = AppLocalizations.of(context);
-
-    if (s == null) {
-      developer.log("Localizations not ready for initial permission handling.", name: "RootScreen");
-      return;
-    }
-
-    // Only show the dialog if user hasn't seen it and permission is not granted yet
-    bool hasSeenPrompt = await downloadPathProvider.hasSeenAllFilesAccessPrompt();
-    PermissionStatus manageStatus = await Permission.manageExternalStorage.status;
-
-    if (!hasSeenPrompt && !manageStatus.isGranted) {
-      if (context.mounted) {
-        // Show the explanatory dialog
-        await showDialog<void>(
-          context: context,
-          barrierDismissible: false, // User must interact with the dialog
-          builder: (BuildContext dialogContext) {
-            return AlertDialog(
-              title: Text(s.permissionNeeded), // Assuming this key exists
-              content: Text(s.allFilesAccessRationale), // NEW localization key
-              actions: <Widget>[
-                TextButton(
-                  child: Text(s.ok), // Assuming this key exists
-                  onPressed: () async {
-                    Navigator.of(dialogContext).pop();
-                    // Request permission after dialog is dismissed
-                    await downloadPathProvider.requestStoragePermissions(context, s);
-                    await downloadPathProvider.setSeenAllFilesAccessPrompt(true); // Mark as seen
-                  },
-                ),
-              ],
-            );
-          },
-        );
+    if (s != null) {
+      // Only show the native permission dialog on first launch
+      if (!firstLaunchProvider.hasShownPermissionDialog) {
+        downloadPathProvider.requestStoragePermissions(context, s);
       }
-    } else if (!manageStatus.isGranted && context.mounted) {
-      // If prompt was seen but permission not granted, re-request without dialog
-      downloadPathProvider.requestStoragePermissions(context, s);
     }
   }
-
 
   void _onItemTapped(int index) {
     if (_selectedIndex == index) {
-      _navigatorKeys[index]?.currentState?.popUntil((route) => route.isFirst);
+      // Use Future.microtask to ensure navigation happens after current frame
+      Future.microtask(() {
+        _navigatorKeys[index]?.currentState?.popUntil((route) => route.isFirst);
+      });
     } else {
       setState(() {
         _selectedIndex = index;
@@ -721,25 +785,43 @@ class RootScreenState extends State<RootScreen> { // Made public
           // --- ALL NESTED TAB ROUTES ARE HANDLED HERE ---
           // This keeps MaterialApp's routes cleaner in main.dart
           switch (routeSettings.name) {
-          // Study Features
+            // Study Features
             case '/departments':
               final academicContext = routeSettings.arguments;
               if (academicContext is AcademicContext) {
-                return MaterialPageRoute(builder: (context) => DepartmentSelectionScreen(academicContext: academicContext));
+                return MaterialPageRoute(
+                    builder: (context) => DepartmentSelectionScreen(
+                        academicContext: academicContext));
               }
-              return MaterialPageRoute(builder: (context) => ErrorScreen(message: AppLocalizations.of(context)?.errorMissingContext ?? "Missing academic context for departments."));
+              return MaterialPageRoute(
+                  builder: (context) => ErrorScreen(
+                      message:
+                          AppLocalizations.of(context)?.errorMissingContext ??
+                              "Missing academic context for departments."));
             case '/years':
               final academicContext = routeSettings.arguments;
               if (academicContext is AcademicContext) {
-                return MaterialPageRoute(builder: (context) => YearSelectionScreen(academicContext: academicContext));
+                return MaterialPageRoute(
+                    builder: (context) =>
+                        YearSelectionScreen(academicContext: academicContext));
               }
-              return MaterialPageRoute(builder: (context) => ErrorScreen(message: AppLocalizations.of(context)?.errorMissingContext ?? "Missing academic context for years."));
+              return MaterialPageRoute(
+                  builder: (context) => ErrorScreen(
+                      message:
+                          AppLocalizations.of(context)?.errorMissingContext ??
+                              "Missing academic context for years."));
             case '/semesters':
               final academicContext = routeSettings.arguments;
               if (academicContext is AcademicContext) {
-                return MaterialPageRoute(builder: (context) => SemesterSelectionScreen(academicContext: academicContext));
+                return MaterialPageRoute(
+                    builder: (context) => SemesterSelectionScreen(
+                        academicContext: academicContext));
               }
-              return MaterialPageRoute(builder: (context) => ErrorScreen(message: AppLocalizations.of(context)?.errorMissingContext ?? "Missing academic context for semesters."));
+              return MaterialPageRoute(
+                  builder: (context) => ErrorScreen(
+                      message:
+                          AppLocalizations.of(context)?.errorMissingContext ??
+                              "Missing academic context for semesters."));
             case '/subjects':
               final arguments = routeSettings.arguments;
               Map<String, String> subjectsMap = {};
@@ -762,42 +844,67 @@ class RootScreenState extends State<RootScreen> { // Made public
 
               if (academicContext == null) {
                 final s = AppLocalizations.of(context);
-                return MaterialPageRoute(builder: (context) => ErrorScreen(message: s?.errorMissingSubjectDetails ?? "Unknown error: Missing academic context."));
+                return MaterialPageRoute(
+                    builder: (context) => ErrorScreen(
+                        message: s?.errorMissingSubjectDetails ??
+                            "Unknown error: Missing academic context."));
               }
-              return MaterialPageRoute(builder: (context) => SubjectSelectionScreen(
-                subjects: subjectsMap,
-                academicContext: academicContext!,
-              ));
+              return MaterialPageRoute(
+                  builder: (context) => SubjectSelectionScreen(
+                        subjects: subjectsMap,
+                        academicContext: academicContext!,
+                      ));
             case '/subjectContentScreen':
               final args = routeSettings.arguments;
-              if (args is! Map<String, dynamic> || !args.containsKey('subjectName') || !args.containsKey('rootFolderId') || !args.containsKey('academicContext')) {
-                return MaterialPageRoute(builder: (context) => ErrorScreen(message: AppLocalizations.of(context)?.errorMissingSubjectDetails ?? "Missing subject details."));
+              if (args is! Map<String, dynamic> ||
+                  !args.containsKey('subjectName') ||
+                  !args.containsKey('rootFolderId') ||
+                  !args.containsKey('academicContext')) {
+                return MaterialPageRoute(
+                    builder: (context) => ErrorScreen(
+                        message: AppLocalizations.of(context)
+                                ?.errorMissingSubjectDetails ??
+                            "Missing subject details."));
               }
-              return MaterialPageRoute(builder: (context) => SubjectContentScreen(
-                subjectName: args['subjectName'] as String,
-                rootFolderId: args['rootFolderId'] as String,
-                academicContext: args['academicContext'] as AcademicContext,
-              ));
+              return MaterialPageRoute(
+                  builder: (context) => SubjectContentScreen(
+                        subjectName: args['subjectName'] as String,
+                        rootFolderId: args['rootFolderId'] as String,
+                        academicContext:
+                            args['academicContext'] as AcademicContext,
+                      ));
 
-          // To-Do Features
+            // To-Do Features
             case '/todoDetailScreen':
               final args = routeSettings.arguments;
-              return MaterialPageRoute(builder: (context) => TodoDetailScreen(todoItem: args is TodoItem ? args : null));
+              return MaterialPageRoute(
+                  builder: (context) => TodoDetailScreen(
+                      todoItem: args is TodoItem ? args : null));
 
-          // Settings Features
+            // Settings Features
             case '/about':
-              return MaterialPageRoute(builder: (context) => const AboutScreen());
+              return MaterialPageRoute(
+                  builder: (context) => const AboutScreen());
             case '/collegeInfo':
-              return MaterialPageRoute(builder: (context) => const CollegeInfoScreen());
+              return MaterialPageRoute(
+                  builder: (context) => const CollegeInfoScreen());
 
-          // --- Global routes that should NOT be nested. This handles accidental pushes ---
+            // --- Global routes that should NOT be nested. This handles accidental pushes ---
             case '/pdfViewer':
             case '/googleDriveViewer':
             case '/lectureFolderBrowser':
-              return MaterialPageRoute(builder: (context) => ErrorScreen(message: AppLocalizations.of(context)?.errorAttemptedGlobalPush ?? "Attempted to push a global route on a nested navigator."));
+              return MaterialPageRoute(
+                  builder: (context) => ErrorScreen(
+                      message: AppLocalizations.of(context)
+                              ?.errorAttemptedGlobalPush ??
+                          "Attempted to push a global route on a nested navigator."));
 
             default:
-              return MaterialPageRoute(builder: (context) => ErrorScreen(message: AppLocalizations.of(context)?.errorPageNotFound(routeSettings.name ?? 'Unknown') ?? "Page not found: ${routeSettings.name}"));
+              return MaterialPageRoute(
+                  builder: (context) => ErrorScreen(
+                      message: AppLocalizations.of(context)?.errorPageNotFound(
+                              routeSettings.name ?? 'Unknown') ??
+                          "Page not found: ${routeSettings.name}"));
           }
         },
       ),
@@ -813,7 +920,8 @@ class RootScreenState extends State<RootScreen> { // Made public
       onPopInvoked: (didPop) async {
         if (didPop) return;
 
-        final NavigatorState? currentNavigator = _navigatorKeys[_selectedIndex]?.currentState;
+        final NavigatorState? currentNavigator =
+            _navigatorKeys[_selectedIndex]?.currentState;
 
         if (currentNavigator != null && currentNavigator.canPop()) {
           currentNavigator.pop();
@@ -830,7 +938,13 @@ class RootScreenState extends State<RootScreen> { // Made public
             _buildOffstageNavigator(0, const DashboardScreen()),
             _buildOffstageNavigator(1, const GradeSelectionScreen()),
             _buildOffstageNavigator(2, const TodoListScreen()),
-            _buildOffstageNavigator(3, Scaffold(appBar: AppBar(title: Text(s.upComing)), body: Center(child: Text(s.upComingContent, style: Theme.of(context).textTheme.titleLarge)))),
+            _buildOffstageNavigator(
+                3,
+                Scaffold(
+                    appBar: AppBar(title: Text(s.upComing)),
+                    body: Center(
+                        child: Text(s.upComingContent,
+                            style: Theme.of(context).textTheme.titleLarge)))),
             _buildOffstageNavigator(4, const SettingsScreen()),
           ],
         ),
@@ -864,11 +978,13 @@ class RootScreenState extends State<RootScreen> { // Made public
           ],
           currentIndex: _selectedIndex,
           selectedItemColor: Theme.of(context).colorScheme.secondary,
-          unselectedItemColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          unselectedItemColor:
+              Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
           onTap: _onItemTapped,
           type: BottomNavigationBarType.fixed,
           backgroundColor: Theme.of(context).cardTheme.color,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          selectedLabelStyle:
+              const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           unselectedLabelStyle: const TextStyle(fontSize: 12),
           elevation: 10,
         ),
@@ -902,18 +1018,32 @@ class DashboardScreen extends StatelessWidget {
             backgroundColor: Theme.of(context).primaryColor,
             automaticallyImplyLeading: false, // Control leading widget manually
             leading: Padding(
-              padding: const EdgeInsets.only(left: 16.0, top: 16.0), // Adjust padding as needed
+              padding: const EdgeInsets.only(
+                  left: 16.0, top: 16.0), // Adjust padding as needed
               child: Opacity(
                 opacity: user != null ? 1.0 : 0.0, // Fade out if not signed in
                 child: CircleAvatar(
                   radius: 20, // Smaller radius for app bar icon
                   backgroundColor: Colors.white,
-                  backgroundImage: user?.photoUrl != null ? NetworkImage(user!.photoUrl!) : null,
-                  child: user?.photoUrl == null ? Text(user?.displayName?.isNotEmpty == true ? user!.displayName![0].toUpperCase() : (user?.email?.isNotEmpty == true ? user!.email![0].toUpperCase() : '?'), style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 18)) : null,
+                  backgroundImage: user?.photoUrl != null
+                      ? NetworkImage(user!.photoUrl!)
+                      : null,
+                  child: user?.photoUrl == null
+                      ? Text(
+                          user?.displayName?.isNotEmpty == true
+                              ? user!.displayName![0].toUpperCase()
+                              : (user?.email?.isNotEmpty == true
+                                  ? user!.email![0].toUpperCase()
+                                  : '?'),
+                          style: TextStyle(
+                              color: Theme.of(context).primaryColor,
+                              fontSize: 18))
+                      : null,
                 ),
               ),
             ),
-            flexibleSpace: FlexibleSpaceBar( // Re-introduced FlexibleSpaceBar for title animation
+            flexibleSpace: FlexibleSpaceBar(
+              // Re-introduced FlexibleSpaceBar for title animation
               // Adjusted titlePadding to be more left-aligned with a gap from leading widget
               titlePadding: const EdgeInsets.only(left: 72.0, bottom: 16.0),
               centerTitle: false, // Title aligns to the start
@@ -921,18 +1051,28 @@ class DashboardScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(s.appTitle, style: Theme.of(context).appBarTheme.titleTextStyle?.copyWith(fontSize: 18)),
+                  Text(s.appTitle,
+                      style: Theme.of(context)
+                          .appBarTheme
+                          .titleTextStyle
+                          ?.copyWith(fontSize: 18)),
                   if (user != null)
                     Text(
                       s.welcomeUser(user.displayName ?? user.email!),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70, fontSize: 14),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: Colors.white70, fontSize: 14),
                     ),
                 ],
               ),
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Theme.of(context).primaryColor, Theme.of(context).colorScheme.primary.withOpacity(0.7)],
+                    colors: [
+                      Theme.of(context).primaryColor,
+                      Theme.of(context).colorScheme.primary.withOpacity(0.7)
+                    ],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
@@ -944,7 +1084,9 @@ class DashboardScreen extends StatelessWidget {
               if (user == null)
                 TextButton(
                   onPressed: signInProvider.signIn,
-                  style: TextButton.styleFrom(foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 16.0)),
+                  style: TextButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0)),
                   child: Text(s.signIn, style: const TextStyle(fontSize: 16)),
                 )
               else
@@ -973,34 +1115,60 @@ class DashboardScreen extends StatelessWidget {
                             leading: const Icon(Icons.history_toggle_off),
                             title: Text(s.lastOpened),
                             subtitle: recentFilesProvider.recentFiles.isNotEmpty
-                                ? Text(recentFilesProvider.recentFiles.first.name)
+                                ? Text(
+                                    recentFilesProvider.recentFiles.first.name)
                                 : Text(s.noRecentFiles),
                             trailing: recentFilesProvider.recentFiles.isNotEmpty
-                                ? Icon(Icons.arrow_forward_ios, size: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))
+                                ? Icon(Icons.arrow_forward_ios,
+                                    size: 16,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.6))
                                 : null,
                             onTap: recentFilesProvider.recentFiles.isNotEmpty
                                 ? () {
-                              final file = recentFilesProvider.recentFiles.first;
-                              if (file.mimeType.contains('pdf')) {
-                                Navigator.of(context, rootNavigator: true).pushNamed(
-                                  '/pdfViewer',
-                                  arguments: {'fileUrl': file.url, 'fileId': file.id, 'fileName': file.name},
-                                );
-                              } else if (file.url != null) {
-                                Navigator.of(context, rootNavigator: true).pushNamed(
-                                  '/googleDriveViewer',
-                                  arguments: {'embedUrl': file.url, 'fileId': file.id, 'fileName': file.name, 'mimeType': file.mimeType},
-                                );
-                              } else {
-                                showAppSnackBar(context, s.cannotOpenFileType);
-                              }
-                            }
+                                    final file =
+                                        recentFilesProvider.recentFiles.first;
+                                    if (file.mimeType.contains('pdf')) {
+                                      Navigator.of(context, rootNavigator: true)
+                                          .pushNamed(
+                                        '/pdfViewer',
+                                        arguments: {
+                                          'fileUrl': file.url,
+                                          'fileId': file.id,
+                                          'fileName': file.name
+                                        },
+                                      );
+                                    } else if (file.url != null) {
+                                      Navigator.of(context, rootNavigator: true)
+                                          .pushNamed(
+                                        '/googleDriveViewer',
+                                        arguments: {
+                                          'embedUrl': file.url,
+                                          'fileId': file.id,
+                                          'fileName': file.name,
+                                          'mimeType': file.mimeType
+                                        },
+                                      );
+                                    } else {
+                                      showAppSnackBar(
+                                          context, s.cannotOpenFileType);
+                                    }
+                                  }
                                 : null,
                           ),
-                          Divider(indent: 16, endIndent: 16, color: Theme.of(context).dividerColor.withOpacity(0.2)),
+                          Divider(
+                              indent: 16,
+                              endIndent: 16,
+                              color: Theme.of(context)
+                                  .dividerColor
+                                  .withOpacity(0.2)),
                           ListTile(
                             leading: const Icon(Icons.view_carousel_outlined),
-                            title: Text(s.documentsViewedThisWeek(recentFilesProvider.recentFiles.length)), // Simple count of recent files
+                            title: Text(s.documentsViewedThisWeek(
+                                recentFilesProvider.recentFiles
+                                    .length)), // Simple count of recent files
                             subtitle: Text(s.keepLearning),
                           ),
                         ],
@@ -1014,39 +1182,78 @@ class DashboardScreen extends StatelessWidget {
                         icon: Icons.task_alt_outlined,
                         children: [
                           ListTile(
-                            leading: Icon(Icons.event_note, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
+                            leading: Icon(Icons.event_note,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.7)),
                             title: Text(s.nextDeadline),
                             subtitle: todoSummary.nextUpcomingTask != null
-                                ? Text('${todoSummary.nextUpcomingTask!.title} (${todoSummary.nextUpcomingTask!.formatDueDate(context, s)})')
+                                ? Text(
+                                    '${todoSummary.nextUpcomingTask!.title} (${todoSummary.nextUpcomingTask!.formatDueDate(context, s)})')
                                 : Text(s.noUpcomingTasks),
                             trailing: todoSummary.nextUpcomingTask != null
-                                ? Icon(Icons.arrow_forward_ios, size: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))
+                                ? Icon(Icons.arrow_forward_ios,
+                                    size: 16,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.6))
                                 : null,
                             onTap: todoSummary.nextUpcomingTask != null
                                 ? () {
-                              rootScreenKey.currentState?.setState(() => rootScreenKey.currentState?._selectedIndex = 2); // Go to To-Do List
-                            } : null,
+                                    rootScreenKey.currentState?.setState(() =>
+                                        rootScreenKey
+                                                .currentState?._selectedIndex =
+                                            2); // Go to To-Do List
+                                  }
+                                : null,
                           ),
-                          Divider(indent: 16, endIndent: 16, color: Theme.of(context).dividerColor.withOpacity(0.2)),
+                          Divider(
+                              indent: 16,
+                              endIndent: 16,
+                              color: Theme.of(context)
+                                  .dividerColor
+                                  .withOpacity(0.2)),
                           ListTile(
-                            leading: Icon(Icons.check_circle_outline, color: Theme.of(context).colorScheme.secondary),
-                            title: Text(s.dailyTaskProgress(todoSummary.completedToday, todoSummary.totalTasks)),
+                            leading: Icon(Icons.check_circle_outline,
+                                color: Theme.of(context).colorScheme.secondary),
+                            title: Text(s.dailyTaskProgress(
+                                todoSummary.completedToday,
+                                todoSummary.totalTasks)),
                             subtitle: LinearProgressIndicator(
-                              value: todoSummary.totalTasks > 0 ? todoSummary.completedToday / todoSummary.totalTasks : 0.0,
-                              backgroundColor: Theme.of(context).colorScheme.onBackground.withOpacity(0.2),
-                              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.secondary),
+                              value: todoSummary.totalTasks > 0
+                                  ? todoSummary.completedToday /
+                                      todoSummary.totalTasks
+                                  : 0.0,
+                              backgroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .onBackground
+                                  .withOpacity(0.2),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  Theme.of(context).colorScheme.secondary),
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
                           if (todoSummary.overdueTasks > 0)
                             Column(
                               children: [
-                                Divider(indent: 16, endIndent: 16, color: Theme.of(context).dividerColor.withOpacity(0.2)),
+                                Divider(
+                                    indent: 16,
+                                    endIndent: 16,
+                                    color: Theme.of(context)
+                                        .dividerColor
+                                        .withOpacity(0.2)),
                                 ListTile(
-                                  leading: const Icon(Icons.error_outline, color: Colors.red),
-                                  title: Text(s.overdueTasksDashboard(todoSummary.overdueTasks)),
+                                  leading: const Icon(Icons.error_outline,
+                                      color: Colors.red),
+                                  title: Text(s.overdueTasksDashboard(
+                                      todoSummary.overdueTasks)),
                                   onTap: () {
-                                    rootScreenKey.currentState?.setState(() => rootScreenKey.currentState?._selectedIndex = 2); // Go to To-Do List
+                                    rootScreenKey.currentState?.setState(() =>
+                                        rootScreenKey
+                                                .currentState?._selectedIndex =
+                                            2); // Go to To-Do List
                                   },
                                 ),
                               ],
@@ -1057,7 +1264,8 @@ class DashboardScreen extends StatelessWidget {
                             child: ElevatedButton.icon(
                               onPressed: () async {
                                 HapticFeedback.lightImpact();
-                                await Navigator.of(context, rootNavigator: true).push(
+                                await Navigator.of(context, rootNavigator: true)
+                                    .push(
                                   MaterialPageRoute(
                                     builder: (context) {
                                       return const TodoDetailScreen();
@@ -1069,7 +1277,8 @@ class DashboardScreen extends StatelessWidget {
                               label: Text(s.addTask),
                               style: ElevatedButton.styleFrom(
                                 minimumSize: const Size(120, 40),
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
                               ),
                             ),
                           ),
@@ -1087,20 +1296,38 @@ class DashboardScreen extends StatelessWidget {
                             leading: const Icon(Icons.explore_outlined),
                             title: Text(s.exploreSubjects),
                             subtitle: Text(s.findNewMaterials),
-                            trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+                            trailing: Icon(Icons.arrow_forward_ios,
+                                size: 16,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.6)),
                             onTap: () {
-                              rootScreenKey.currentState?.setState(() => rootScreenKey.currentState?._selectedIndex = 1); // Go to Study tab
+                              rootScreenKey.currentState?.setState(() =>
+                                  rootScreenKey.currentState?._selectedIndex =
+                                      1); // Go to Study tab
                             },
                           ),
-                          Divider(indent: 16, endIndent: 16, color: Theme.of(context).dividerColor.withOpacity(0.2)),
+                          Divider(
+                              indent: 16,
+                              endIndent: 16,
+                              color: Theme.of(context)
+                                  .dividerColor
+                                  .withOpacity(0.2)),
                           ListTile(
                             leading: const Icon(Icons.add_circle_outline),
                             title: Text(s.createStudyGoal),
                             subtitle: Text(s.planYourNextTask),
-                            trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
+                            trailing: Icon(Icons.arrow_forward_ios,
+                                size: 16,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.6)),
                             onTap: () async {
                               HapticFeedback.lightImpact();
-                              await Navigator.of(context, rootNavigator: true).push(
+                              await Navigator.of(context, rootNavigator: true)
+                                  .push(
                                 MaterialPageRoute(
                                   builder: (context) {
                                     return const TodoDetailScreen();
@@ -1124,7 +1351,10 @@ class DashboardScreen extends StatelessWidget {
   }
 
   // Helper method to build consistent looking cards
-  Widget _buildDashboardCard(BuildContext context, {required String title, required IconData icon, required List<Widget> children}) {
+  Widget _buildDashboardCard(BuildContext context,
+      {required String title,
+      required IconData icon,
+      required List<Widget> children}) {
     return Card(
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -1136,13 +1366,14 @@ class DashboardScreen extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, size: 24, color: Theme.of(context).colorScheme.secondary),
+                Icon(icon,
+                    size: 24, color: Theme.of(context).colorScheme.secondary),
                 const SizedBox(width: 8),
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                 ),
               ],
             ),
@@ -1153,4 +1384,29 @@ class DashboardScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+// NEW: Provider to handle first launch permission check
+class FirstLaunchProvider with ChangeNotifier {
+  static const String _hasShownPermissionKey = 'has_shown_permission_dialog';
+  bool _hasShownPermissionDialog = false;
+
+  FirstLaunchProvider() {
+    _loadPermissionDialogState();
+  }
+
+  Future<void> _loadPermissionDialogState() async {
+    final prefs = await SharedPreferences.getInstance();
+    _hasShownPermissionDialog = prefs.getBool(_hasShownPermissionKey) ?? false;
+    notifyListeners();
+  }
+
+  Future<void> markPermissionDialogShown() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_hasShownPermissionKey, true);
+    _hasShownPermissionDialog = true;
+    notifyListeners();
+  }
+
+  bool get hasShownPermissionDialog => _hasShownPermissionDialog;
 }

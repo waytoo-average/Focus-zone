@@ -1304,41 +1304,29 @@ abstract class AppLocalizations {
   /// **'Storage permission denied permanently. Please grant it from app settings.'**
   String get permissionDeniedForever;
 
-  /// No description provided for @permissionDeniedAllFilesAccess.
+  /// No description provided for @storagePermissionTitle.
   ///
   /// In en, this message translates to:
-  /// **'All files access permission denied. Please grant it manually from app settings for full functionality.'**
-  String get permissionDeniedAllFilesAccess;
+  /// **'Storage Permission Required'**
+  String get storagePermissionTitle;
 
-  /// No description provided for @openSettings.
+  /// No description provided for @storagePermissionExplanation.
   ///
   /// In en, this message translates to:
-  /// **'Open Settings'**
-  String get openSettings;
+  /// **'This app needs storage permission to download and save files. Without this permission, you won\'t be able to download files or choose where to save them.'**
+  String get storagePermissionExplanation;
 
-  /// No description provided for @allFilesAccessRationale.
+  /// No description provided for @storagePermissionNote.
   ///
   /// In en, this message translates to:
-  /// **'To enable downloading and managing PDF files, ECCAT Study Station needs \'All files access\' permission. This allows the app to save and open files in your chosen download location.'**
-  String get allFilesAccessRationale;
+  /// **'This permission is required for downloading and managing your study materials. You can change this later in your device settings.'**
+  String get storagePermissionNote;
 
-  /// No description provided for @permissionNeeded.
+  /// No description provided for @continue_.
   ///
   /// In en, this message translates to:
-  /// **'Permission Needed'**
-  String get permissionNeeded;
-
-  /// No description provided for @couldNotOpenChosenFolder.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not open chosen folder: {error}. Trying app\'s default.'**
-  String couldNotOpenChosenFolder(Object error);
-
-  /// No description provided for @couldNotOpenDefaultFolder.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not open app\'s default download folder.'**
-  String get couldNotOpenDefaultFolder;
+  /// **'Continue'**
+  String get continue_;
 }
 
 class _AppLocalizationsDelegate

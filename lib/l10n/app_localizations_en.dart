@@ -703,25 +703,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Storage permission denied permanently. Please grant it from app settings.';
 
   @override
-  String get permissionDeniedAllFilesAccess =>
-      'All files access permission denied. Please grant it manually from app settings for full functionality.';
+  String get storagePermissionTitle => 'Storage Permission Required';
 
   @override
-  String get openSettings => 'Open Settings';
+  String get storagePermissionExplanation =>
+      'This app needs storage permission to download and save files. Without this permission, you won\'t be able to download files or choose where to save them.';
 
   @override
-  String get allFilesAccessRationale =>
-      'To enable downloading and managing PDF files, ECCAT Study Station needs \'All files access\' permission. This allows the app to save and open files in your chosen download location.';
+  String get storagePermissionNote =>
+      'This permission is required for downloading and managing your study materials. You can change this later in your device settings.';
 
   @override
-  String get permissionNeeded => 'Permission Needed';
-
-  @override
-  String couldNotOpenChosenFolder(Object error) {
-    return 'Could not open chosen folder: $error. Trying app\'s default.';
-  }
-
-  @override
-  String get couldNotOpenDefaultFolder =>
-      'Could not open app\'s default download folder.';
+  String get continue_ => 'Continue';
 }

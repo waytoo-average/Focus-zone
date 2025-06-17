@@ -302,16 +302,8 @@
   "downloading": "Downloading",
   "noFilesIllustrationText": "It looks like there are no files in this folder, or you haven't selected a subject yet.",
   "permissionDeniedForever": "Storage permission denied permanently. Please grant it from app settings.",
-  "permissionDeniedAllFilesAccess": "All files access permission denied. Please grant it manually from app settings for full functionality.",
-  "openSettings": "Open Settings",
-  "allFilesAccessRationale": "To enable downloading and managing PDF files, ECCAT Study Station needs 'All files access' permission. This allows the app to save and open files in your chosen download location.",
-  "permissionNeeded": "Permission Needed",
-  "couldNotOpenChosenFolder": "Could not open chosen folder: {error}. Trying app's default.",
-  "@couldNotOpenChosenFolder": {
-    "placeholders": {
-      "error": {}
-    }
-  },
-  "couldNotOpenDefaultFolder": "Could not open app's default download folder."
+  "storagePermissionTitle": "Storage Permission Required",
+  "storagePermissionExplanation": "This app needs storage permission to download and save files. Without this permission, you won't be able to download files or choose where to save them.",
+  "storagePermissionNote": "This permission is required for downloading and managing your study materials. You can change this later in your device settings.",
+  "continue_": "Continue"
 }
-

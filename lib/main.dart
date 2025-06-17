@@ -21,11 +21,9 @@ import 'package:app/app_core.dart';
 import 'package:app/study_features.dart'; // Contains GoogleDriveViewerScreen, LectureFolderBrowserScreen, PdfViewerScreen
 import 'package:app/l10n/app_localizations.dart'; // For error screen string
 
-
 // --- Notification Plugin Instance ---
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-FlutterLocalNotificationsPlugin();
-
+    FlutterLocalNotificationsPlugin();
 
 // --- MyApp and main() function ---
 void main() async {
@@ -35,12 +33,12 @@ void main() async {
 
   // FIX: Updated Notification Plugin Initialization
   const AndroidInitializationSettings initializationSettingsAndroid =
-  AndroidInitializationSettings('app_icon');
+      AndroidInitializationSettings('app_icon');
   final DarwinInitializationSettings initializationSettingsDarwin =
-  DarwinInitializationSettings(
-    onDidReceiveLocalNotification: (int id, String? title, String? body, String? payload) async {
-      _onDidReceiveLocalNotification(id, title, body, payload);
-    },
+      DarwinInitializationSettings(
+    requestAlertPermission: true,
+    requestBadgePermission: true,
+    requestSoundPermission: true,
   );
 
   final InitializationSettings initializationSettings = InitializationSettings(
@@ -49,14 +47,16 @@ void main() async {
   );
   await flutterLocalNotificationsPlugin.initialize(
     initializationSettings,
-    onDidReceiveNotificationResponse: (NotificationResponse notificationResponse) async {
+    onDidReceiveNotificationResponse:
+        (NotificationResponse notificationResponse) async {
       if (notificationResponse.payload != null) {
-        developer.log('notification payload: ${notificationResponse.payload}', name: 'Notifications');
+        developer.log('notification payload: ${notificationResponse.payload}',
+            name: 'Notifications');
       }
     },
-    onDidReceiveBackgroundNotificationResponse: _onDidReceiveBackgroundNotificationResponse, // Top-level function
+    onDidReceiveBackgroundNotificationResponse:
+        _onDidReceiveBackgroundNotificationResponse, // Top-level function
   );
-
 
   runApp(
     MultiProvider(
@@ -65,10 +65,18 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
         ChangeNotifierProvider(create: (_) => DownloadPathProvider()),
-        ChangeNotifierProvider(create: (_) => RecentFilesProvider()), // NEW: Added RecentFilesProvider
-        ChangeNotifierProvider(create: (_) => TodoSummaryProvider()),  // NEW: Added TodoSummaryProvider
+        ChangeNotifierProvider(
+            create: (_) =>
+                RecentFilesProvider()), // NEW: Added RecentFilesProvider
+        ChangeNotifierProvider(
+            create: (_) =>
+                TodoSummaryProvider()), // NEW: Added TodoSummaryProvider
+        ChangeNotifierProvider(
+            create: (_) =>
+                FirstLaunchProvider()), // NEW: Added FirstLaunchProvider
         // Add this line to make the global notification plugin accessible to TodoListScreen
-        Provider<FlutterLocalNotificationsPlugin>.value(value: flutterLocalNotificationsPlugin),
+        Provider<FlutterLocalNotificationsPlugin>.value(
+            value: flutterLocalNotificationsPlugin),
       ],
       child: const MyApp(),
     ),
@@ -76,15 +84,12 @@ void main() async {
 }
 
 @pragma('vm:entry-point') // Required for background execution
-void _onDidReceiveBackgroundNotificationResponse(NotificationResponse notificationResponse) {
-  developer.log('onDidReceiveBackgroundNotificationResponse: ${notificationResponse.payload}', name: 'Notifications Background');
+void _onDidReceiveBackgroundNotificationResponse(
+    NotificationResponse notificationResponse) {
+  developer.log(
+      'onDidReceiveBackgroundNotificationResponse: ${notificationResponse.payload}',
+      name: 'Notifications Background');
 }
-
-void _onDidReceiveLocalNotification(
-    int id, String? title, String? body, String? payload) async {
-  developer.log('Notification received in foreground (legacy iOS): $title, $body, $payload', name: 'Notifications');
-}
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -102,10 +107,14 @@ class MyApp extends StatelessWidget {
     final Color surfaceLight = const Color(0xFFFFFFFF); // Surface (Cards)
 
     // Dark Theme Colors
-    final Color primaryDarkenedNavy = const Color(0xFF152A4A); // Darkened Primary
-    final Color accentLighterOrange = const Color(0xFFFFB300); // Lighter Secondary for contrast
-    final Color backgroundDark = const Color(0xFF121212); // Deep Black for background
-    final Color surfaceDark = const Color(0xFF1E1E1E); // Darker gray for cards/surfaces
+    final Color primaryDarkenedNavy =
+        const Color(0xFF152A4A); // Darkened Primary
+    final Color accentLighterOrange =
+        const Color(0xFFFFB300); // Lighter Secondary for contrast
+    final Color backgroundDark =
+        const Color(0xFF121212); // Deep Black for background
+    final Color surfaceDark =
+        const Color(0xFF1E1E1E); // Darker gray for cards/surfaces
 
     final ThemeData darkTheme = ThemeData(
       brightness: Brightness.dark,
@@ -157,11 +166,13 @@ class MyApp extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: const BorderRadius.all(Radius.circular(16)),
         ),
-        margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0.0), // Standardized margin
+        margin: const EdgeInsets.symmetric(
+            vertical: 8.0, horizontal: 0.0), // Standardized margin
         color: surfaceDark,
       ),
       listTileTheme: ListTileThemeData(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         tileColor: surfaceDark,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -193,14 +204,16 @@ class MyApp extends StatelessWidget {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surfaceDark.withOpacity(0.8), // Slightly transparent for depth
+        fillColor:
+            surfaceDark.withOpacity(0.8), // Slightly transparent for depth
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1), width: 1), // Subtle border
+          borderSide: BorderSide(
+              color: Colors.white.withOpacity(0.1), width: 1), // Subtle border
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -216,9 +229,16 @@ class MyApp extends StatelessWidget {
         headlineLarge: TextStyle(color: Colors.white),
         headlineMedium: TextStyle(color: Colors.white),
         headlineSmall: TextStyle(color: Colors.white),
-        titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22), // Main titles
-        titleMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18), // Section titles
-        titleSmall: TextStyle(color: Colors.white70, fontWeight: FontWeight.w500, fontSize: 14),
+        titleLarge: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 22), // Main titles
+        titleMedium: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 18), // Section titles
+        titleSmall: TextStyle(
+            color: Colors.white70, fontWeight: FontWeight.w500, fontSize: 14),
         bodyLarge: TextStyle(color: Colors.white),
         bodyMedium: TextStyle(color: Colors.white70), // Default text color
         bodySmall: TextStyle(color: Colors.white54), // Secondary text
@@ -281,7 +301,8 @@ class MyApp extends StatelessWidget {
         color: surfaceLight,
       ),
       listTileTheme: ListTileThemeData(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         tileColor: surfaceLight,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -313,7 +334,8 @@ class MyApp extends StatelessWidget {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: backgroundLight.withOpacity(0.8), // Slightly transparent for depth
+        fillColor:
+            backgroundLight.withOpacity(0.8), // Slightly transparent for depth
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -336,9 +358,12 @@ class MyApp extends StatelessWidget {
         headlineLarge: TextStyle(color: Colors.grey[800]),
         headlineMedium: TextStyle(color: Colors.grey[800]),
         headlineSmall: TextStyle(color: Colors.grey[800]),
-        titleLarge: TextStyle(color: Colors.grey[900], fontWeight: FontWeight.bold, fontSize: 22),
-        titleMedium: TextStyle(color: Colors.grey[850], fontWeight: FontWeight.w600, fontSize: 18),
-        titleSmall: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w500, fontSize: 14),
+        titleLarge: TextStyle(
+            color: Colors.grey[900], fontWeight: FontWeight.bold, fontSize: 22),
+        titleMedium: TextStyle(
+            color: Colors.grey[850], fontWeight: FontWeight.w600, fontSize: 18),
+        titleSmall: TextStyle(
+            color: Colors.grey[600], fontWeight: FontWeight.w500, fontSize: 14),
         bodyLarge: TextStyle(color: Colors.grey[800]),
         bodyMedium: TextStyle(color: Colors.grey[700]),
         bodySmall: TextStyle(color: Colors.grey[600]),
@@ -356,11 +381,9 @@ class MyApp extends StatelessWidget {
           key: ValueKey(themeProvider.themeMode),
           title: 'ECCAT Study Station',
           debugShowCheckedModeBanner: false,
-
           themeMode: themeProvider.themeMode,
           theme: lightTheme,
           darkTheme: darkTheme,
-
           locale: languageProvider.locale,
           supportedLocales: const [
             Locale('en'),
@@ -372,14 +395,14 @@ class MyApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-
           initialRoute: '/',
           routes: {
             '/': (context) => const SplashScreen(),
             '/rootScreen': (context) => RootScreen(key: rootScreenKey),
             // These are the only *global* routes remaining in main.dart
             '/googleDriveViewer': (context) {
-              final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+              final args = ModalRoute.of(context)?.settings.arguments
+                  as Map<String, dynamic>?;
               return GoogleDriveViewerScreen(
                 embedUrl: args?['embedUrl'] as String?,
                 fileId: args?['fileId'] as String?,
@@ -388,16 +411,21 @@ class MyApp extends StatelessWidget {
               );
             },
             '/lectureFolderBrowser': (context) {
-              final args = ModalRoute.of(context)?.settings.arguments as String?;
+              final args =
+                  ModalRoute.of(context)?.settings.arguments as String?;
               return LectureFolderBrowserScreen(initialFolderId: args);
             },
             '/pdfViewer': (context) {
-              final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+              final args = ModalRoute.of(context)?.settings.arguments
+                  as Map<String, dynamic>?;
               final s = AppLocalizations.of(context);
               if (s == null) {
-                return const ErrorScreen(message: 'Error: Localization not available.');
+                return const ErrorScreen(
+                    message: 'Error: Localization not available.');
               }
-              if (args == null || !args.containsKey('fileUrl') || !args.containsKey('fileId')) {
+              if (args == null ||
+                  !args.containsKey('fileUrl') ||
+                  !args.containsKey('fileId')) {
                 return ErrorScreen(message: s.errorNoUrlProvided);
               }
               return PdfViewerScreen(
