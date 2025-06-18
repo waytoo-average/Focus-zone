@@ -1329,8 +1329,7 @@ class _LectureFolderBrowserScreenState
         if (file.name?.toLowerCase().endsWith('.pdf') == true) {
           final String directPdfUrl =
               'https://drive.google.com/uc?export=download&id=${file.id!}';
-          Navigator.pushNamed(
-            context,
+          Navigator.of(context, rootNavigator: true).pushNamed(
             '/pdfViewer',
             arguments: {
               'fileUrl': directPdfUrl,
@@ -1339,8 +1338,7 @@ class _LectureFolderBrowserScreenState
             },
           );
         } else if (file.webViewLink != null) {
-          Navigator.pushNamed(
-            context,
+          Navigator.of(context, rootNavigator: true).pushNamed(
             '/googleDriveViewer',
             arguments: {
               'embedUrl': file.webViewLink,
@@ -1905,6 +1903,7 @@ class FileDetailsDialog extends StatelessWidget {
       ],
     );
   }
+
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
