@@ -112,7 +112,7 @@ class MyApp extends StatelessWidget {
     final Color accentLighterOrange =
         const Color(0xFFFFB300); // Lighter Secondary for contrast
     final Color backgroundDark =
-        const Color(0xFF121212); // Deep Black for background
+        const Color(0xAE121212); // Deep Black for background
     final Color surfaceDark =
         const Color(0xFF1E1E1E); // Darker gray for cards/surfaces
 
