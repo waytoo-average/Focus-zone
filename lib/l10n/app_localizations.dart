@@ -1327,6 +1327,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Continue'**
   String get continue_;
+
+  /// No description provided for @zikr.
+  ///
+  /// In en, this message translates to:
+  /// **'Zikr'**
+  String get zikr;
+
+  /// No description provided for @azkar.
+  ///
+  /// In en, this message translates to:
+  /// **'Azkar'**
+  String get azkar;
+
+  /// No description provided for @quran.
+  ///
+  /// In en, this message translates to:
+  /// **'Quran'**
+  String get quran;
+
+  /// No description provided for @prayerTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'Prayer Times'**
+  String get prayerTimes;
+
+  /// No description provided for @morningRemembrance.
+  ///
+  /// In en, this message translates to:
+  /// **'Morning Remembrance'**
+  String get morningRemembrance;
+
+  /// No description provided for @eveningRemembrance.
+  ///
+  /// In en, this message translates to:
+  /// **'Evening Remembrance'**
+  String get eveningRemembrance;
+
+  /// No description provided for @customZikr.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Zikr'**
+  String get customZikr;
+
+  /// No description provided for @zikrCounter.
+  ///
+  /// In en, this message translates to:
+  /// **'Zikr Counter'**
+  String get zikrCounter;
+
+  /// No description provided for @tapToCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap anywhere to count'**
+  String get tapToCount;
+
+  /// No description provided for @azkarTime.
+  ///
+  /// In en, this message translates to:
+  /// **'{count,plural, =1{{count} time} =2{{count} times} other{{count} times}}'**
+  String azkarTime(num count);
+
+  /// No description provided for @azkarPage.
+  ///
+  /// In en, this message translates to:
+  /// **'{currentPage}/{totalPages}'**
+  String azkarPage(Object currentPage, Object totalPages);
+
+  /// No description provided for @azkarCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'MashaAllah, you have completed the Azkar!'**
+  String get azkarCompleted;
+
+  /// No description provided for @noSurahsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No surahs found.'**
+  String get noSurahsFound;
+
+  /// No description provided for @failedToLoadSurahs.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load surahs. Please check your connection.'**
+  String get failedToLoadSurahs;
+
+  /// No description provided for @failedToLoadAyahs.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load ayahs. Please check your connection.'**
+  String get failedToLoadAyahs;
+
+  /// No description provided for @failedToLoadPrayerTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load prayer times.'**
+  String get failedToLoadPrayerTimes;
+
+  /// No description provided for @untilNextPrayer.
+  ///
+  /// In en, this message translates to:
+  /// **'Until {prayerName} prayer'**
+  String untilNextPrayer(Object prayerName);
+
+  /// No description provided for @prayerNameFajr.
+  ///
+  /// In en, this message translates to:
+  /// **'Fajr'**
+  String get prayerNameFajr;
+
+  /// No description provided for @prayerNameSunrise.
+  ///
+  /// In en, this message translates to:
+  /// **'Sunrise'**
+  String get prayerNameSunrise;
+
+  /// No description provided for @prayerNameDhuhr.
+  ///
+  /// In en, this message translates to:
+  /// **'Dhuhr'**
+  String get prayerNameDhuhr;
+
+  /// No description provided for @prayerNameAsr.
+  ///
+  /// In en, this message translates to:
+  /// **'Asr'**
+  String get prayerNameAsr;
+
+  /// No description provided for @prayerNameMaghrib.
+  ///
+  /// In en, this message translates to:
+  /// **'Maghrib'**
+  String get prayerNameMaghrib;
+
+  /// No description provided for @prayerNameIsha.
+  ///
+  /// In en, this message translates to:
+  /// **'Isha'**
+  String get prayerNameIsha;
 }
 
 class _AppLocalizationsDelegate

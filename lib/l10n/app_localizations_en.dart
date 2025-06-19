@@ -715,4 +715,88 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get continue_ => 'Continue';
+
+  @override
+  String get zikr => 'Zikr';
+
+  @override
+  String get azkar => 'Azkar';
+
+  @override
+  String get quran => 'Quran';
+
+  @override
+  String get prayerTimes => 'Prayer Times';
+
+  @override
+  String get morningRemembrance => 'Morning Remembrance';
+
+  @override
+  String get eveningRemembrance => 'Evening Remembrance';
+
+  @override
+  String get customZikr => 'Custom Zikr';
+
+  @override
+  String get zikrCounter => 'Zikr Counter';
+
+  @override
+  String get tapToCount => 'Tap anywhere to count';
+
+  @override
+  String azkarTime(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count times',
+      two: '$count times',
+      one: '$count time',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String azkarPage(Object currentPage, Object totalPages) {
+    return '$currentPage/$totalPages';
+  }
+
+  @override
+  String get azkarCompleted => 'MashaAllah, you have completed the Azkar!';
+
+  @override
+  String get noSurahsFound => 'No surahs found.';
+
+  @override
+  String get failedToLoadSurahs =>
+      'Failed to load surahs. Please check your connection.';
+
+  @override
+  String get failedToLoadAyahs =>
+      'Failed to load ayahs. Please check your connection.';
+
+  @override
+  String get failedToLoadPrayerTimes => 'Failed to load prayer times.';
+
+  @override
+  String untilNextPrayer(Object prayerName) {
+    return 'Until $prayerName prayer';
+  }
+
+  @override
+  String get prayerNameFajr => 'Fajr';
+
+  @override
+  String get prayerNameSunrise => 'Sunrise';
+
+  @override
+  String get prayerNameDhuhr => 'Dhuhr';
+
+  @override
+  String get prayerNameAsr => 'Asr';
+
+  @override
+  String get prayerNameMaghrib => 'Maghrib';
+
+  @override
+  String get prayerNameIsha => 'Isha';
 }

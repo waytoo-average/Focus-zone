@@ -1,41 +1,31 @@
 // lib/main.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Import for SystemNavigator.pop() and Clipboard
-import 'package:provider/provider.dart'; // For MultiProvider
-import 'package:flutter_localizations/flutter_localizations.dart'; // For localization delegates
-import 'dart:async'; // For async ops related to notifications
-import 'dart:developer' as developer; // For notification logging
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'dart:async';
+import 'dart:developer' as developer;
 
-// For notifications
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 
-// Core app components, utilities, and all providers
 import 'package:app/app_core.dart';
+import 'package:app/study_features.dart';
+import 'package:app/l10n/app_localizations.dart';
 
-// Feature screens (these are global routes that cover the entire screen)
-// Note: These imports are required because MyApp's routes directly reference
-// GoogleDriveViewerScreen, LectureFolderBrowserScreen, and PdfViewerScreen.
-import 'package:app/study_features.dart'; // Contains GoogleDriveViewerScreen, LectureFolderBrowserScreen, PdfViewerScreen
-import 'package:app/l10n/app_localizations.dart'; // For error screen string
-
-// --- Notification Plugin Instance ---
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
+FlutterLocalNotificationsPlugin();
 
-// --- MyApp and main() function ---
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  tz.initializeTimeZones();
 
-  tz.initializeTimeZones(); // Initialize timezone data
-
-  // FIX: Updated Notification Plugin Initialization
   const AndroidInitializationSettings initializationSettingsAndroid =
-      AndroidInitializationSettings('app_icon');
+  AndroidInitializationSettings('app_icon');
   final DarwinInitializationSettings initializationSettingsDarwin =
-      DarwinInitializationSettings(
+  DarwinInitializationSettings(
     requestAlertPermission: true,
     requestBadgePermission: true,
     requestSoundPermission: true,
@@ -55,7 +45,7 @@ void main() async {
       }
     },
     onDidReceiveBackgroundNotificationResponse:
-        _onDidReceiveBackgroundNotificationResponse, // Top-level function
+    _onDidReceiveBackgroundNotificationResponse,
   );
 
   runApp(
@@ -65,16 +55,9 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
         ChangeNotifierProvider(create: (_) => DownloadPathProvider()),
-        ChangeNotifierProvider(
-            create: (_) =>
-                RecentFilesProvider()), // NEW: Added RecentFilesProvider
-        ChangeNotifierProvider(
-            create: (_) =>
-                TodoSummaryProvider()), // NEW: Added TodoSummaryProvider
-        ChangeNotifierProvider(
-            create: (_) =>
-                FirstLaunchProvider()), // NEW: Added FirstLaunchProvider
-        // Add this line to make the global notification plugin accessible to TodoListScreen
+        ChangeNotifierProvider(create: (_) => RecentFilesProvider()),
+        ChangeNotifierProvider(create: (_) => TodoSummaryProvider()),
+        ChangeNotifierProvider(create: (_) => FirstLaunchProvider()),
         Provider<FlutterLocalNotificationsPlugin>.value(
             value: flutterLocalNotificationsPlugin),
       ],
@@ -83,7 +66,7 @@ void main() async {
   );
 }
 
-@pragma('vm:entry-point') // Required for background execution
+@pragma('vm:entry-point')
 void _onDidReceiveBackgroundNotificationResponse(
     NotificationResponse notificationResponse) {
   developer.log(
@@ -96,25 +79,17 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final languageProvider = Provider.of<LanguageProvider>(context);
-
-    // Color Scheme: Palette 1: "Deep Ocean & Sunset Glow"
     // Light Theme Colors
-    final Color primaryDeepNavy = const Color(0xFF1E3A5F); // Primary
-    final Color accentDarkOrange = const Color(0xFFFF8C00); // Secondary
-    final Color backgroundLight = const Color(0xFFF5F7FA); // Background
-    final Color surfaceLight = const Color(0xFFFFFFFF); // Surface (Cards)
+    final Color primaryDeepNavy = const Color(0xFF1E3A5F);
+    final Color accentDarkOrange = const Color(0xFFFF8C00);
+    final Color backgroundLight = const Color(0xFFF5F7FA);
+    final Color surfaceLight = const Color(0xFFFFFFFF);
 
     // Dark Theme Colors
-    final Color primaryDarkenedNavy =
-        const Color(0xFF152A4A); // Darkened Primary
-    final Color accentLighterOrange =
-        const Color(0xFFFFB300); // Lighter Secondary for contrast
-    final Color backgroundDark =
-        const Color(0xAE121212); // Deep Black for background
-    final Color surfaceDark =
-        const Color(0xFF1E1E1E); // Darker gray for cards/surfaces
+    final Color primaryDarkenedNavy = const Color(0xFF152A4A);
+    final Color accentLighterOrange = const Color(0xFFFFB300);
+    final Color backgroundDark = const Color(0xAE121212);
+    final Color surfaceDark = const Color(0xFF1E1E1E);
 
     final ThemeData darkTheme = ThemeData(
       brightness: Brightness.dark,
@@ -127,9 +102,9 @@ class MyApp extends StatelessWidget {
         secondary: accentLighterOrange,
         surface: surfaceDark,
         background: backgroundDark,
-        error: const Color(0xFFCF6679), // A softer red for dark theme errors
+        error: const Color(0xFFCF6679),
         onPrimary: Colors.white,
-        onSecondary: Colors.black, // Still black for contrast on light accent
+        onSecondary: Colors.black,
         onSurface: Colors.white70,
         onBackground: Colors.white,
         onError: Colors.black,
@@ -137,20 +112,20 @@ class MyApp extends StatelessWidget {
       appBarTheme: AppBarTheme(
         backgroundColor: primaryDarkenedNavy,
         foregroundColor: Colors.white,
-        centerTitle: false, // Default to false for modern left-alignment
+        centerTitle: false,
         titleTextStyle: const TextStyle(
-          fontSize: 20, // Slightly larger for better hierarchy
+          fontSize: 20,
           fontWeight: FontWeight.bold,
           color: Colors.white,
         ),
-        toolbarHeight: 64.0, // Standard toolbar height
-        elevation: 4.0, // Some elevation for depth
+        toolbarHeight: 64.0,
+        elevation: 4.0,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryDarkenedNavy,
           foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 52), // Modern button height
+          minimumSize: const Size(double.infinity, 52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -162,17 +137,16 @@ class MyApp extends StatelessWidget {
         ),
       ),
       cardTheme: CardThemeData(
-        elevation: 6.0, // More prominent elevation for cards
+        elevation: 6.0,
         shape: RoundedRectangleBorder(
           borderRadius: const BorderRadius.all(Radius.circular(16)),
         ),
-        margin: const EdgeInsets.symmetric(
-            vertical: 8.0, horizontal: 0.0), // Standardized margin
+        margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0.0),
         color: surfaceDark,
       ),
       listTileTheme: ListTileThemeData(
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         tileColor: surfaceDark,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -204,16 +178,14 @@ class MyApp extends StatelessWidget {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor:
-            surfaceDark.withOpacity(0.8), // Slightly transparent for depth
+        fillColor: surfaceDark.withOpacity(0.8),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-              color: Colors.white.withOpacity(0.1), width: 1), // Subtle border
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -229,19 +201,15 @@ class MyApp extends StatelessWidget {
         headlineLarge: TextStyle(color: Colors.white),
         headlineMedium: TextStyle(color: Colors.white),
         headlineSmall: TextStyle(color: Colors.white),
-        titleLarge: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 22), // Main titles
-        titleMedium: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 18), // Section titles
-        titleSmall: TextStyle(
-            color: Colors.white70, fontWeight: FontWeight.w500, fontSize: 14),
+        titleLarge:
+        TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
+        titleMedium:
+        TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18),
+        titleSmall:
+        TextStyle(color: Colors.white70, fontWeight: FontWeight.w500, fontSize: 14),
         bodyLarge: TextStyle(color: Colors.white),
-        bodyMedium: TextStyle(color: Colors.white70), // Default text color
-        bodySmall: TextStyle(color: Colors.white54), // Secondary text
+        bodyMedium: TextStyle(color: Colors.white70),
+        bodySmall: TextStyle(color: Colors.white54),
         labelLarge: TextStyle(color: Colors.white),
         labelMedium: TextStyle(color: Colors.white70),
         labelSmall: TextStyle(color: Colors.white54),
@@ -258,7 +226,7 @@ class MyApp extends StatelessWidget {
         secondary: accentDarkOrange,
         surface: surfaceLight,
         background: backgroundLight,
-        error: const Color(0xFFB00020), // Standard red for errors
+        error: const Color(0xFFB00020),
         onPrimary: Colors.white,
         onSecondary: Colors.black,
         onSurface: Colors.grey[800]!,
@@ -302,7 +270,7 @@ class MyApp extends StatelessWidget {
       ),
       listTileTheme: ListTileThemeData(
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         tileColor: surfaceLight,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -334,8 +302,7 @@ class MyApp extends StatelessWidget {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor:
-            backgroundLight.withOpacity(0.8), // Slightly transparent for depth
+        fillColor: backgroundLight.withOpacity(0.8),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -358,12 +325,12 @@ class MyApp extends StatelessWidget {
         headlineLarge: TextStyle(color: Colors.grey[800]),
         headlineMedium: TextStyle(color: Colors.grey[800]),
         headlineSmall: TextStyle(color: Colors.grey[800]),
-        titleLarge: TextStyle(
-            color: Colors.grey[900], fontWeight: FontWeight.bold, fontSize: 22),
-        titleMedium: TextStyle(
-            color: Colors.grey[850], fontWeight: FontWeight.w600, fontSize: 18),
-        titleSmall: TextStyle(
-            color: Colors.grey[600], fontWeight: FontWeight.w500, fontSize: 14),
+        titleLarge:
+        TextStyle(color: Colors.grey[900], fontWeight: FontWeight.bold, fontSize: 22),
+        titleMedium:
+        TextStyle(color: Colors.grey[850], fontWeight: FontWeight.w600, fontSize: 18),
+        titleSmall:
+        TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w500, fontSize: 14),
         bodyLarge: TextStyle(color: Colors.grey[800]),
         bodyMedium: TextStyle(color: Colors.grey[700]),
         bodySmall: TextStyle(color: Colors.grey[600]),
@@ -372,17 +339,18 @@ class MyApp extends StatelessWidget {
         labelSmall: TextStyle(color: Colors.grey[600]),
       ),
     );
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child) {
-        final languageProvider = Provider.of<LanguageProvider>(context);
 
+    // FIX: Use Consumer2 to listen to both ThemeProvider and LanguageProvider
+    // This ensures the MaterialApp rebuilds correctly when either theme or language changes.
+    return Consumer2<ThemeProvider, LanguageProvider>(
+      builder: (context, themeProvider, languageProvider, child) {
         return MaterialApp(
           title: 'ECCAT Study Station',
           debugShowCheckedModeBanner: false,
           themeMode: themeProvider.themeMode,
           theme: lightTheme,
           darkTheme: darkTheme,
-          locale: languageProvider.locale,
+          locale: languageProvider.locale, // Driven by the LanguageProvider
           supportedLocales: const [
             Locale('en'),
             Locale('ar'),
@@ -397,10 +365,9 @@ class MyApp extends StatelessWidget {
           routes: {
             '/': (context) => const SplashScreen(),
             '/rootScreen': (context) => RootScreen(key: rootScreenKey),
-            // These are the only *global* routes remaining in main.dart
             '/googleDriveViewer': (context) {
               final args = ModalRoute.of(context)?.settings.arguments
-                  as Map<String, dynamic>?;
+              as Map<String, dynamic>?;
               return GoogleDriveViewerScreen(
                 embedUrl: args?['embedUrl'] as String?,
                 fileId: args?['fileId'] as String?,
@@ -410,12 +377,12 @@ class MyApp extends StatelessWidget {
             },
             '/lectureFolderBrowser': (context) {
               final args =
-                  ModalRoute.of(context)?.settings.arguments as String?;
+              ModalRoute.of(context)?.settings.arguments as String?;
               return LectureFolderBrowserScreen(initialFolderId: args);
             },
             '/pdfViewer': (context) {
               final args = ModalRoute.of(context)?.settings.arguments
-                  as Map<String, dynamic>?;
+              as Map<String, dynamic>?;
               final s = AppLocalizations.of(context);
               if (s == null) {
                 return const ErrorScreen(

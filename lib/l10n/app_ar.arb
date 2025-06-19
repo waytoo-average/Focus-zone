@@ -305,5 +305,54 @@
   "storagePermissionTitle": "مطلوب إذن التخزين",
   "storagePermissionExplanation": "يحتاج هذا التطبيق إلى إذن التخزين لتنزيل وحفظ الملفات. بدون هذا الإذن، لن تتمكن من تنزيل الملفات أو اختيار مكان حفظها.",
   "storagePermissionNote": "هذا الإذن مطلوب لتنزيل وإدارة المواد الدراسية الخاصة بك. يمكنك تغيير هذا لاحقًا في إعدادات جهازك.",
-  "continue_": "متابعة"
+  "continue_": "متابعة",
+  "zikr": "الأذكار",
+  "azkar": "أذكار",
+  "quran": "قرآن",
+  "prayerTimes": "أوقات الصلاة",
+  "morningRemembrance": "أذكار الصباح",
+  "eveningRemembrance": "أذكار المساء",
+  "customZikr": "سبحة خاصة",
+  "zikrCounter": "عداد الأذكار",
+  "tapToCount": "انقر في أي مكان للعد",
+  "azkarTime": "{count,plural, =1{{count} مرة} =2{{count} مرتان} other{{count} مرات}}",
+  "@azkarTime": {
+    "description": "عدد مرات تكرار الذكر",
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "azkarPage": "{currentPage}/{totalPages}",
+  "@azkarPage": {
+    "description": "الصفحة الحالية من إجمالي الصفحات",
+    "placeholders": {
+      "currentPage": {
+        "type": "Object"
+      },
+      "totalPages": {
+        "type": "Object"
+      }
+    }
+  },
+  "azkarCompleted": "ما شاء الله، لقد أتممت الأذكار!",
+  "noSurahsFound": "لم يتم العثور على سور.",
+  "failedToLoadSurahs": "فشل تحميل السور. يرجى التحقق من اتصالك.",
+  "failedToLoadAyahs": "فشل تحميل الآيات. يرجى التحقق من اتصالك.",
+  "failedToLoadPrayerTimes": "فشل في تحميل أوقات الصلاة.",
+  "untilNextPrayer": "حتى صلاة {prayerName}",
+  "@untilNextPrayer": {
+    "placeholders": {
+      "prayerName": {
+        "type": "Object"
+      }
+    }
+  },
+  "prayerNameFajr": "الفجر",
+  "prayerNameSunrise": "الشروق",
+  "prayerNameDhuhr": "الظهر",
+  "prayerNameAsr": "العصر",
+  "prayerNameMaghrib": "المغرب",
+  "prayerNameIsha": "العشاء"
 }
