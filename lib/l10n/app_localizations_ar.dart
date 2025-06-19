@@ -797,4 +797,120 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get prayerNameIsha => 'العشاء';
+
+  @override
+  String get dueToday => 'مستحق اليوم';
+
+  @override
+  String get lessThanOneDay => 'أقل من يوم';
+
+  @override
+  String dueIn(Object timeString) {
+    return 'مستحق خلال $timeString';
+  }
+
+  @override
+  String overdueBy(Object timeString) {
+    return 'متأخر منذ $timeString';
+  }
+
+  @override
+  String year(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'سنوات',
+      one: 'سنة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String month(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'شهور',
+      one: 'شهر',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String week(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'أسابيع',
+      one: 'أسبوع',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String day(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'أيام',
+      one: 'يوم',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get completed => 'مكتمل';
+
+  @override
+  String repeats(Object repeatInterval) {
+    return 'تكرار: $repeatInterval';
+  }
+
+  @override
+  String get sortByDueDateAsc => 'تاريخ الاستحقاق (تصاعدي)';
+
+  @override
+  String get sortByDueDateDesc => 'تاريخ الاستحقاق (تنازلي)';
+
+  @override
+  String get sortByTitleAsc => 'العنوان (تصاعدي)';
+
+  @override
+  String get sortByTitleDesc => 'العنوان (تنازلي)';
+
+  @override
+  String get allTasks => 'كل المهام';
+
+  @override
+  String get activeTasks => 'نشطة';
+
+  @override
+  String get completedTasks => 'مكتملة';
+
+  @override
+  String get edit => 'تعديل';
+
+  @override
+  String get done => 'تم';
+
+  @override
+  String get undo => 'تراجع';
+
+  @override
+  String get taskOptions => 'خيارات المهمة';
+
+  @override
+  String get editTask => 'تعديل المهمة';
+
+  @override
+  String get markAsNotDone => 'وضع كغير مكتملة';
+
+  @override
+  String get markAsDone => 'وضع كمكتملة';
+
+  @override
+  String get deleteTask => 'حذف المهمة';
+
+  @override
+  String get deleteTaskConfirmation => 'هل أنت متأكد أنك تريد حذف هذه المهمة؟';
 }

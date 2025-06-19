@@ -1465,6 +1465,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Isha'**
   String get prayerNameIsha;
+
+  /// No description provided for @dueToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Due Today'**
+  String get dueToday;
+
+  /// No description provided for @lessThanOneDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Less than one day'**
+  String get lessThanOneDay;
+
+  /// No description provided for @dueIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Due in {timeString}'**
+  String dueIn(Object timeString);
+
+  /// No description provided for @overdueBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Overdue by {timeString}'**
+  String overdueBy(Object timeString);
+
+  /// No description provided for @year.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{year} other{years}}'**
+  String year(num count);
+
+  /// No description provided for @month.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{month} other{months}}'**
+  String month(num count);
+
+  /// No description provided for @week.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{week} other{weeks}}'**
+  String week(num count);
+
+  /// No description provided for @day.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{day} other{days}}'**
+  String day(num count);
+
+  /// No description provided for @completed.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get completed;
+
+  /// No description provided for @repeats.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeats: {repeatInterval}'**
+  String repeats(Object repeatInterval);
+
+  /// No description provided for @sortByDueDateAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Due Date (Asc)'**
+  String get sortByDueDateAsc;
+
+  /// No description provided for @sortByDueDateDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Due Date (Desc)'**
+  String get sortByDueDateDesc;
+
+  /// No description provided for @sortByTitleAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Title (Asc)'**
+  String get sortByTitleAsc;
+
+  /// No description provided for @sortByTitleDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Title (Desc)'**
+  String get sortByTitleDesc;
+
+  /// No description provided for @allTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'All Tasks'**
+  String get allTasks;
+
+  /// No description provided for @activeTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get activeTasks;
+
+  /// No description provided for @completedTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get completedTasks;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @done.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
+
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
+
+  /// No description provided for @taskOptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Task options'**
+  String get taskOptions;
+
+  /// No description provided for @editTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit task'**
+  String get editTask;
+
+  /// No description provided for @markAsNotDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as not done'**
+  String get markAsNotDone;
+
+  /// No description provided for @markAsDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as done'**
+  String get markAsDone;
+
+  /// No description provided for @deleteTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Task'**
+  String get deleteTask;
+
+  /// No description provided for @deleteTaskConfirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this task?'**
+  String get deleteTaskConfirmation;
 }
 
 class _AppLocalizationsDelegate

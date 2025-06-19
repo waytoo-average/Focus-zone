@@ -354,5 +354,61 @@
   "prayerNameDhuhr": "الظهر",
   "prayerNameAsr": "العصر",
   "prayerNameMaghrib": "المغرب",
-  "prayerNameIsha": "العشاء"
+  "prayerNameIsha": "العشاء",
+  "sortByDueDateAsc": "تاريخ الاستحقاق (تصاعدي)",
+  "sortByDueDateDesc": "تاريخ الاستحقاق (تنازلي)",
+  "sortByTitleAsc": "العنوان (تصاعدي)",
+  "sortByTitleDesc": "العنوان (تنازلي)",
+  "allTasks": "كل المهام",
+  "activeTasks": "نشطة",
+  "completedTasks": "مكتملة",
+  "edit": "تعديل",
+  "done": "تم",
+  "undo": "تراجع",
+  "taskOptions": "خيارات المهمة",
+  "editTask": "تعديل المهمة",
+  "markAsNotDone": "وضع كغير مكتملة",
+  "markAsDone": "وضع كمكتملة",
+  "deleteTask": "حذف المهمة",
+  "deleteTaskConfirmation": "هل أنت متأكد أنك تريد حذف هذه المهمة؟",
+  "repeats": "تكرار: {repeatInterval}",
+  "completed": "مكتمل",
+  "dueToday": "مستحق اليوم",
+  "lessThanOneDay": "أقل من يوم",
+  "dueIn": "مستحق خلال {timeString}",
+  "@dueIn": {
+    "placeholders": {
+      "timeString": {}
+    }
+  },
+  "overdueBy": "متأخر منذ {timeString}",
+  "@overdueBy": {
+    "placeholders": {
+      "timeString": {}
+    }
+  },
+  "year": "{count, plural, one{سنة} other{سنوات}}",
+  "@year": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "month": "{count, plural, one{شهر} other{شهور}}",
+  "@month": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "week": "{count, plural, one{أسبوع} other{أسابيع}}",
+  "@week": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "day": "{count, plural, one{يوم} other{أيام}}",
+  "@day": {
+    "placeholders": {
+      "count": {}
+    }
+  }
 }

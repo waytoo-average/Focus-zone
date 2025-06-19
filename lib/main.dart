@@ -7,25 +7,40 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'dart:async';
 import 'dart:developer' as developer;
 
+// For notifications and timezone handling
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_timezone/flutter_timezone.dart';
 
+// Core app components and providers
 import 'package:app/app_core.dart';
+import 'package:app/helper.dart';
 import 'package:app/study_features.dart';
 import 'package:app/l10n/app_localizations.dart';
 
+// --- Notification Plugin Instance ---
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-FlutterLocalNotificationsPlugin();
+    FlutterLocalNotificationsPlugin();
 
+// --- Main Entry Point ---
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  tz.initializeTimeZones();
 
+  // --- Robust Timezone Initialization ---
+  tz.initializeTimeZones();
+  final String localTimeZone = await FlutterTimezone.getLocalTimezone();
+  try {
+    tz.setLocalLocation(tz.getLocation(localTimeZone));
+  } catch (e) {
+    developer.log('Could not set local timezone: $e', name: 'TimezoneError');
+  }
+
+  // --- Notification Plugin Initialization ---
   const AndroidInitializationSettings initializationSettingsAndroid =
-  AndroidInitializationSettings('app_icon');
+      AndroidInitializationSettings('app_icon');
   final DarwinInitializationSettings initializationSettingsDarwin =
-  DarwinInitializationSettings(
+      DarwinInitializationSettings(
     requestAlertPermission: true,
     requestBadgePermission: true,
     requestSoundPermission: true,
@@ -35,17 +50,20 @@ void main() async {
     android: initializationSettingsAndroid,
     iOS: initializationSettingsDarwin,
   );
+
   await flutterLocalNotificationsPlugin.initialize(
     initializationSettings,
     onDidReceiveNotificationResponse:
         (NotificationResponse notificationResponse) async {
       if (notificationResponse.payload != null) {
-        developer.log('notification payload: ${notificationResponse.payload}',
-            name: 'Notifications');
+        developer.log(
+          'notification payload: ${notificationResponse.payload}',
+          name: 'Notifications',
+        );
       }
     },
     onDidReceiveBackgroundNotificationResponse:
-    _onDidReceiveBackgroundNotificationResponse,
+        _onDidReceiveBackgroundNotificationResponse,
   );
 
   runApp(
@@ -79,18 +97,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Light Theme Colors
+    NotificationService.requestNotificationPermission();
+
+    // --- Theme Color Definitions ---
     final Color primaryDeepNavy = const Color(0xFF1E3A5F);
     final Color accentDarkOrange = const Color(0xFFFF8C00);
     final Color backgroundLight = const Color(0xFFF5F7FA);
     final Color surfaceLight = const Color(0xFFFFFFFF);
 
-    // Dark Theme Colors
     final Color primaryDarkenedNavy = const Color(0xFF152A4A);
     final Color accentLighterOrange = const Color(0xFFFFB300);
     final Color backgroundDark = const Color(0xAE121212);
     final Color surfaceDark = const Color(0xFF1E1E1E);
 
+    // --- ThemeData Definitions ---
     final ThemeData darkTheme = ThemeData(
       brightness: Brightness.dark,
       primaryColor: primaryDarkenedNavy,
@@ -146,7 +166,7 @@ class MyApp extends StatelessWidget {
       ),
       listTileTheme: ListTileThemeData(
         contentPadding:
-        const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         tileColor: surfaceDark,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -185,7 +205,8 @@ class MyApp extends StatelessWidget {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
+          borderSide:
+              BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -201,12 +222,12 @@ class MyApp extends StatelessWidget {
         headlineLarge: TextStyle(color: Colors.white),
         headlineMedium: TextStyle(color: Colors.white),
         headlineSmall: TextStyle(color: Colors.white),
-        titleLarge:
-        TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
-        titleMedium:
-        TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18),
-        titleSmall:
-        TextStyle(color: Colors.white70, fontWeight: FontWeight.w500, fontSize: 14),
+        titleLarge: TextStyle(
+            color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
+        titleMedium: TextStyle(
+            color: Colors.white, fontWeight: FontWeight.w600, fontSize: 18),
+        titleSmall: TextStyle(
+            color: Colors.white70, fontWeight: FontWeight.w500, fontSize: 14),
         bodyLarge: TextStyle(color: Colors.white),
         bodyMedium: TextStyle(color: Colors.white70),
         bodySmall: TextStyle(color: Colors.white54),
@@ -270,7 +291,7 @@ class MyApp extends StatelessWidget {
       ),
       listTileTheme: ListTileThemeData(
         contentPadding:
-        const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         tileColor: surfaceLight,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -325,12 +346,12 @@ class MyApp extends StatelessWidget {
         headlineLarge: TextStyle(color: Colors.grey[800]),
         headlineMedium: TextStyle(color: Colors.grey[800]),
         headlineSmall: TextStyle(color: Colors.grey[800]),
-        titleLarge:
-        TextStyle(color: Colors.grey[900], fontWeight: FontWeight.bold, fontSize: 22),
-        titleMedium:
-        TextStyle(color: Colors.grey[850], fontWeight: FontWeight.w600, fontSize: 18),
-        titleSmall:
-        TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w500, fontSize: 14),
+        titleLarge: TextStyle(
+            color: Colors.grey[900], fontWeight: FontWeight.bold, fontSize: 22),
+        titleMedium: TextStyle(
+            color: Colors.grey[850], fontWeight: FontWeight.w600, fontSize: 18),
+        titleSmall: TextStyle(
+            color: Colors.grey[600], fontWeight: FontWeight.w500, fontSize: 14),
         bodyLarge: TextStyle(color: Colors.grey[800]),
         bodyMedium: TextStyle(color: Colors.grey[700]),
         bodySmall: TextStyle(color: Colors.grey[600]),
@@ -340,8 +361,7 @@ class MyApp extends StatelessWidget {
       ),
     );
 
-    // FIX: Use Consumer2 to listen to both ThemeProvider and LanguageProvider
-    // This ensures the MaterialApp rebuilds correctly when either theme or language changes.
+    // Use Consumer2 to efficiently listen to both ThemeProvider and LanguageProvider
     return Consumer2<ThemeProvider, LanguageProvider>(
       builder: (context, themeProvider, languageProvider, child) {
         return MaterialApp(
@@ -350,7 +370,7 @@ class MyApp extends StatelessWidget {
           themeMode: themeProvider.themeMode,
           theme: lightTheme,
           darkTheme: darkTheme,
-          locale: languageProvider.locale, // Driven by the LanguageProvider
+          locale: languageProvider.locale,
           supportedLocales: const [
             Locale('en'),
             Locale('ar'),
@@ -367,7 +387,7 @@ class MyApp extends StatelessWidget {
             '/rootScreen': (context) => RootScreen(key: rootScreenKey),
             '/googleDriveViewer': (context) {
               final args = ModalRoute.of(context)?.settings.arguments
-              as Map<String, dynamic>?;
+                  as Map<String, dynamic>?;
               return GoogleDriveViewerScreen(
                 embedUrl: args?['embedUrl'] as String?,
                 fileId: args?['fileId'] as String?,
@@ -377,12 +397,12 @@ class MyApp extends StatelessWidget {
             },
             '/lectureFolderBrowser': (context) {
               final args =
-              ModalRoute.of(context)?.settings.arguments as String?;
+                  ModalRoute.of(context)?.settings.arguments as String?;
               return LectureFolderBrowserScreen(initialFolderId: args);
             },
             '/pdfViewer': (context) {
               final args = ModalRoute.of(context)?.settings.arguments
-              as Map<String, dynamic>?;
+                  as Map<String, dynamic>?;
               final s = AppLocalizations.of(context);
               if (s == null) {
                 return const ErrorScreen(

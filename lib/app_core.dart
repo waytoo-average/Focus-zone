@@ -1,25 +1,30 @@
 // lib/app_core.dart
 
+// Imports that will be needed across many core components
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:async';
-import 'dart:developer' as developer;
-import 'dart:math';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:googleapis/drive/v3.dart' as drive;
-import 'package:http/http.dart' as http;
-import 'package:app/l10n/app_localizations.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart'; // For all providers
+import 'package:shared_preferences/shared_preferences.dart'; // For Theme/Lang/Download providers
+import 'package:path_provider/path_provider.dart'; // For DownloadPathProvider
+import 'dart:async'; // For providers async operations
+import 'dart:developer' as developer; // For logging in providers/helpers
+import 'dart:math'; // For pow in formatBytes
+import 'package:google_sign_in/google_sign_in.dart'; // For SignInProvider
+import 'package:googleapis/drive/v3.dart' as drive; // For SignInProvider
+import 'package:http/http.dart' as http; // For GoogleHttpClient
+import 'package:permission_handler/permission_handler.dart'; // For permissions in provider
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
 
+// App-specific feature imports
+import 'package:app/l10n/app_localizations.dart';
 import 'package:app/study_features.dart';
 import 'package:app/todo_features.dart';
 import 'package:app/settings_features.dart';
 import 'package:app/zikr_features.dart';
+import 'package:app/helper.dart';
 
 // --- Helper for File Size Formatting ---
 String formatBytesSimplified(int bytes, int decimals, AppLocalizations s) {
@@ -53,13 +58,13 @@ void showAppSnackBar(BuildContext context, String message,
         ],
       ),
       backgroundColor: backgroundColor ??
-          Theme.of(context).primaryColor,
+          Theme.of(context).primaryColor, // Default to primary color
       action: action,
-      duration: const Duration(seconds: 3),
-      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 3), // Default duration
+      behavior: SnackBarBehavior.floating, // Make it float
       shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10)),
-      margin: const EdgeInsets.all(10),
+          borderRadius: BorderRadius.circular(10)), // Rounded corners
+      margin: const EdgeInsets.all(10), // Margin from edges
     ),
   );
 }
@@ -122,6 +127,7 @@ class AcademicContext {
     return parts.join(' > ');
   }
 
+  // Helper to get the canonical (English) string for map lookup
   String? getCanonicalGrade(BuildContext context) {
     final s = AppLocalizations.of(context)!;
     if (grade == s.firstGrade) return 'First Grade';
@@ -173,14 +179,37 @@ class SignInProvider extends ChangeNotifier {
       _currentUser = account;
       notifyListeners();
     });
-    _googleSignIn.signInSilently();
+  }
+
+  Future<void> initiateSilentSignIn() async {
+    try {
+      final wasSignedIn = await _googleSignIn.isSignedIn();
+      if (wasSignedIn) {
+        final account = await _googleSignIn.signInSilently();
+        _currentUser = account;
+      } else {
+        _currentUser = null;
+      }
+    } catch (e, stack) {
+      developer.log('Silent sign-in failed', error: e, stackTrace: stack);
+      _currentUser = null;
+    } finally {
+      notifyListeners();
+    }
   }
 
   Future<void> signIn() async {
     try {
-      await _googleSignIn.signIn();
-    } catch (error) {
-      developer.log('Google Sign-In failed: $error', name: 'SignInProvider');
+      final account = await _googleSignIn.signIn();
+      if (account == null) {
+        developer.log('User cancelled sign-in', name: 'SignInProvider');
+      } else {
+        developer.log('Signed in as ${account.displayName}',
+            name: 'SignInProvider');
+      }
+    } catch (error, stack) {
+      developer.log('Google Sign-In failed: $error',
+          name: 'SignInProvider', error: error, stackTrace: stack);
     }
   }
 
@@ -255,6 +284,7 @@ class DownloadPathProvider extends ChangeNotifier {
   static const String _kCustomDownloadPathKey = 'customDownloadPath';
   String? _appSpecificDownloadPath;
   String? _customDownloadPath;
+  bool _isRequestingPermission = false;
 
   DownloadPathProvider() {
     _initPaths();
@@ -270,6 +300,7 @@ class DownloadPathProvider extends ChangeNotifier {
     final directory = await getApplicationDocumentsDirectory();
     String baseDir = directory.path;
     final appDownloadDir = Directory('$baseDir/StudyStationDownloads');
+
     if (!await appDownloadDir.exists()) {
       try {
         await appDownloadDir.create(recursive: true);
@@ -346,25 +377,26 @@ class DownloadPathProvider extends ChangeNotifier {
     return _appSpecificDownloadPath!;
   }
 
-  Future<String> getAppSpecificDownloadPath() async {
-    return await getEffectiveDownloadPath();
-  }
-
   Future<bool> requestStoragePermissions(
       BuildContext context, AppLocalizations s) async {
-    if (Platform.isAndroid) {
-      if (await Permission.manageExternalStorage.isGranted) {
-        developer.log("MANAGE_EXTERNAL_STORAGE permission already granted.",
-            name: "Permissions");
-        return true;
-      }
+    if (_isRequestingPermission) {
+      return false;
+    }
+    _isRequestingPermission = true;
 
-      final firstLaunchProvider =
-      Provider.of<FirstLaunchProvider>(context, listen: false);
-      if (!firstLaunchProvider.hasShownPermissionDialog) {
-        if (context.mounted) {
-          await Future.delayed(Duration.zero, () {
-            showDialog(
+    try {
+      if (Platform.isAndroid) {
+        if (await Permission.manageExternalStorage.isGranted) {
+          developer.log("MANAGE_EXTERNAL_STORAGE permission already granted.",
+              name: "Permissions");
+          return true;
+        }
+
+        final firstLaunchProvider =
+        Provider.of<FirstLaunchProvider>(context, listen: false);
+        if (!firstLaunchProvider.hasShownPermissionDialog) {
+          if (context.mounted) {
+            await showDialog(
               context: context,
               barrierDismissible: false,
               builder: (BuildContext dialogContext) {
@@ -379,9 +411,7 @@ class DownloadPathProvider extends ChangeNotifier {
                   actions: <Widget>[
                     TextButton(
                       child: Text(s.cancel),
-                      onPressed: () {
-                        Navigator.of(dialogContext).pop();
-                      },
+                      onPressed: () => Navigator.of(dialogContext).pop(),
                     ),
                     TextButton(
                       child: Text(s.settings),
@@ -394,36 +424,34 @@ class DownloadPathProvider extends ChangeNotifier {
                 );
               },
             );
-          });
-        }
-        await firstLaunchProvider.markPermissionDialogShown();
-        return false;
-      } else {
-        if (await Permission.manageExternalStorage.isGranted) {
-          return true;
-        }
-        if (context.mounted) {
-          await Future.delayed(Duration.zero, () {
+          }
+          await firstLaunchProvider.markPermissionDialogShown();
+          return false;
+        } else {
+          if (await Permission.manageExternalStorage.isGranted) {
+            return true;
+          }
+          if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(s.permissionDeniedForever),
                 action: SnackBarAction(
                   label: s.settings,
-                  onPressed: () {
-                    Permission.manageExternalStorage.request();
-                  },
+                  onPressed: () => Permission.manageExternalStorage.request(),
                 ),
               ),
             );
-          });
+          }
+          return false;
         }
-        return false;
+      } else if (Platform.isIOS) {
+        PermissionStatus photosStatus = await Permission.photos.request();
+        return photosStatus.isGranted;
       }
-    } else if (Platform.isIOS) {
-      PermissionStatus photosStatus = await Permission.photos.request();
-      return photosStatus.isGranted;
+      return false;
+    } finally {
+      _isRequestingPermission = false;
     }
-    return false;
   }
 }
 
@@ -506,7 +534,6 @@ class TodoSummaryProvider extends ChangeNotifier {
   static const _kTodosKey = 'todos';
 
   List<TodoItem> _allTodos = [];
-
   int _totalTasks = 0;
   int _completedToday = 0;
   int _overdueTasks = 0;
@@ -526,11 +553,13 @@ class TodoSummaryProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final String? todosString = prefs.getString(_kTodosKey);
-      List<dynamic> todoListJson = [];
       if (todosString != null) {
-        todoListJson = jsonDecode(todosString);
+        final List<dynamic> todoListJson = jsonDecode(todosString);
+        _allTodos =
+            todoListJson.map((json) => TodoItem.fromJson(json)).toList();
+      } else {
+        _allTodos = [];
       }
-      _allTodos = todoListJson.map((json) => TodoItem.fromJson(json)).toList();
       _updateSummaryStats();
     } catch (e) {
       developer.log("TodoSummaryProvider Error loading todos: $e",
@@ -575,10 +604,6 @@ class TodoSummaryProvider extends ChangeNotifier {
     }
   }
 
-  void refreshSummary() {
-    _loadTodosAndSummary();
-  }
-
   Future<void> saveTodo(TodoItem todoItem) async {
     int existingIndex =
     _allTodos.indexWhere((t) => t.creationDate == todoItem.creationDate);
@@ -608,6 +633,10 @@ class TodoSummaryProvider extends ChangeNotifier {
       developer.log("TodoSummaryProvider Error saving todos: $e",
           name: "TodoSummaryProvider");
     }
+  }
+
+  void refreshSummary() {
+    _loadTodosAndSummary();
   }
 }
 
@@ -644,9 +673,15 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) Navigator.pushReplacementNamed(context, '/rootScreen');
-    });
+    _handleStartupLogic();
+  }
+
+  Future<void> _handleStartupLogic() async {
+    final signInProvider = Provider.of<SignInProvider>(context, listen: false);
+    await signInProvider.initiateSilentSignIn();
+
+    if (!mounted) return;
+    await Navigator.pushReplacementNamed(context, '/rootScreen');
   }
 
   @override
@@ -680,11 +715,11 @@ class RootScreenState extends State<RootScreen> {
   int _selectedIndex = 0;
 
   final Map<int, GlobalKey<NavigatorState>> _navigatorKeys = {
-    0: GlobalKey<NavigatorState>(),
-    1: GlobalKey<NavigatorState>(),
-    2: GlobalKey<NavigatorState>(),
-    3: GlobalKey<NavigatorState>(),
-    4: GlobalKey<NavigatorState>(),
+    0: GlobalKey<NavigatorState>(), // Dashboard
+    1: GlobalKey<NavigatorState>(), // Study
+    2: GlobalKey<NavigatorState>(), // To-Do list
+    3: GlobalKey<NavigatorState>(), // Zikr
+    4: GlobalKey<NavigatorState>(), // Settings
   };
 
   @override
@@ -724,6 +759,7 @@ class RootScreenState extends State<RootScreen> {
             return MaterialPageRoute(builder: (context) => initialRouteWidget);
           }
           switch (routeSettings.name) {
+          // Study Features
             case '/departments':
               final academicContext = routeSettings.arguments;
               if (academicContext is AcademicContext) {
@@ -735,7 +771,7 @@ class RootScreenState extends State<RootScreen> {
                   builder: (context) => ErrorScreen(
                       message:
                       AppLocalizations.of(context)?.errorMissingContext ??
-                          "Missing academic context for departments."));
+                          "Missing context."));
             case '/years':
               final academicContext = routeSettings.arguments;
               if (academicContext is AcademicContext) {
@@ -747,7 +783,7 @@ class RootScreenState extends State<RootScreen> {
                   builder: (context) => ErrorScreen(
                       message:
                       AppLocalizations.of(context)?.errorMissingContext ??
-                          "Missing academic context for years."));
+                          "Missing context."));
             case '/semesters':
               final academicContext = routeSettings.arguments;
               if (academicContext is AcademicContext) {
@@ -759,11 +795,12 @@ class RootScreenState extends State<RootScreen> {
                   builder: (context) => ErrorScreen(
                       message:
                       AppLocalizations.of(context)?.errorMissingContext ??
-                          "Missing academic context for semesters."));
+                          "Missing context."));
             case '/subjects':
               final arguments = routeSettings.arguments;
               Map<String, String> subjectsMap = {};
               AcademicContext? academicContext;
+
               if (arguments is Map && arguments.containsKey('subjects')) {
                 final dynamic rawSubjects = arguments['subjects'];
                 if (rawSubjects is Map) {
@@ -778,12 +815,13 @@ class RootScreenState extends State<RootScreen> {
                   academicContext = arguments['context'] as AcademicContext;
                 }
               }
+
               if (academicContext == null) {
                 final s = AppLocalizations.of(context);
                 return MaterialPageRoute(
                     builder: (context) => ErrorScreen(
                         message: s?.errorMissingSubjectDetails ??
-                            "Unknown error: Missing academic context."));
+                            "Missing subject details."));
               }
               return MaterialPageRoute(
                   builder: (context) => SubjectSelectionScreen(
@@ -809,25 +847,22 @@ class RootScreenState extends State<RootScreen> {
                     academicContext:
                     args['academicContext'] as AcademicContext,
                   ));
+
+          // To-Do Features
             case '/todoDetailScreen':
               final args = routeSettings.arguments;
               return MaterialPageRoute(
                   builder: (context) => TodoDetailScreen(
                       todoItem: args is TodoItem ? args : null));
+
+          // Settings Features
             case '/about':
               return MaterialPageRoute(
                   builder: (context) => const AboutScreen());
             case '/collegeInfo':
               return MaterialPageRoute(
                   builder: (context) => const CollegeInfoScreen());
-            case '/pdfViewer':
-            case '/googleDriveViewer':
-            case '/lectureFolderBrowser':
-              return MaterialPageRoute(
-                  builder: (context) => ErrorScreen(
-                      message: AppLocalizations.of(context)
-                          ?.errorAttemptedGlobalPush ??
-                          "Attempted to push a global route on a nested navigator."));
+
             default:
               return MaterialPageRoute(
                   builder: (context) => ErrorScreen(
@@ -842,17 +877,16 @@ class RootScreenState extends State<RootScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // FIX: By 'watching' the provider here, we ensure this widget rebuilds
-    // when the language changes, providing a fresh 'context' to its children.
     Provider.of<LanguageProvider>(context);
-
     final s = AppLocalizations.of(context)!;
+
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) async {
         if (didPop) return;
         final NavigatorState? currentNavigator =
             _navigatorKeys[_selectedIndex]?.currentState;
+
         if (currentNavigator != null && currentNavigator.canPop()) {
           currentNavigator.pop();
         } else if (_selectedIndex != 0) {
@@ -868,7 +902,6 @@ class RootScreenState extends State<RootScreen> {
             _buildOffstageNavigator(0, const DashboardScreen()),
             _buildOffstageNavigator(1, const GradeSelectionScreen()),
             _buildOffstageNavigator(2, const TodoListScreen()),
-            // The ZikrScreen is now built here. It will be rebuilt when RootScreen rebuilds.
             _buildOffstageNavigator(3, const ZikrScreen()),
             _buildOffstageNavigator(4, const SettingsScreen()),
           ],
@@ -893,7 +926,7 @@ class RootScreenState extends State<RootScreen> {
             BottomNavigationBarItem(
               icon: const Icon(Icons.mosque_outlined),
               activeIcon: const Icon(Icons.mosque),
-              label: s.zikr, // Now correctly localized
+              label: s.zikr,
             ),
             BottomNavigationBarItem(
               icon: const Icon(Icons.settings_outlined),
@@ -921,6 +954,7 @@ class RootScreenState extends State<RootScreen> {
 // Dashboard Screen
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
@@ -928,6 +962,7 @@ class DashboardScreen extends StatelessWidget {
     final todoSummary = Provider.of<TodoSummaryProvider>(context);
     final recentFilesProvider = Provider.of<RecentFilesProvider>(context);
     final user = signInProvider.currentUser;
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -946,8 +981,9 @@ class DashboardScreen extends StatelessWidget {
                 child: CircleAvatar(
                   radius: 20,
                   backgroundColor: Colors.white,
-                  backgroundImage:
-                  user?.photoUrl != null ? NetworkImage(user!.photoUrl!) : null,
+                  backgroundImage: user?.photoUrl != null
+                      ? NetworkImage(user!.photoUrl!)
+                      : null,
                   child: user?.photoUrl == null
                       ? Text(
                       user?.displayName?.isNotEmpty == true
@@ -1022,6 +1058,7 @@ class DashboardScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Your Study Activity Card
                       _buildDashboardCard(
                         context,
                         title: s.yourStudyActivity,
@@ -1089,6 +1126,7 @@ class DashboardScreen extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 20),
+                      // To-Do Snapshot Card
                       _buildDashboardCard(
                         context,
                         title: s.todoSnapshot,
@@ -1115,9 +1153,8 @@ class DashboardScreen extends StatelessWidget {
                                 : null,
                             onTap: todoSummary.nextUpcomingTask != null
                                 ? () {
-                              rootScreenKey.currentState?.setState(() =>
                               rootScreenKey.currentState
-                                  ?._selectedIndex = 2);
+                                  ?._onItemTapped(2);
                             }
                                 : null,
                           ),
@@ -1162,9 +1199,8 @@ class DashboardScreen extends StatelessWidget {
                                   title: Text(s.overdueTasksDashboard(
                                       todoSummary.overdueTasks)),
                                   onTap: () {
-                                    rootScreenKey.currentState?.setState(() =>
                                     rootScreenKey.currentState
-                                        ?._selectedIndex = 2);
+                                        ?._onItemTapped(2);
                                   },
                                 ),
                               ],
@@ -1188,14 +1224,15 @@ class DashboardScreen extends StatelessWidget {
                               label: Text(s.addTask),
                               style: ElevatedButton.styleFrom(
                                 minimumSize: const Size(120, 40),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16),
+                                padding:
+                                const EdgeInsets.symmetric(horizontal: 16),
                               ),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 20),
+                      // Your Study Zone Card
                       _buildDashboardCard(
                         context,
                         title: s.yourStudyZone,
@@ -1212,8 +1249,7 @@ class DashboardScreen extends StatelessWidget {
                                     .onSurface
                                     .withOpacity(0.6)),
                             onTap: () {
-                              rootScreenKey.currentState?.setState(() =>
-                              rootScreenKey.currentState?._selectedIndex = 1);
+                              rootScreenKey.currentState?._onItemTapped(1);
                             },
                           ),
                           Divider(
@@ -1258,6 +1294,7 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
+  // Helper method to build consistent looking cards
   Widget _buildDashboardCard(BuildContext context,
       {required String title,
         required IconData icon,
@@ -1293,7 +1330,7 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-// --- Provider to handle first launch permission check ---
+// Provider to handle first launch permission check
 class FirstLaunchProvider with ChangeNotifier {
   static const String _hasShownPermissionKey = 'has_shown_permission_dialog';
   bool _hasShownPermissionDialog = false;

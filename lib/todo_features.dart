@@ -1,21 +1,22 @@
-// Imports specific to To-Do features
+// lib/todo_features.dart
+
+import 'package:app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert'; // For jsonDecode and jsonEncode
-import 'package:flutter/services.dart'; // For HapticFeedback
-import 'package:intl/intl.dart'; // For date formatting
-import 'dart:developer' as developer; // For logging
-import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // For notifications
-import 'package:timezone/timezone.dart' as tz; // For timezone in notifications
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'dart:developer' as developer;
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
 
-// Core app imports (from app_core.dart)
 import 'package:app/app_core.dart';
 
-import 'l10n/app_localizations.dart';
-import 'main.dart'; // For AppLocalizations, showAppSnackBar
+// Assuming these files exist in your project structure as they were in the original file
+import 'package:app/src/models/task_filter_sort.dart';
+import 'package:app/src/ui/widgets/deadline_tile.dart';
+import 'package:app/src/ui/widgets/sort_chip.dart';
+import 'package:app/src/ui/widgets/task_filter_chips.dart';
 
-// TodoItem class for persistence and enhanced fields
 class TodoItem {
   String title;
   bool isCompleted;
@@ -66,7 +67,7 @@ class TodoItem {
       listName: json['listName'] as String?,
       creationDate: json['creationDate'] != null
           ? DateTime.parse(json['creationDate'] as String)
-          : DateTime(2000, 1, 1),
+          : DateTime.now(),
     );
   }
 
@@ -76,44 +77,14 @@ class TodoItem {
     final today = DateTime(now.year, now.month, now.day);
     final taskDate = DateTime(dueDate!.year, dueDate!.month, dueDate!.day);
 
-    if (taskDate.isBefore(today)) {
-      return true;
-    }
+    if (taskDate.isBefore(today)) return true;
+
     if (taskDate.isAtSameMomentAs(today) && dueTime != null) {
       final taskDateTime = DateTime(
           now.year, now.month, now.day, dueTime!.hour, dueTime!.minute);
       return taskDateTime.isBefore(now);
     }
     return false;
-  }
-
-  bool get isToday {
-    if (dueDate == null || isCompleted) return false;
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final taskDate = DateTime(dueDate!.year, dueDate!.month, dueDate!.day);
-    return taskDate.isAtSameMomentAs(today);
-  }
-
-  bool get isTomorrow {
-    if (dueDate == null || isCompleted) return false;
-    final now = DateTime.now();
-    final tomorrow = DateTime(now.year, now.month, now.day + 1);
-    final taskDate = DateTime(dueDate!.year, dueDate!.month, dueDate!.day);
-    return taskDate.isAtSameMomentAs(tomorrow);
-  }
-
-  bool get isThisWeek {
-    if (dueDate == null || isCompleted) return false;
-    if (isToday || isTomorrow) return false;
-    final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    final endOfWeek = startOfWeek.add(const Duration(days: 6));
-
-    final taskDate = DateTime(dueDate!.year, dueDate!.month, dueDate!.day);
-    return taskDate
-            .isAfter(startOfWeek.subtract(const Duration(milliseconds: 1))) &&
-        taskDate.isBefore(endOfWeek.add(const Duration(days: 1)));
   }
 
   String formatDueDate(BuildContext context, AppLocalizations s) {
@@ -129,10 +100,6 @@ class TodoItem {
       dateText = s.todayTasks;
     } else if (taskDate.isAtSameMomentAs(tomorrow)) {
       dateText = s.tomorrowTasks;
-    } else if (isThisWeek) {
-      dateText =
-          DateFormat.EEEE(Localizations.localeOf(context).toLanguageTag())
-              .format(dueDate!);
     } else {
       dateText =
           DateFormat.yMMMd(Localizations.localeOf(context).toLanguageTag())
@@ -141,19 +108,13 @@ class TodoItem {
 
     String timeText = '';
     if (dueTime != null) {
-      final materialLocalizations = MaterialLocalizations.of(context);
-      timeText = materialLocalizations.formatTimeOfDay(dueTime!,
-          alwaysUse24HourFormat: MediaQuery.of(context).alwaysUse24HourFormat);
+      timeText = MaterialLocalizations.of(context).formatTimeOfDay(dueTime!);
     }
 
-    if (timeText.isNotEmpty) {
-      return '$dateText, $timeText';
-    }
-    return dateText;
+    return timeText.isNotEmpty ? '$dateText, $timeText' : dateText;
   }
 }
 
-// TodoListScreen
 class TodoListScreen extends StatefulWidget {
   const TodoListScreen({super.key});
 
@@ -162,127 +123,88 @@ class TodoListScreen extends StatefulWidget {
 }
 
 class _TodoListScreenState extends State<TodoListScreen> {
-  final TextEditingController _taskController = TextEditingController();
-  List<TodoItem> _todos =
-      []; // This will now be a filtered/sorted view of data from Provider
-  bool _isLoading = true;
-  bool _isSearching = false;
-
+  List<TodoItem> _rawTodos = [];
   String _currentList = 'INITIAL_PLACEHOLDER';
-  String _searchQuery = '';
-
+  TaskFilter _currentFilter = TaskFilter.all;
+  TaskSort _currentSort = TaskSort.dueDateAsc;
   late TodoSummaryProvider _todoSummaryProvider;
 
   @override
   void initState() {
     super.initState();
-    // Listen to changes from TodoSummaryProvider
-    Provider.of<TodoSummaryProvider>(context, listen: false)
-        .addListener(_onTodosChanged);
+    _todoSummaryProvider =
+        Provider.of<TodoSummaryProvider>(context, listen: false);
+    _todoSummaryProvider.addListener(_onTodosChanged);
     _loadTodos();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _todoSummaryProvider =
-        Provider.of<TodoSummaryProvider>(context, listen: false);
-    final s = AppLocalizations.of(context);
-
-    if (s != null) {
-      if (_currentList == 'INITIAL_PLACEHOLDER' ||
-          !_isLocalizedList(_currentList, s)) {
+    final s = AppLocalizations.of(context)!;
+    final availableLists = [
+      s.allListsTitle,
+      s.personal,
+      s.work,
+      s.shopping,
+      s.defaultList
+    ];
+    // If the current value is not in the new locale's list, reset to default
+    if (!availableLists.contains(_currentList)) {
+      setState(() {
         _currentList = s.allListsTitle;
-      }
-      _applyFilters();
+      });
+    }
+    // If first time, set to default
+    if (_currentList == 'INITIAL_PLACEHOLDER') {
+      setState(() {
+        _currentList = s.allListsTitle;
+      });
     }
   }
 
   @override
   void dispose() {
-    // Ensure the listener is removed to prevent memory leaks and "deactivated widget" errors
     _todoSummaryProvider.removeListener(_onTodosChanged);
-    _taskController.dispose();
     super.dispose();
   }
 
   void _onTodosChanged() {
-    if (!mounted)
-      return; // Crucial check for preventing "deactivated widget" errors
-    _loadTodos(); // Reloads the filtered list based on the updated provider data
+    if (mounted) _loadTodos();
   }
 
   Future<void> _loadTodos() async {
-    if (!mounted)
-      return; // Crucial check for preventing "deactivated widget" errors
-    // Get the raw list of todos from the provider
     final todoProvider =
         Provider.of<TodoSummaryProvider>(context, listen: false);
-
-    // Sort and filter the provider's allTodos list
-    List<TodoItem> fetchedTodos = todoProvider.allTodos;
-
     if (mounted) {
-      // Ensure mounted before setState
       setState(() {
-        _todos = fetchedTodos; // Update internal list with provider's data
-        _isLoading = false;
-        _applyFilters();
+        _rawTodos = todoProvider.allTodos;
       });
     }
   }
 
-  bool _isLocalizedList(String listName, AppLocalizations s) {
-    return listName == s.allListsTitle ||
-        listName == s.personal ||
-        listName == s.work ||
-        listName == s.shopping ||
-        listName == s.defaultList;
-  }
-
-  void _addTodo(AppLocalizations s) async {
-    if (!mounted) return; // Ensure mounted
-    final String newTaskTitle = _taskController.text.trim();
-    if (newTaskTitle.isNotEmpty) {
-      final newItem = TodoItem(
-        title: newTaskTitle,
-        listName: _currentList == s.allListsTitle
-            ? null
-            : (_currentList == s.defaultList
-                ? null
-                : _currentList), // Corrected defaultList handling
-      );
-
-      await Provider.of<TodoSummaryProvider>(context, listen: false)
-          .saveTodo(newItem); // Save via provider
-
-      _taskController.clear();
-      HapticFeedback.lightImpact();
-      if (mounted) {
-        // Ensure mounted
-        showAppSnackBar(context, s.taskAdded,
-            icon: Icons.task_alt, iconColor: Colors.green);
-      }
-      if (!mounted) return; // Added mounted check after showAppSnackBar
-      await _scheduleNotification(newItem, s); // Schedule notification
-    } else {
-      if (mounted) {
-        // Added mounted check before showAppSnackBar
-        showAppSnackBar(context, s.emptyTaskError,
-            icon: Icons.warning_amber_outlined, iconColor: Colors.orange);
-      }
+  void _editTodo(TodoItem todoItem) async {
+    final s = AppLocalizations.of(context)!;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => TodoDetailScreen(todoItem: todoItem),
+      ),
+    );
+    if (mounted) {
+      final updatedItem =
+          Provider.of<TodoSummaryProvider>(context, listen: false)
+              .allTodos
+              .firstWhere((t) => t.creationDate == todoItem.creationDate,
+                  orElse: () => todoItem);
+      await _scheduleNotification(updatedItem, s);
     }
   }
 
-  void _toggleTodoCompletion(int index) async {
-    if (!mounted) return; // Ensure mounted
+  void _markAsDone(TodoItem itemToToggle) async {
     final s = AppLocalizations.of(context)!;
-    final TodoItem itemToToggle = _getFilteredTodos()[index];
-
-    // Create a copy to modify its completion status
     final updatedItem = TodoItem(
       title: itemToToggle.title,
-      isCompleted: !itemToToggle.isCompleted, // Toggle status
+      isCompleted: !itemToToggle.isCompleted,
       dueDate: itemToToggle.dueDate,
       dueTime: itemToToggle.dueTime,
       isRepeating: itemToToggle.isRepeating,
@@ -292,121 +214,105 @@ class _TodoListScreenState extends State<TodoListScreen> {
     );
 
     await Provider.of<TodoSummaryProvider>(context, listen: false)
-        .saveTodo(updatedItem); // Save via provider
-
+        .saveTodo(updatedItem);
     HapticFeedback.lightImpact();
-    if (mounted) {
-      // Ensure mounted
-      if (updatedItem.isCompleted) {
-        showAppSnackBar(context, s.taskCompleted,
-            icon: Icons.check_circle_outline, iconColor: Colors.green);
-        flutterLocalNotificationsPlugin.cancel(itemToToggle.hashCode);
-      } else {
-        showAppSnackBar(context, s.taskReactivated,
-            icon: Icons.refresh, iconColor: Colors.blue);
-        if (!mounted) return; // Added mounted check after showAppSnackBar
-        await _scheduleNotification(
-            updatedItem, s); // Re-schedule if reactivated
-      }
+
+    if (!mounted) return;
+
+    if (updatedItem.isCompleted) {
+      showAppSnackBar(context, s.taskCompleted,
+          icon: Icons.check_circle_outline, iconColor: Colors.green);
+      final plugin =
+          Provider.of<FlutterLocalNotificationsPlugin>(context, listen: false);
+      plugin.cancel(updatedItem.hashCode);
+    } else {
+      showAppSnackBar(context, s.taskReactivated,
+          icon: Icons.refresh, iconColor: Colors.blue);
+      await _scheduleNotification(updatedItem, s);
     }
   }
 
-  void _deleteTodo(int index) async {
-    if (!mounted) return; // Ensure mounted
+  void _deleteTodo(TodoItem itemToDelete) async {
     final s = AppLocalizations.of(context)!;
-    final TodoItem itemToDelete = _getFilteredTodos()[index];
-
-    // Show confirmation dialog
     final bool? shouldDelete = await showDialog<bool>(
       context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: Text(s.confirmAction),
-          content: Text(s.taskDeleted),
-          actions: <Widget>[
-            TextButton(
+      builder: (ctx) => AlertDialog(
+        title: Text(s.confirmAction),
+        content: Text(s.deleteTaskConfirmation),
+        actions: [
+          TextButton(
               child: Text(s.cancel),
-              onPressed: () {
-                Navigator.of(dialogContext).pop(false);
-              },
-            ),
-            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false)),
+          TextButton(
               child: Text(s.clear, style: const TextStyle(color: Colors.red)),
-              onPressed: () {
-                Navigator.of(dialogContext).pop(true);
-              },
-            ),
-          ],
-        );
-      },
+              onPressed: () => Navigator.of(ctx).pop(true)),
+        ],
+      ),
     );
 
-    if (!mounted) return; // Check mounted after dialog
-    if (shouldDelete != true) return; // User cancelled
-
+    if (shouldDelete != true) return;
     await Provider.of<TodoSummaryProvider>(context, listen: false)
-        .deleteTodo(itemToDelete); // Delete via provider
-
+        .deleteTodo(itemToDelete);
     HapticFeedback.lightImpact();
+
     if (mounted) {
-      // Ensure mounted
       showAppSnackBar(context, s.taskDeleted,
           icon: Icons.delete_outline, iconColor: Colors.red);
-      flutterLocalNotificationsPlugin.cancel(itemToDelete.hashCode);
+      final plugin =
+          Provider.of<FlutterLocalNotificationsPlugin>(context, listen: false);
+      plugin.cancel(itemToDelete.hashCode);
     }
   }
 
-  List<TodoItem> _getFilteredTodos() {
+  List<TodoItem> _getFilteredAndSortedTodos() {
     final s = AppLocalizations.of(context)!;
-    List<TodoItem> filteredTodos = _todos.where((todo) {
-      // Filter _todos (which comes from Provider.allTodos)
-      if (_currentList != s.allListsTitle) {
-        if (todo.listName == null && _currentList == s.defaultList) {
-          return true;
-        } else if (todo.listName != _currentList) {
-          return false;
-        }
-      }
+    List<TodoItem> currentTodos = List.from(_rawTodos);
 
-      if (_searchQuery.isNotEmpty &&
-          !todo.title.toLowerCase().contains(_searchQuery.toLowerCase())) {
-        return false;
-      }
-      return true;
+    currentTodos = currentTodos.where((todo) {
+      if (_currentList == s.allListsTitle) return true;
+      if (_currentList == s.defaultList)
+        return todo.listName == null || todo.listName == s.defaultList;
+      return todo.listName == _currentList;
     }).toList();
 
-    filteredTodos.sort((a, b) {
-      if (a.isCompleted != b.isCompleted) return a.isCompleted ? 1 : -1;
-
-      if (a.dueDate == null && b.dueDate == null) {
-        return a.creationDate.compareTo(b.creationDate);
+    currentTodos = currentTodos.where((todo) {
+      switch (_currentFilter) {
+        case TaskFilter.active:
+          return !todo.isCompleted;
+        case TaskFilter.completed:
+          return todo.isCompleted;
+        case TaskFilter.all:
+          return true;
       }
-      if (a.dueDate == null) return 1;
-      if (b.dueDate == null) return -1;
-      int dueDateComparison = a.dueDate!.compareTo(b.dueDate!);
-      if (dueDateComparison != 0) return dueDateComparison;
+    }).toList();
 
-      return a.creationDate.compareTo(b.creationDate);
+    currentTodos.sort((a, b) {
+      if (a.isCompleted != b.isCompleted) return a.isCompleted ? 1 : -1;
+      if (!a.isCompleted) {
+        if (a.dueDate == null && b.dueDate == null)
+          return b.creationDate.compareTo(a.creationDate);
+        if (a.dueDate == null) return 1;
+        if (b.dueDate == null) return -1;
+      }
+      switch (_currentSort) {
+        case TaskSort.dueDateAsc:
+          return a.dueDate!.compareTo(b.dueDate!);
+        case TaskSort.dueDateDesc:
+          return b.dueDate!.compareTo(a.dueDate!);
+        case TaskSort.titleAsc:
+          return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        case TaskSort.titleDesc:
+          return b.title.toLowerCase().compareTo(a.title.toLowerCase());
+      }
     });
-
-    return filteredTodos;
-  }
-
-  void _applyFilters() {
-    if (mounted) {
-      // Ensure mounted
-      setState(() {});
-    }
+    return currentTodos;
   }
 
   Future<void> _scheduleNotification(TodoItem task, AppLocalizations s) async {
-    if (!mounted) return; // Ensure mounted
-    // Access the global flutterLocalNotificationsPlugin from main.dart via Provider
-    final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    final plugin =
         Provider.of<FlutterLocalNotificationsPlugin>(context, listen: false);
-
     if (task.dueDate == null || task.dueTime == null || task.isCompleted) {
-      flutterLocalNotificationsPlugin.cancel(task.hashCode);
+      await plugin.cancel(task.hashCode);
       return;
     }
 
@@ -420,296 +326,233 @@ class _TodoListScreenState extends State<TodoListScreen> {
     );
 
     if (scheduleDateTime.isBefore(now)) {
-      developer.log(
-          "Notification not scheduled: Task time is in the past for '${task.title}'.",
-          name: "Notifications");
+      await plugin.cancel(task.hashCode);
       return;
     }
 
-    final tz.TZDateTime tzScheduleDateTime = tz.TZDateTime.from(
-      scheduleDateTime,
-      tz.local,
-    );
-
-    const AndroidNotificationDetails androidNotificationDetails =
-        AndroidNotificationDetails(
+    final tz.TZDateTime tzScheduleDateTime =
+        tz.TZDateTime.from(scheduleDateTime, tz.local);
+    const androidDetails = AndroidNotificationDetails(
       'task_reminders_channel',
       'Task Reminders',
-      channelDescription: 'Reminders for your ECCAT Study Station tasks',
+      channelDescription: 'Reminders for your tasks',
       importance: Importance.max,
       priority: Priority.high,
-      ticker: 'ticker',
     );
-    const DarwinNotificationDetails darwinNotificationDetails =
-        DarwinNotificationDetails();
-    final NotificationDetails notificationDetails = NotificationDetails(
-      android: androidNotificationDetails,
-      iOS: darwinNotificationDetails,
-    );
+    const notificationDetails = NotificationDetails(android: androidDetails);
 
     DateTimeComponents? dateTimeComponents;
     if (task.isRepeating) {
-      if (task.repeatInterval == s.daily) {
+      if (task.repeatInterval == s.daily)
         dateTimeComponents = DateTimeComponents.time;
-      } else if (task.repeatInterval == s.weekly) {
+      else if (task.repeatInterval == s.weekly)
         dateTimeComponents = DateTimeComponents.dayOfWeekAndTime;
-      } else if (task.repeatInterval == s.monthly) {
+      else if (task.repeatInterval == s.monthly)
         dateTimeComponents = DateTimeComponents.dayOfMonthAndTime;
-      } else if (task.repeatInterval == s.everyXDays(2)) {
-        // This one won't repeat with DateTimeComponents
-        dateTimeComponents = null;
-      } else if (task.repeatInterval == s.weekdays) {
-        dateTimeComponents = DateTimeComponents.dayOfWeekAndTime;
-      } else if (task.repeatInterval == s.weekends) {
-        dateTimeComponents = DateTimeComponents.dayOfWeekAndTime;
-      }
     }
 
-    await flutterLocalNotificationsPlugin.zonedSchedule(
+    await plugin.cancel(task.hashCode);
+    await plugin.zonedSchedule(
       task.hashCode,
       s.appTitle,
       '${s.notificationReminderBody} ${task.title}',
       tzScheduleDateTime,
       notificationDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
+          UILocalNotificationDateInterpretation.absoluteTime, // FIX
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: dateTimeComponents,
       payload: 'task_id:${task.hashCode}',
     );
-
-    developer.log(
-        "Notification scheduled for task '${task.title}' at $scheduleDateTime. Repeat: ${task.repeatInterval}",
-        name: "Notifications");
   }
 
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
-    final List<TodoItem> displayedTodos = _getFilteredTodos();
-
-    final List<String> availableLists = [
+    final displayedTodos = _getFilteredAndSortedTodos();
+    final availableLists = [
       s.allListsTitle,
       s.personal,
       s.work,
       s.shopping,
-      s.defaultList,
+      s.defaultList
     ];
-
-    final DateTime today = DateTime.now();
-    // Use provider's allTodos for calculating these stats
-    final List<TodoItem> todayTasks = Provider.of<TodoSummaryProvider>(context)
-        .allTodos
-        .where((todo) =>
-            todo.dueDate != null &&
-            todo.dueDate!.year == today.year &&
-            todo.dueDate!.month == today.month &&
-            todo.dueDate!.day == today.day)
-        .toList();
-    final int totalTodayTasks = todayTasks.length;
-    final int completedTodayTasks =
-        todayTasks.where((todo) => todo.isCompleted).length;
-    final double todayProgress =
-        totalTodayTasks > 0 ? completedTodayTasks / totalTodayTasks : 0.0;
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
+      appBar: AppBar(
+        title: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: _currentList,
+            dropdownColor: Theme.of(context).appBarTheme.backgroundColor,
+            style: Theme.of(context).appBarTheme.titleTextStyle,
+            icon: Icon(Icons.arrow_drop_down,
+                color: Theme.of(context).colorScheme.onPrimary),
+            onChanged: (v) => setState(() => _currentList = v!),
+            items: availableLists
+                .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                .toList(),
+          ),
+        ),
+        centerTitle: true,
+        automaticallyImplyLeading: false,
+      ),
       body: Column(
         children: [
-          AppBar(
-            title: _isSearching
-                ? TextField(
-                    decoration: InputDecoration(
-                      hintText: s.searchTasksHint,
-                      hintStyle: TextStyle(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onPrimary
-                              .withOpacity(0.7)),
-                      border: InputBorder.none,
-                      suffixIcon: IconButton(
-                        icon: Icon(Icons.clear,
-                            color: Theme.of(context).colorScheme.onPrimary),
-                        onPressed: () {
-                          setState(() {
-                            _searchQuery = '';
-                            _isSearching = false;
-                            _taskController.clear();
-                            _applyFilters();
-                          });
-                        },
-                      ),
-                    ),
-                    style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimary,
-                        fontSize: 17),
-                    autofocus: true,
-                    onChanged: (query) {
-                      setState(() {
-                        _searchQuery = query;
-                        _applyFilters();
-                      });
-                    },
-                  )
-                : DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _currentList,
-                      dropdownColor:
-                          Theme.of(context).appBarTheme.backgroundColor,
-                      style: Theme.of(context)
-                          .appBarTheme
-                          .titleTextStyle
-                          ?.copyWith(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
-                      icon: Icon(Icons.arrow_drop_down,
-                          color: Theme.of(context).colorScheme.onPrimary),
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          setState(() {
-                            _currentList = newValue;
-                            _applyFilters();
-                          });
-                        }
-                      },
-                      items: availableLists
-                          .map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-            automaticallyImplyLeading: false,
-            actions: [
-              IconButton(
-                icon: _isSearching
-                    ? const Icon(Icons.search_off)
-                    : const Icon(Icons.search),
-                onPressed: () {
-                  setState(() {
-                    _isSearching = !_isSearching;
-                    _searchQuery = '';
-                    if (!_isSearching) {
-                      _applyFilters();
-                    }
-                  });
-                },
-                tooltip: s.searchTooltip,
-              ),
-            ],
-          ),
-          if (totalTodayTasks > 0 &&
-              _currentList == s.allListsTitle &&
-              !_isSearching)
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    s.todayTasksProgress(completedTodayTasks, totalTodayTasks),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onBackground,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  LinearProgressIndicator(
-                    value: todayProgress,
-                    backgroundColor: Theme.of(context)
-                        .colorScheme
-                        .onBackground
-                        .withOpacity(0.2),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                        Theme.of(context).colorScheme.secondary),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ],
-              ),
-            ),
-          Expanded(
-            // Replaced AnimatedList with ListView.builder for robustness
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : displayedTodos.isEmpty
-                    ? _buildEmptyState(
-                        Icons.task_alt_outlined,
-                        _searchQuery.isNotEmpty
-                            ? s.noMatchingTasks
-                            : s.noTasksIllustrationText)
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(8.0),
-                        itemCount: displayedTodos.length,
-                        itemBuilder: (context, index) {
-                          final todo = displayedTodos[index];
-                          return _buildTodoCard(context, todo, index, s);
-                        },
-                      ),
-          ),
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _taskController,
-                    decoration: InputDecoration(
-                      hintText: s.enterQuickTaskHint,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                    ),
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    onSubmitted: (_) => _addTodo(s),
-                  ),
+                SortChip(
+                  currentSort: _currentSort,
+                  onSortChanged: (sort) => setState(() => _currentSort = sort),
                 ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    _addTodo(s);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    minimumSize: const Size(60, 60),
-                    padding: EdgeInsets.zero,
-                    backgroundColor: Theme.of(context).colorScheme.secondary,
-                    foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TaskFilterChips(
+                    currentFilter: _currentFilter,
+                    onFilterChanged: (filter) =>
+                        setState(() => _currentFilter = filter),
                   ),
-                  child: const Icon(Icons.add, size: 30),
                 ),
               ],
             ),
           ),
+          Expanded(
+            child: _rawTodos.isEmpty
+                ? _buildEmptyState(
+                    Icons.checklist_rtl, s.noTasksIllustrationText)
+                : displayedTodos.isEmpty
+                    ? _buildEmptyState(
+                        Icons.task_alt_outlined, s.noMatchingTasks)
+                    : ListView.builder(
+                        itemCount: displayedTodos.length,
+                        itemBuilder: (context, index) {
+                          final todo = displayedTodos[index];
+                          final uniqueKey = ValueKey(
+                              todo.creationDate.toIso8601String() + todo.title);
+                          return Dismissible(
+                            key: uniqueKey,
+                            confirmDismiss: (dir) {
+                              if (dir == DismissDirection.startToEnd)
+                                _editTodo(todo);
+                              else
+                                _markAsDone(todo);
+                              return Future.value(false);
+                            },
+                            background: _buildDismissibleBackground(
+                                s.edit,
+                                Icons.edit,
+                                Alignment.centerLeft,
+                                Theme.of(context).primaryColor),
+                            secondaryBackground: _buildDismissibleBackground(
+                                todo.isCompleted ? s.undo : s.done,
+                                todo.isCompleted ? Icons.undo : Icons.check,
+                                Alignment.centerRight,
+                                Colors.green),
+                            child: GestureDetector(
+                              onLongPress: () {
+                                HapticFeedback.mediumImpact();
+                                _showTaskOptions(todo);
+                              },
+                              child: DeadlineTile(todoItem: todo),
+                            ),
+                          );
+                        },
+                      ),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
+        onPressed: () {
           HapticFeedback.lightImpact();
-          // No need to await result for saving, as TodoDetailScreen saves directly
-          await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) {
-                return const TodoDetailScreen();
-              },
-            ),
-          );
-          // On returning, the TodoListScreen's listener to TodoSummaryProvider will
-          // trigger a refresh, so no explicit refresh needed here.
+          Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => const TodoDetailScreen()));
         },
-        child: const Icon(Icons.add),
+        backgroundColor: Theme.of(context).colorScheme.secondary,
+        foregroundColor: Theme.of(context).colorScheme.onSecondary,
+        child: const Icon(Icons.add, size: 28),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
+  }
+
+  Widget _buildDismissibleBackground(
+      String text, IconData icon, Alignment alignment, Color color) {
+    return Container(
+      color: color,
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: alignment == Alignment.centerLeft
+            ? [
+                Icon(icon, color: Colors.white),
+                const SizedBox(width: 8),
+                Text(text,
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold))
+              ]
+            : [
+                Text(text,
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold)),
+                const SizedBox(width: 8),
+                Icon(icon, color: Colors.white)
+              ],
+      ),
+    );
+  }
+
+  void _showTaskOptions(TodoItem todo) {
+    final s = AppLocalizations.of(context)!;
+    showDialog(
+        context: context,
+        builder: (context) => SimpleDialog(
+              title: Text(s.taskOptions,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold)),
+              children: [
+                SimpleDialogOption(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _editTodo(todo);
+                    },
+                    child: Row(children: [
+                      const Icon(Icons.edit),
+                      const SizedBox(width: 8),
+                      Text(s.editTask)
+                    ])),
+                SimpleDialogOption(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _markAsDone(todo);
+                    },
+                    child: Row(children: [
+                      Icon(todo.isCompleted ? Icons.undo : Icons.check),
+                      const SizedBox(width: 8),
+                      Text(todo.isCompleted ? s.markAsNotDone : s.markAsDone)
+                    ])),
+                SimpleDialogOption(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _deleteTodo(todo);
+                    },
+                    child: Row(children: [
+                      const Icon(Icons.delete, color: Colors.redAccent),
+                      const SizedBox(width: 8),
+                      Text(s.deleteTask,
+                          style: const TextStyle(color: Colors.redAccent))
+                    ])),
+              ],
+            ));
   }
 
   Widget _buildEmptyState(IconData icon, String message) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Icon(icon,
               size: 80,
@@ -733,96 +576,10 @@ class _TodoListScreenState extends State<TodoListScreen> {
       ),
     );
   }
-
-  Widget _buildTodoCard(
-      BuildContext context, TodoItem todo, int index, AppLocalizations s) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 0.0),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        leading: Checkbox(
-          value: todo.isCompleted,
-          onChanged: (bool? value) {
-            HapticFeedback.lightImpact();
-            _toggleTodoCompletion(index);
-          },
-          fillColor: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.selected)) {
-              return Theme.of(context).colorScheme.secondary;
-            }
-            return null;
-          }),
-        ),
-        title: Text(
-          todo.title,
-          style: TextStyle(
-            fontSize: 16,
-            decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
-            color: todo.isCompleted
-                ? Theme.of(context).textTheme.bodySmall?.color
-                : Theme.of(context).textTheme.bodyLarge?.color,
-          ),
-        ),
-        subtitle:
-            (todo.dueDate != null || todo.dueTime != null) && !todo.isCompleted
-                ? Text(
-                    todo.formatDueDate(context, s),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: todo.isOverdue
-                          ? Colors.red
-                          : Theme.of(context).textTheme.bodySmall?.color,
-                    ),
-                  )
-                : null,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (todo.isRepeating && !todo.isCompleted)
-              Icon(Icons.repeat,
-                  size: 18,
-                  color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
-            if (todo.isRepeating && !todo.isCompleted) const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              color: Colors.red[400],
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                _deleteTodo(index);
-              },
-            ),
-          ],
-        ),
-        onTap: () async {
-          HapticFeedback.lightImpact();
-          // Pass the original TodoItem for editing
-          await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) {
-                return TodoDetailScreen(
-                  todoItem: todo, // Pass the actual todo object
-                );
-              },
-            ),
-          );
-          // Saving is now handled by TodoDetailScreen itself.
-          // Re-schedule notification based on potential edits after returning.
-          if (!mounted)
-            return; // Added mounted check before _scheduleNotification
-          await _scheduleNotification(todo, s);
-        },
-      ),
-    );
-  }
 }
 
 class TodoDetailScreen extends StatefulWidget {
   final TodoItem? todoItem;
-
   const TodoDetailScreen({super.key, this.todoItem});
 
   @override
@@ -836,7 +593,7 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
   String? _selectedRepeatInterval;
   String? _selectedListName;
   bool _isEditing = false;
-  late DateTime _creationDate; // Use creationDate as a stable ID for edits
+  late DateTime _creationDate;
   bool _notificationsEnabled = true;
 
   @override
@@ -850,10 +607,10 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
       _selectedRepeatInterval = widget.todoItem!.repeatInterval;
       _selectedListName = widget.todoItem!.listName;
       _creationDate = widget.todoItem!.creationDate;
-      _notificationsEnabled = (widget.todoItem!.dueDate != null &&
+      _notificationsEnabled = (widget.todoItem!.dueDate != null ||
           widget.todoItem!.dueTime != null);
     } else {
-      _creationDate = DateTime.now(); // For new tasks, set creation date now
+      _creationDate = DateTime.now();
       _notificationsEnabled = false;
     }
   }
@@ -864,8 +621,7 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
     super.dispose();
   }
 
-  Future<void> _pickDate(AppLocalizations s) async {
-    if (!mounted) return; // Ensure mounted
+  Future<void> _pickDate() async {
     HapticFeedback.lightImpact();
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -874,106 +630,70 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
       lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
       locale: Localizations.localeOf(context),
     );
-    if (!mounted) return; // Check mounted after dialog
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
-        if (_selectedTime == null) {
-          _selectedTime = TimeOfDay.now();
-        }
         _notificationsEnabled = true;
       });
     }
   }
 
-  Future<void> _pickTime(AppLocalizations s) async {
-    if (!mounted) return; // Ensure mounted
+  Future<void> _pickTime() async {
     HapticFeedback.lightImpact();
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime ?? TimeOfDay.now(),
-      builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
-          child: child!,
-        );
-      },
     );
-    if (!mounted) return; // Check mounted after dialog
     if (picked != null && picked != _selectedTime) {
       setState(() {
         _selectedTime = picked;
-        if (_selectedDate == null) {
-          _selectedDate = DateTime.now();
-        }
         _notificationsEnabled = true;
       });
     }
   }
 
-  void _saveTask(AppLocalizations s) async {
-    // Made async
-    if (!mounted) return; // Mounted check
+  void _saveTask() async {
+    final s = AppLocalizations.of(context)!;
     final String title = _titleController.text.trim();
     if (title.isEmpty) {
-      if (mounted) {
-        // Added mounted check
-        showAppSnackBar(context, s.emptyTaskError,
-            icon: Icons.warning_amber_outlined, iconColor: Colors.orange);
-      }
+      showAppSnackBar(context, s.emptyTaskError,
+          icon: Icons.warning_amber_outlined, iconColor: Colors.orange);
       return;
     }
     HapticFeedback.lightImpact();
 
-    DateTime? finalDueDate = _selectedDate;
-    TimeOfDay? finalDueTime = _selectedTime;
-    String? finalRepeatInterval = _selectedRepeatInterval;
-
-    if (!_notificationsEnabled) {
-      finalDueDate = null;
-      finalDueTime = null;
-      finalRepeatInterval = null;
-    }
-
     final TodoItem todoToSave = TodoItem(
       title: title,
       isCompleted: widget.todoItem?.isCompleted ?? false,
-      dueDate: finalDueDate,
-      dueTime: finalDueTime,
-      isRepeating:
-          finalRepeatInterval != null && finalRepeatInterval != s.noRepeat,
+      dueDate: _notificationsEnabled ? _selectedDate : null,
+      dueTime: _notificationsEnabled ? _selectedTime : null,
+      isRepeating: _notificationsEnabled &&
+          _selectedRepeatInterval != null &&
+          _selectedRepeatInterval != s.noRepeat,
       repeatInterval:
-          finalRepeatInterval == s.noRepeat ? null : finalRepeatInterval,
+          _notificationsEnabled && _selectedRepeatInterval != s.noRepeat
+              ? _selectedRepeatInterval
+              : null,
       listName: _selectedListName == s.defaultList ? null : _selectedListName,
-      creationDate:
-          _creationDate, // Use the original creation date for existing tasks
+      creationDate: _creationDate,
     );
 
-    // Use the TodoSummaryProvider to save the task
     await Provider.of<TodoSummaryProvider>(context, listen: false)
         .saveTodo(todoToSave);
-
-    if (!mounted) return; // Added mounted check after await
-
-    // Schedule notification (if any) after saving
-    await _scheduleNotification(todoToSave, s);
+    if (mounted) await _scheduleNotification(todoToSave, s);
 
     if (mounted) {
-      // Mounted check before showing snackbar and popping
       showAppSnackBar(context, s.taskSaved,
           icon: Icons.check, iconColor: Colors.green);
-      Navigator.pop(
-          context); // Pop without returning, as saving is handled here
+      Navigator.pop(context);
     }
   }
 
   Future<void> _scheduleNotification(TodoItem task, AppLocalizations s) async {
-    if (!mounted) return; // Mounted check
-    final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    final plugin =
         Provider.of<FlutterLocalNotificationsPlugin>(context, listen: false);
-
     if (task.dueDate == null || task.dueTime == null || task.isCompleted) {
-      flutterLocalNotificationsPlugin.cancel(task.hashCode);
+      await plugin.cancel(task.hashCode);
       return;
     }
 
@@ -987,280 +707,176 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
     );
 
     if (scheduleDateTime.isBefore(now)) {
-      developer.log(
-          "Notification not scheduled: Task time is in the past for '${task.title}'.",
-          name: "Notifications");
+      await plugin.cancel(task.hashCode);
       return;
     }
 
-    final tz.TZDateTime tzScheduleDateTime = tz.TZDateTime.from(
-      scheduleDateTime,
-      tz.local,
-    );
-
-    const AndroidNotificationDetails androidNotificationDetails =
-        AndroidNotificationDetails(
+    final tz.TZDateTime tzScheduleDateTime =
+        tz.TZDateTime.from(scheduleDateTime, tz.local);
+    const androidDetails = AndroidNotificationDetails(
       'task_reminders_channel',
       'Task Reminders',
-      channelDescription: 'Reminders for your ECCAT Study Station tasks',
+      channelDescription: 'Reminders for your tasks',
       importance: Importance.max,
       priority: Priority.high,
-      ticker: 'ticker',
     );
-    const DarwinNotificationDetails darwinNotificationDetails =
-        DarwinNotificationDetails();
-    final NotificationDetails notificationDetails = NotificationDetails(
-      android: androidNotificationDetails,
-      iOS: darwinNotificationDetails,
-    );
+    const notificationDetails = NotificationDetails(android: androidDetails);
 
     DateTimeComponents? dateTimeComponents;
     if (task.isRepeating) {
-      if (task.repeatInterval == s.daily) {
+      if (task.repeatInterval == s.daily)
         dateTimeComponents = DateTimeComponents.time;
-      } else if (task.repeatInterval == s.weekly) {
+      else if (task.repeatInterval == s.weekly)
         dateTimeComponents = DateTimeComponents.dayOfWeekAndTime;
-      } else if (task.repeatInterval == s.monthly) {
+      else if (task.repeatInterval == s.monthly)
         dateTimeComponents = DateTimeComponents.dayOfMonthAndTime;
-      } else if (task.repeatInterval == s.everyXDays(2)) {
-        // This one won't repeat with DateTimeComponents
-        dateTimeComponents = null;
-      } else if (task.repeatInterval == s.weekdays) {
-        dateTimeComponents = DateTimeComponents.dayOfWeekAndTime;
-      } else if (task.repeatInterval == s.weekends) {
-        dateTimeComponents = DateTimeComponents.dayOfWeekAndTime;
-      }
     }
 
-    await flutterLocalNotificationsPlugin.zonedSchedule(
+    await plugin.cancel(task.hashCode);
+    await plugin.zonedSchedule(
       task.hashCode,
       s.appTitle,
       '${s.notificationReminderBody} ${task.title}',
       tzScheduleDateTime,
       notificationDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
+          UILocalNotificationDateInterpretation.absoluteTime, // FIX
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: dateTimeComponents,
       payload: 'task_id:${task.hashCode}',
     );
-
-    developer.log(
-        "Notification scheduled for task '${task.title}' at $scheduleDateTime. Repeat: ${task.repeatInterval}",
-        name: "Notifications");
   }
 
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
-    final List<String> repeatOptions = [
-      s.noRepeat,
-      s.daily,
-      s.weekly,
-      s.monthly,
-      s.everyXDays(2),
-      s.weekdays,
-      s.weekends,
-    ];
-    final List<String> listOptions = [
-      s.defaultList,
-      s.personal,
-      s.work,
-      s.shopping
-    ];
+    final repeatOptions = [s.noRepeat, s.daily, s.weekly, s.monthly];
+    final listOptions = [s.defaultList, s.personal, s.work, s.shopping];
 
-    _selectedRepeatInterval ??= s.noRepeat;
-    _selectedListName ??= s.defaultList;
+    _selectedRepeatInterval ??= (widget.todoItem?.isRepeating == true
+        ? widget.todoItem!.repeatInterval
+        : s.noRepeat);
+    _selectedListName ??= widget.todoItem?.listName ?? s.defaultList;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? s.editTaskTitle : s.newTaskTitle),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.check),
-            onPressed: () => _saveTask(s),
-            tooltip: s.saveTask,
-          ),
+          IconButton(icon: const Icon(Icons.check), onPressed: _saveTask)
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(s.whatIsToBeDone,
-                style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _titleController,
-              decoration: InputDecoration(
-                hintText: s.enterYourTaskHere,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildSectionHeader(s.whatIsToBeDone),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _titleController,
+                decoration: InputDecoration(hintText: s.enterYourTaskHere),
+                maxLines: 3,
               ),
-              style: Theme.of(context).textTheme.bodyLarge,
-              minLines: 1,
-              maxLines: 3,
-            ),
-            const SizedBox(height: 20),
-            Text(s.dueDate, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            ListTile(
-              leading: Icon(Icons.calendar_today_outlined,
-                  color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
-              title: Text(_selectedDate == null
-                  ? s.notSet
-                  : DateFormat.yMMMd(
-                          Localizations.localeOf(context).toLanguageTag())
-                      .format(_selectedDate!)),
-              trailing: IconButton(
-                icon: Icon(Icons.close,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withOpacity(0.7)),
-                onPressed: () {
-                  setState(() {
-                    _selectedDate = null;
-                    if (_selectedTime == null) _notificationsEnabled = false;
-                  });
-                },
+              const SizedBox(height: 20),
+              _buildSectionHeader(s.dueDate),
+              _buildDateTimePicker(
+                icon: Icons.calendar_today_outlined,
+                text: _selectedDate == null
+                    ? s.notSet
+                    : DateFormat.yMMMd(
+                            Localizations.localeOf(context).toLanguageTag())
+                        .format(_selectedDate!),
+                onTap: _pickDate,
+                onClear: () => setState(() {
+                  _selectedDate = null;
+                  if (_selectedTime == null) _notificationsEnabled = false;
+                }),
               ),
-              onTap: () => _pickDate(s),
-              tileColor: Theme.of(context).cardTheme.color,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
-            ),
-            const SizedBox(height: 10),
-            Text(s.dueTime, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            ListTile(
-              leading: Icon(Icons.access_time,
-                  color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
-              title: Text(_selectedTime == null
-                  ? s.notSet
-                  : MaterialLocalizations.of(context).formatTimeOfDay(
-                      _selectedTime!,
-                      alwaysUse24HourFormat:
-                          MediaQuery.of(context).alwaysUse24HourFormat)),
-              trailing: IconButton(
-                icon: Icon(Icons.close,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withOpacity(0.7)),
-                onPressed: () {
-                  setState(() {
-                    _selectedTime = null;
-                    if (_selectedDate == null) _notificationsEnabled = false;
-                  });
-                },
+              const SizedBox(height: 10),
+              _buildSectionHeader(s.dueTime),
+              _buildDateTimePicker(
+                icon: Icons.access_time,
+                text: _selectedTime == null
+                    ? s.notSet
+                    : MaterialLocalizations.of(context)
+                        .formatTimeOfDay(_selectedTime!),
+                onTap: _pickTime,
+                onClear: () => setState(() {
+                  _selectedTime = null;
+                  if (_selectedDate == null) _notificationsEnabled = false;
+                }),
               ),
-              onTap: () => _pickTime(s),
-              tileColor: Theme.of(context).cardTheme.color,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
-            ),
-            const SizedBox(height: 20),
-            Text(s.notifications,
-                style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              title: Text(s.enableNotifications),
-              value: _notificationsEnabled,
-              onChanged: (_selectedDate != null || _selectedTime != null)
-                  ? (bool value) {
-                      setState(() {
-                        _notificationsEnabled = value;
-                        if (!value) {
-                          _selectedRepeatInterval = s.noRepeat;
-                        }
-                      });
-                    }
-                  : null,
-              tileColor: Theme.of(context).cardTheme.color,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0),
-            ),
-            const SizedBox(height: 20),
-            Text(s.repeat, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _selectedRepeatInterval ?? s.noRepeat,
-              decoration: InputDecoration(
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                filled: true,
-                fillColor: Theme.of(context).cardTheme.color,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              const SizedBox(height: 20),
+              _buildSectionHeader(s.notifications),
+              SwitchListTile(
+                title: Text(s.enableNotifications),
+                value: _notificationsEnabled,
+                onChanged: (_selectedDate != null || _selectedTime != null)
+                    ? (value) => setState(() {
+                          _notificationsEnabled = value;
+                          if (!value) _selectedRepeatInterval = s.noRepeat;
+                        })
+                    : null,
+                tileColor: Theme.of(context).cardTheme.color,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
-              items:
-                  repeatOptions.map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value,
-                      style: Theme.of(context).textTheme.bodyMedium),
-                );
-              }).toList(),
-              onChanged: _notificationsEnabled
-                  ? (String? newValue) {
-                      setState(() {
-                        _selectedRepeatInterval = newValue;
-                      });
-                    }
-                  : null,
-            ),
-            const SizedBox(height: 20),
-            Text(s.addToLlist, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _selectedListName ?? s.defaultList,
-              decoration: InputDecoration(
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                filled: true,
-                fillColor: Theme.of(context).cardTheme.color,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-              items: listOptions.map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value,
-                      style: Theme.of(context).textTheme.bodyMedium),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  _selectedListName = newValue;
-                });
-              },
-            ),
-            const SizedBox(height: 40),
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: () => _saveTask(s),
-                icon: const Icon(Icons.check),
-                label: Text(s.saveTask),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(200, 50),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15)),
-                ),
-              ),
-            ),
-          ],
+              const SizedBox(height: 20),
+              _buildSectionHeader(s.repeat),
+              _buildDropdown(repeatOptions, _selectedRepeatInterval,
+                  (v) => setState(() => _selectedRepeatInterval = v),
+                  enabled: _notificationsEnabled),
+              const SizedBox(height: 20),
+              _buildSectionHeader(s.addToLlist),
+              _buildDropdown(listOptions, _selectedListName,
+                  (v) => setState(() => _selectedListName = v)),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+        padding: const EdgeInsets.only(bottom: 8.0),
+        child: Text(title, style: Theme.of(context).textTheme.titleMedium));
+  }
+
+  Widget _buildDateTimePicker(
+      {required IconData icon,
+      required String text,
+      required VoidCallback onTap,
+      required VoidCallback onClear}) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(text),
+      trailing: IconButton(icon: const Icon(Icons.close), onPressed: onClear),
+      onTap: onTap,
+      tileColor: Theme.of(context).cardTheme.color,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
+  Widget _buildDropdown(
+      List<String> options, String? value, ValueChanged<String?> onChanged,
+      {bool enabled = true}) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      items: options
+          .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+          .toList(),
+      onChanged: enabled ? onChanged : null,
+      decoration: InputDecoration(
+          filled: true,
+          fillColor: enabled
+              ? Theme.of(context).cardTheme.color
+              : Theme.of(context).disabledColor.withOpacity(0.1),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0)),
     );
   }
 }

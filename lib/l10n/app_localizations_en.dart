@@ -799,4 +799,121 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get prayerNameIsha => 'Isha';
+
+  @override
+  String get dueToday => 'Due Today';
+
+  @override
+  String get lessThanOneDay => 'Less than one day';
+
+  @override
+  String dueIn(Object timeString) {
+    return 'Due in $timeString';
+  }
+
+  @override
+  String overdueBy(Object timeString) {
+    return 'Overdue by $timeString';
+  }
+
+  @override
+  String year(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'years',
+      one: 'year',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String month(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'months',
+      one: 'month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String week(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'weeks',
+      one: 'week',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String day(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'days',
+      one: 'day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get completed => 'Completed';
+
+  @override
+  String repeats(Object repeatInterval) {
+    return 'Repeats: $repeatInterval';
+  }
+
+  @override
+  String get sortByDueDateAsc => 'Due Date (Asc)';
+
+  @override
+  String get sortByDueDateDesc => 'Due Date (Desc)';
+
+  @override
+  String get sortByTitleAsc => 'Title (Asc)';
+
+  @override
+  String get sortByTitleDesc => 'Title (Desc)';
+
+  @override
+  String get allTasks => 'All Tasks';
+
+  @override
+  String get activeTasks => 'Active';
+
+  @override
+  String get completedTasks => 'Completed';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get done => 'Done';
+
+  @override
+  String get undo => 'Undo';
+
+  @override
+  String get taskOptions => 'Task options';
+
+  @override
+  String get editTask => 'Edit task';
+
+  @override
+  String get markAsNotDone => 'Mark as not done';
+
+  @override
+  String get markAsDone => 'Mark as done';
+
+  @override
+  String get deleteTask => 'Delete Task';
+
+  @override
+  String get deleteTaskConfirmation =>
+      'Are you sure you want to delete this task?';
 }
