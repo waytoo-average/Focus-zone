@@ -140,6 +140,7 @@ class _AzkarViewerScreenState extends State<AzkarViewerScreen> {
   }
 
   void _initializeCountsForPage(int page) {
+    if (!mounted) return;
     setState(() {
       _currentPage = page;
       _initialCount = widget.azkarList[page].count;
@@ -149,6 +150,7 @@ class _AzkarViewerScreenState extends State<AzkarViewerScreen> {
 
   void _onCounterTapped() {
     if (_currentCount > 0) {
+      if (!mounted) return;
       setState(() {
         _currentCount--;
       });
@@ -182,56 +184,95 @@ class _AzkarViewerScreenState extends State<AzkarViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: widget.azkarList.length,
-              onPageChanged: (page) {
-                _initializeCountsForPage(page);
-              },
-              itemBuilder: (context, index) {
-                final zikr = widget.azkarList[index];
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        zikr.arabicText,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 22,
-                          height: 1.8,
-                          fontFamily: 'Amiri',
-                          color: Theme.of(context).textTheme.bodyLarge?.color,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      if (zikr.description.isNotEmpty)
-                        Text(
-                          zikr.description,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16,
-                            height: 1.5,
-                            color:
-                            Theme.of(context).textTheme.bodyMedium?.color,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              child: Text(
+                widget.title,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: widget.azkarList.length,
+                onPageChanged: (page) {
+                  _initializeCountsForPage(page);
+                },
+                itemBuilder: (context, index) {
+                  final zikr = widget.azkarList[index];
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Column(
+                      children: [
+                        Card(
+                          elevation: 3,
+                          color: theme.cardTheme.color,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15.0),
+                          ),
+                          child: Padding(
+                            // Reduced padding
+                            padding: const EdgeInsets.all(16.0),
+                            child: Text(
+                              zikr.arabicText,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                // Reduced font size
+                                fontSize: 20,
+                                height: 1.7,
+                                fontFamily: 'Amiri',
+                                color: theme.textTheme.bodyLarge?.color,
+                              ),
+                            ),
                           ),
                         ),
-                    ],
-                  ),
-                );
-              },
+                        const SizedBox(height: 12),
+                        if (zikr.description.isNotEmpty)
+                          Card(
+                            elevation: 3,
+                            color: theme.cardTheme.color,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15.0),
+                            ),
+                            child: Padding(
+                              // Reduced padding
+                              padding: const EdgeInsets.all(16.0),
+                              child: Text(
+                                zikr.description,
+                                textAlign: TextAlign.start,
+                                style: TextStyle(
+                                  // Reduced font size
+                                  fontSize: 14,
+                                  height: 1.5,
+                                  color: theme.textTheme.bodyMedium?.color,
+                                ),
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-          _buildBottomCounterBar(),
-        ],
+            _buildBottomCounterBar(),
+          ],
+        ),
       ),
     );
   }
@@ -249,6 +290,12 @@ class _AzkarViewerScreenState extends State<AzkarViewerScreen> {
           topLeft: Radius.circular(30),
           topRight: Radius.circular(30),
         ),
+        border: Border(
+          top: BorderSide(
+            color: theme.colorScheme.onSurface.withOpacity(0.1),
+            width: 1.0,
+          ),
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -256,37 +303,39 @@ class _AzkarViewerScreenState extends State<AzkarViewerScreen> {
         children: [
           Text(
             s.azkarTime(_initialCount),
-            style:
-            TextStyle(color: theme.textTheme.bodyLarge?.color, fontSize: 18),
+            style: TextStyle(
+                color: theme.textTheme.bodyLarge?.color,
+                fontSize: 16,
+                fontWeight: FontWeight.w500),
           ),
           GestureDetector(
             onTap: _onCounterTapped,
             child: SizedBox(
-              width: 80,
-              height: 80,
+              width: 70,
+              height: 70,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
                   CircularProgressIndicator(
                     value: 1.0,
-                    strokeWidth: 6,
-                    backgroundColor:
-                    theme.colorScheme.onSurface.withOpacity(0.2),
+                    strokeWidth: 5,
+                    backgroundColor: theme.colorScheme.onSurface.withOpacity(0.1),
                     valueColor:
                     const AlwaysStoppedAnimation<Color>(Colors.transparent),
                   ),
                   CircularProgressIndicator(
                     value: progress,
-                    strokeWidth: 6,
+                    strokeWidth: 5,
                     valueColor:
                     AlwaysStoppedAnimation<Color>(theme.colorScheme.secondary),
+                    strokeCap: StrokeCap.round,
                   ),
                   Center(
                     child: Text(
                       "$_currentCount",
                       style: TextStyle(
                           color: theme.textTheme.bodyLarge?.color,
-                          fontSize: 24,
+                          fontSize: 22,
                           fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -296,14 +345,17 @@ class _AzkarViewerScreenState extends State<AzkarViewerScreen> {
           ),
           Text(
             s.azkarPage(_currentPage + 1, widget.azkarList.length),
-            style:
-            TextStyle(color: theme.textTheme.bodyLarge?.color, fontSize: 18),
+            style: TextStyle(
+                color: theme.textTheme.bodyLarge?.color,
+                fontSize: 16,
+                fontWeight: FontWeight.w500),
           ),
         ],
       ),
     );
   }
 }
+
 
 class ZikrCounterScreen extends StatefulWidget {
   const ZikrCounterScreen({super.key});
@@ -573,19 +625,16 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
   Timer? _countdownTimer;
   Duration? _timeUntilNextPrayer;
   String? _nextPrayerName;
-  Locale? _dataLocale; // To track the locale of the current data
+  Locale? _dataLocale;
 
   @override
   void initState() {
     super.initState();
-    // No initial data fetch here, it will be handled by didChangeDependencies
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Fetch data when the widget is first built or when dependencies change
-    // This ensures it runs when the screen is first displayed.
     if (_prayerData == null) {
       _initializePrayerTimes();
     }
@@ -608,23 +657,19 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
     final currentLocale = langProvider.locale;
     final langCode = currentLocale.languageCode;
 
-    // First, try to load from cache
     final cachedData = await _PrayerTimesCache.load();
     if (cachedData != null) {
       if (mounted) {
         setState(() {
           _prayerData = cachedData;
           _isLoading = false;
-          _dataLocale = currentLocale; // Assume cached data matches current locale for now
+          _dataLocale = currentLocale;
           _calculateNextPrayer();
         });
-        // Even with cache, if locale is different, we might need to re-fetch for date format
-        // This logic can be enhanced later if needed, but for now cache is simple
         return;
       }
     }
 
-    // If no cache or stale, fetch from network
     try {
       final position = await _determinePosition();
       final placemarks =
@@ -641,12 +686,13 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body)['data'];
-        final newPrayerData = PrayerData.fromJson(data, locationName, langCode);
+        final newPrayerData =
+        PrayerData.fromJson(data, locationName, langCode);
         if (mounted) {
           setState(() {
             _prayerData = newPrayerData;
             _isLoading = false;
-            _dataLocale = currentLocale; // Set the locale for the freshly fetched data
+            _dataLocale = currentLocale;
           });
           await _PrayerTimesCache.save(newPrayerData);
           _calculateNextPrayer();
@@ -760,13 +806,9 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
 
   @override
   Widget build(BuildContext context) {
-    // FIX: Actively watch the language provider. If the locale changes,
-    // this will trigger a rebuild and the check below will re-fetch the data.
     final currentLocale = Provider.of<LanguageProvider>(context).locale;
     final s = AppLocalizations.of(context)!;
 
-    // If the widget is already loaded but the data's locale doesn't match the current locale,
-    // it means the user changed the language. We need to re-fetch.
     if (!_isLoading && _dataLocale != null && _dataLocale != currentLocale) {
       Future.microtask(() => _initializePrayerTimes());
     }
@@ -778,8 +820,9 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child:
-          Text(_errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.redAccent)),
+          child: Text(_errorMessage!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.redAccent)),
         ),
       );
     }
@@ -805,8 +848,7 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
           if (_timeUntilNextPrayer != null)
             _CountdownDisplay(
               duration: _timeUntilNextPrayer!,
-              nextPrayerName:
-              _getLocalizedPrayerName(_nextPrayerName ?? '', s),
+              nextPrayerName: _getLocalizedPrayerName(_nextPrayerName ?? '', s),
             )
         ],
       ),
@@ -820,15 +862,15 @@ class PrayerData {
   final String hijriDate;
   final String location;
   final String gregorianDate;
-  final String langCode; // Store the language of this data
+  final String langCode;
 
-  PrayerData(
-      {required this.timings,
-        required this.hijriDate,
-        required this.location,
-        required this.gregorianDate,
-        required this.langCode,
-      });
+  PrayerData({
+    required this.timings,
+    required this.hijriDate,
+    required this.location,
+    required this.gregorianDate,
+    required this.langCode,
+  });
 
   factory PrayerData.fromJson(
       Map<String, dynamic> json, String location, String langCode) {
@@ -873,7 +915,7 @@ class PrayerData {
       hijriDate: jsonMap['hijriDate'],
       location: jsonMap['location'],
       gregorianDate: jsonMap['gregorianDate'],
-      langCode: jsonMap['langCode'] ?? 'en', // default to en if not found
+      langCode: jsonMap['langCode'] ?? 'en',
     );
   }
 }
