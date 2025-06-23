@@ -12,9 +12,11 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:app/database_helper.dart';
 import 'package:app/azkar_data.dart';
 import 'package:app/l10n/app_localizations.dart';
-import 'package:app/app_core.dart'; // Import app_core for LanguageProvider
+import 'package:app/app_core.dart';
+import 'src/ui/widgets/quran_entry_screen.dart';
 
 class ZikrScreen extends StatelessWidget {
   const ZikrScreen({super.key});
@@ -87,11 +89,11 @@ class AzkarSection extends StatelessWidget {
         const SizedBox(height: 16),
         _buildAzkarCard(
           context,
-          title: s.customZikr,
-          icon: Icons.add_circle_outline,
+          title: s.myAzkarTitle,
+          icon: Icons.format_list_bulleted_rounded,
           onTap: () {
             Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => const ZikrCounterScreen(),
+              builder: (_) => const MyAzkarScreen(),
             ));
           },
         ),
@@ -101,8 +103,8 @@ class AzkarSection extends StatelessWidget {
 
   Widget _buildAzkarCard(BuildContext context,
       {required String title,
-        required IconData icon,
-        required VoidCallback onTap}) {
+      required IconData icon,
+      required VoidCallback onTap}) {
     return Card(
       child: ListTile(
         leading: Icon(icon, color: Theme.of(context).colorScheme.secondary),
@@ -115,6 +117,7 @@ class AzkarSection extends StatelessWidget {
   }
 }
 
+// --- PRE-BUILT AZKAR VIEWER ---
 class AzkarViewerScreen extends StatefulWidget {
   final String title;
   final List<Zikr> azkarList;
@@ -136,11 +139,13 @@ class _AzkarViewerScreenState extends State<AzkarViewerScreen> {
   void initState() {
     super.initState();
     _pageController = PageController();
-    _initializeCountsForPage(0);
+    if (widget.azkarList.isNotEmpty) {
+      _initializeCountsForPage(0);
+    }
   }
 
   void _initializeCountsForPage(int page) {
-    if (!mounted) return;
+    if (!mounted || widget.azkarList.isEmpty) return;
     setState(() {
       _currentPage = page;
       _initialCount = widget.azkarList[page].count;
@@ -186,6 +191,12 @@ class _AzkarViewerScreenState extends State<AzkarViewerScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    if (widget.azkarList.isEmpty) {
+      return Scaffold(
+          appBar: AppBar(),
+          body: const Center(child: Text("No Azkar in this list.")));
+    }
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -225,13 +236,11 @@ class _AzkarViewerScreenState extends State<AzkarViewerScreen> {
                             borderRadius: BorderRadius.circular(15.0),
                           ),
                           child: Padding(
-                            // Reduced padding
                             padding: const EdgeInsets.all(16.0),
                             child: Text(
                               zikr.arabicText,
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                // Reduced font size
                                 fontSize: 20,
                                 height: 1.7,
                                 fontFamily: 'Amiri',
@@ -249,13 +258,11 @@ class _AzkarViewerScreenState extends State<AzkarViewerScreen> {
                               borderRadius: BorderRadius.circular(15.0),
                             ),
                             child: Padding(
-                              // Reduced padding
                               padding: const EdgeInsets.all(16.0),
                               child: Text(
                                 zikr.description,
                                 textAlign: TextAlign.start,
                                 style: TextStyle(
-                                  // Reduced font size
                                   fontSize: 14,
                                   height: 1.5,
                                   color: theme.textTheme.bodyMedium?.color,
@@ -319,15 +326,16 @@ class _AzkarViewerScreenState extends State<AzkarViewerScreen> {
                   CircularProgressIndicator(
                     value: 1.0,
                     strokeWidth: 5,
-                    backgroundColor: theme.colorScheme.onSurface.withOpacity(0.1),
+                    backgroundColor:
+                        theme.colorScheme.onSurface.withOpacity(0.1),
                     valueColor:
-                    const AlwaysStoppedAnimation<Color>(Colors.transparent),
+                        const AlwaysStoppedAnimation<Color>(Colors.transparent),
                   ),
                   CircularProgressIndicator(
                     value: progress,
                     strokeWidth: 5,
-                    valueColor:
-                    AlwaysStoppedAnimation<Color>(theme.colorScheme.secondary),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        theme.colorScheme.secondary),
                     strokeCap: StrokeCap.round,
                   ),
                   Center(
@@ -356,20 +364,653 @@ class _AzkarViewerScreenState extends State<AzkarViewerScreen> {
   }
 }
 
+// --- NEW: MY AZKAR FEATURE ---
 
-class ZikrCounterScreen extends StatefulWidget {
-  const ZikrCounterScreen({super.key});
+// Screen 1: The main list of saved custom Azkar
+class MyAzkarScreen extends StatefulWidget {
+  const MyAzkarScreen({super.key});
+
   @override
-  State<ZikrCounterScreen> createState() => _ZikrCounterScreenState();
+  _MyAzkarScreenState createState() => _MyAzkarScreenState();
 }
 
-class _ZikrCounterScreenState extends State<ZikrCounterScreen> {
+class _MyAzkarScreenState extends State<MyAzkarScreen> {
+  final dbHelper = DatabaseHelper.instance;
+  List<CustomZikr> _myAzkar = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshAzkarList();
+  }
+
+  void _refreshAzkarList() async {
+    setState(() => _isLoading = true);
+    final data = await dbHelper.getAzkar();
+    setState(() {
+      _myAzkar = data;
+      _isLoading = false;
+    });
+  }
+
+  void _navigateAndRefresh(Widget screen) {
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => screen))
+        .then((_) {
+      _refreshAzkarList();
+    });
+  }
+
+  void _handleDelete(int index) {
+    final zikrToDelete = _myAzkar[index];
+    setState(() {
+      _myAzkar.removeAt(index);
+    });
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+          SnackBar(
+            content: Text("'${zikrToDelete.text}' deleted."),
+            // FIX: Using default snackbar color which is less aggressive
+            action: SnackBarAction(
+              label: 'Undo', // Add translation key if needed
+              onPressed: () {
+                setState(() {
+                  _myAzkar.insert(index, zikrToDelete);
+                });
+              },
+            ),
+          ),
+        )
+        .closed
+        .then((reason) {
+      if (reason != SnackBarClosedReason.action) {
+        dbHelper.delete(zikrToDelete.id!);
+      }
+    });
+  }
+
+  void _showQuickAddSheet(AppLocalizations s) {
+    final suggestions = {
+      s.suggestion1: 33,
+      s.suggestion2: 33,
+      s.suggestion3: 33,
+      s.suggestion4: 100,
+    };
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).cardColor, // FIX: Opaque background
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        // FIX: Wrap with SingleChildScrollView to prevent overflow
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(s.quickAddTitle,
+                    style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 16),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 2.2,
+                  ),
+                  itemCount: suggestions.length,
+                  itemBuilder: (context, index) {
+                    final entry = suggestions.entries.elementAt(index);
+                    return _SuggestionCard(
+                      text: entry.key,
+                      count: entry.value,
+                      onTap: () async {
+                        final newZikr = CustomZikr(
+                            text: entry.key,
+                            targetCount: entry.value,
+                            currentCount: entry.value);
+                        await dbHelper.insert(newZikr);
+                        Navigator.of(context).pop();
+                        _refreshAzkarList();
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final todayString =
+        "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}-${DateTime.now().day.toString().padLeft(2, '0')}";
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(s.myAzkarTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.lightbulb_outline),
+            tooltip: s.quickAddTitle,
+            onPressed: () => _showQuickAddSheet(s),
+          )
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _myAzkar.isEmpty
+              ? Center(
+                  child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Text(
+                    s.emptyAzkarList,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ))
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 80),
+                  itemCount: _myAzkar.length,
+                  itemBuilder: (context, index) {
+                    final zikr = _myAzkar[index];
+                    final isCompletedToday =
+                        zikr.lastCompletedDate == todayString;
+
+                    return Dismissible(
+                      key: Key(zikr.id.toString()),
+                      direction: DismissDirection.endToStart,
+                      onDismissed: (direction) {
+                        _handleDelete(index);
+                      },
+                      background: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.red[700],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: const Icon(Icons.delete_sweep_outlined,
+                            color: Colors.white),
+                      ),
+                      child: Card(
+                        elevation: 2,
+                        color: isCompletedToday
+                            ? Color.lerp(theme.cardColor, Colors.green, 0.25)
+                            : theme.cardColor,
+                        child: ListTile(
+                          onTap: () {
+                            Navigator.of(context)
+                                .push(MaterialPageRoute(
+                                  builder: (_) =>
+                                      PerformCustomZikrScreen(zikr: zikr),
+                                ))
+                                .then((_) => _refreshAzkarList());
+                          },
+                          leading: Checkbox(
+                            value: isCompletedToday,
+                            onChanged: null, // Make it read-only
+                            activeColor: Colors.green,
+                          ),
+                          title: Text(zikr.text,
+                              maxLines: 2, overflow: TextOverflow.ellipsis),
+                          subtitle: zikr.dailyCount > 0
+                              ? Text(s.dailyCountLabel(zikr.dailyCount),
+                                  style: const TextStyle(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.bold))
+                              : null,
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(s.azkarTime(zikr.targetCount),
+                                  style: theme.textTheme.titleMedium),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                icon: const Icon(Icons.edit, size: 20),
+                                onPressed: () => _navigateAndRefresh(
+                                    AddEditCustomZikrScreen(zikrToEdit: zikr)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const QuickCounterScreen())),
+            heroTag: 'quickCounter',
+            mini: true,
+            child: const Icon(Icons.flash_on),
+          ),
+          const SizedBox(width: 8),
+          FloatingActionButton(
+            onPressed: () =>
+                _navigateAndRefresh(const AddEditCustomZikrScreen()),
+            heroTag: 'addZikr',
+            child: const Icon(Icons.add),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SuggestionCard extends StatelessWidget {
+  final String text;
+  final int count;
+  final VoidCallback onTap;
+
+  const _SuggestionCard(
+      {required this.text, required this.count, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+    return Card(
+      elevation: 2,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          // FIX: Wrap with a Flexible widget to handle text wrapping
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Flexible(
+                child: Text(text,
+                    style: Theme.of(context).textTheme.titleMedium,
+                    maxLines: 2, // Allow text to wrap to 2 lines
+                    overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(height: 4),
+              Text(s.azkarTime(count),
+                  style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Screen 2: Add or Edit a custom Zikr
+class AddEditCustomZikrScreen extends StatefulWidget {
+  final CustomZikr? zikrToEdit;
+
+  const AddEditCustomZikrScreen({super.key, this.zikrToEdit});
+
+  @override
+  _AddEditCustomZikrScreenState createState() =>
+      _AddEditCustomZikrScreenState();
+}
+
+class _AddEditCustomZikrScreenState extends State<AddEditCustomZikrScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _textController = TextEditingController();
+  final _countController = TextEditingController();
+  final dbHelper = DatabaseHelper.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.zikrToEdit != null) {
+      _textController.text = widget.zikrToEdit!.text;
+      _countController.text = widget.zikrToEdit!.targetCount.toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _countController.dispose();
+    super.dispose();
+  }
+
+  void _saveZikr() async {
+    if (_formKey.currentState!.validate()) {
+      final zikrText = _textController.text;
+      final zikrCount = int.parse(_countController.text);
+
+      final zikr = CustomZikr(
+        id: widget.zikrToEdit?.id,
+        text: zikrText,
+        targetCount: zikrCount,
+        currentCount: widget.zikrToEdit?.currentCount ?? zikrCount,
+        dailyCount: widget.zikrToEdit?.dailyCount ?? 0,
+        lastCompletedDate: widget.zikrToEdit?.lastCompletedDate,
+      );
+
+      if (widget.zikrToEdit == null) {
+        await dbHelper.insert(zikr);
+      } else {
+        await dbHelper.update(zikr);
+      }
+
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final isEditing = widget.zikrToEdit != null;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(isEditing ? s.editZikrTitle : s.addZikrTitle),
+        actions: [
+          if (isEditing)
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: () {
+                showDialog(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                          title: Text(s.deleteConfirmationTitle),
+                          content: Text(s.deleteConfirmationContent),
+                          // FIX: Wrap actions to prevent overflow in any language
+                          actions: <Widget>[
+                            Wrap(
+                              alignment: WrapAlignment.end,
+                              spacing: 8.0,
+                              children: [
+                                TextButton(
+                                  child: Text(s.cancel),
+                                  onPressed: () => Navigator.of(context).pop(),
+                                ),
+                                TextButton(
+                                  child: Text(s.delete,
+                                      style:
+                                          const TextStyle(color: Colors.red)),
+                                  onPressed: () async {
+                                    await dbHelper
+                                        .delete(widget.zikrToEdit!.id!);
+                                    if (mounted) {
+                                      Navigator.of(context).pop();
+                                      Navigator.of(context).pop();
+                                    }
+                                  },
+                                ),
+                              ],
+                            )
+                          ],
+                        ));
+              },
+            )
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(s.writeYourZikr, style: theme.textTheme.titleLarge),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _textController,
+                maxLines: 5,
+                style: const TextStyle(fontFamily: 'Amiri', fontSize: 20),
+                decoration: InputDecoration(
+                  hintText: s.zikrHint,
+                  border: const OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return s.errorZikrEmpty;
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 24),
+              Text(s.setRepetitions, style: theme.textTheme.titleLarge),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _countController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                textAlign: TextAlign.center,
+                style: theme.textTheme.headlineMedium,
+                decoration: InputDecoration(
+                  hintText: '33',
+                  border: const OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return s.errorCountEmpty;
+                  }
+                  if ((int.tryParse(value) ?? 0) <= 0) {
+                    return s.errorCountZero;
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 40),
+              ElevatedButton(
+                onPressed: _saveZikr,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: theme.colorScheme.secondary,
+                  foregroundColor: theme.colorScheme.onSecondary,
+                ),
+                child: Text(s.save, style: const TextStyle(fontSize: 18)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Screen 3: The counter screen for a custom Zikr
+class PerformCustomZikrScreen extends StatefulWidget {
+  final CustomZikr zikr;
+
+  const PerformCustomZikrScreen({super.key, required this.zikr});
+
+  @override
+  _PerformCustomZikrScreenState createState() =>
+      _PerformCustomZikrScreenState();
+}
+
+class _PerformCustomZikrScreenState extends State<PerformCustomZikrScreen> {
+  late int _currentCount;
+  final dbHelper = DatabaseHelper.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentCount = widget.zikr.currentCount;
+  }
+
+  void _onCounterTapped() {
+    if (_currentCount > 0) {
+      HapticFeedback.lightImpact();
+      setState(() {
+        _currentCount--;
+      });
+
+      // Instantly save the new progress
+      dbHelper.updateCurrentCount(widget.zikr.id!, _currentCount);
+
+      if (_currentCount == 0) {
+        dbHelper.completeZikr(widget.zikr.id!);
+
+        final s = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(s.azkarCompleted),
+          backgroundColor: Colors.green,
+        ));
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final s = AppLocalizations.of(context)!;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(s.myAzkarTitle),
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Card(
+                    elevation: 3,
+                    color: theme.cardTheme.color,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15.0),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        widget.zikr.text,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 22,
+                          height: 1.8,
+                          fontFamily: 'Amiri',
+                          color: theme.textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            _buildBottomCounterBar(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomCounterBar() {
+    final theme = Theme.of(context);
+    final s = AppLocalizations.of(context)!;
+    final progress = widget.zikr.targetCount > 0
+        ? _currentCount / widget.zikr.targetCount
+        : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      decoration: BoxDecoration(
+        color: theme.cardTheme.color?.withOpacity(0.5),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(30),
+          topRight: Radius.circular(30),
+        ),
+        border: Border(
+          top: BorderSide(
+            color: theme.colorScheme.onSurface.withOpacity(0.1),
+            width: 1.0,
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          Text(
+            s.azkarTime(widget.zikr.targetCount),
+            style: TextStyle(
+              color: theme.textTheme.bodyLarge?.color,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          GestureDetector(
+            onTap: _onCounterTapped,
+            child: SizedBox(
+              width: 70,
+              height: 70,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CircularProgressIndicator(
+                    value: 1.0,
+                    strokeWidth: 5,
+                    backgroundColor:
+                        theme.colorScheme.onSurface.withOpacity(0.1),
+                    valueColor:
+                        const AlwaysStoppedAnimation<Color>(Colors.transparent),
+                  ),
+                  CircularProgressIndicator(
+                    value: progress,
+                    strokeWidth: 5,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        theme.colorScheme.secondary),
+                    strokeCap: StrokeCap.round,
+                  ),
+                  Center(
+                    child: Text(
+                      "$_currentCount",
+                      style: TextStyle(
+                        color: theme.textTheme.bodyLarge?.color,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// NEW: Quick Counter Screen
+class QuickCounterScreen extends StatefulWidget {
+  const QuickCounterScreen({super.key});
+
+  @override
+  State<QuickCounterScreen> createState() => _QuickCounterScreenState();
+}
+
+class _QuickCounterScreenState extends State<QuickCounterScreen> {
   int _counter = 0;
 
   void _incrementCounter() {
     setState(() {
       _counter++;
     });
+    HapticFeedback.lightImpact();
   }
 
   void _resetCounter() {
@@ -381,38 +1022,30 @@ class _ZikrCounterScreenState extends State<ZikrCounterScreen> {
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(s.zikrCounter),
+        title: Text(s.quickCounterTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _resetCounter,
-            tooltip: 'Reset',
+            tooltip: s.reset,
           )
         ],
       ),
       body: GestureDetector(
         onTap: _incrementCounter,
         child: Container(
-          color: Theme.of(context).scaffoldBackgroundColor,
+          color: Colors.transparent,
           child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '$_counter',
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    fontSize: 150,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  s.tapToCount,
-                  style: const TextStyle(fontSize: 20),
-                ),
-              ],
+            child: Text(
+              '$_counter',
+              style: theme.textTheme.displayLarge?.copyWith(
+                fontSize: 180,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.secondary,
+              ),
             ),
           ),
         ),
@@ -421,197 +1054,16 @@ class _ZikrCounterScreenState extends State<ZikrCounterScreen> {
   }
 }
 
-// --- 2. Quran Section ---
-class QuranSection extends StatefulWidget {
+// --- 2. Quran Section (Placeholder) ---
+class QuranSection extends StatelessWidget {
   const QuranSection({super.key});
   @override
-  State<QuranSection> createState() => _QuranSectionState();
-}
-
-class _QuranSectionState extends State<QuranSection> {
-  Future<List<Surah>>? _surahsFuture;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _surahsFuture = _fetchSurahs();
-  }
-
-  Future<List<Surah>> _fetchSurahs() async {
-    try {
-      final response =
-      await http.get(Uri.parse('https://api.alquran.cloud/v1/surah'));
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body)['data'] as List;
-        return data.map((surahJson) => Surah.fromJson(surahJson)).toList();
-      } else {
-        throw Exception(AppLocalizations.of(context)!.failedToLoadSurahs);
-      }
-    } catch (e) {
-      developer.log('Error fetching surahs: $e', name: 'QuranSection');
-      throw Exception(AppLocalizations.of(context)!.failedToLoadSurahs);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final s = AppLocalizations.of(context)!;
-    return FutureBuilder<List<Surah>>(
-      future: _surahsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (snapshot.hasData) {
-          final surahs = snapshot.data!;
-          return ListView.builder(
-            itemCount: surahs.length,
-            itemBuilder: (context, index) {
-              final surah = surahs[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    child: Text(
-                      '${surah.number}',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  title: Text(surah.englishName),
-                  subtitle: Text(surah.englishNameTranslation),
-                  trailing: Text(
-                    surah.name,
-                    style: const TextStyle(fontFamily: 'Amiri', fontSize: 18),
-                  ),
-                  onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => SurahDetailScreen(surah: surah),
-                    ));
-                  },
-                ),
-              );
-            },
-          );
-        } else {
-          return Center(child: Text(s.noSurahsFound));
-        }
-      },
-    );
+    return const QuranEntryScreen();
   }
 }
 
-class SurahDetailScreen extends StatefulWidget {
-  final Surah surah;
-  const SurahDetailScreen({super.key, required this.surah});
-  @override
-  State<SurahDetailScreen> createState() => _SurahDetailScreenState();
-}
-
-class _SurahDetailScreenState extends State<SurahDetailScreen> {
-  Future<List<Ayah>>? _ayahsFuture;
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _ayahsFuture = _fetchAyahs(widget.surah.number);
-  }
-
-  Future<List<Ayah>> _fetchAyahs(int surahNumber) async {
-    try {
-      final response = await http
-          .get(Uri.parse('https://api.alquran.cloud/v1/surah/$surahNumber'));
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body)['data']['ayahs'] as List;
-        return data.map((ayahJson) => Ayah.fromJson(ayahJson)).toList();
-      } else {
-        throw Exception(AppLocalizations.of(context)!.failedToLoadAyahs);
-      }
-    } catch (e) {
-      developer.log('Error fetching ayahs: $e', name: 'QuranSection');
-      throw Exception(AppLocalizations.of(context)!.failedToLoadAyahs);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.surah.englishName)),
-      body: FutureBuilder<List<Ayah>>(
-        future: _ayahsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (snapshot.hasData) {
-            final ayahs = snapshot.data!;
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: ayahs.length,
-              itemBuilder: (context, index) {
-                final ayah = ayahs[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      '${ayah.text} (${ayah.numberInSurah})',
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(
-                          fontFamily: 'Amiri', fontSize: 22, height: 1.8),
-                    ),
-                  ),
-                );
-              },
-            );
-          } else {
-            return const Center(child: Text('No Ayahs found.'));
-          }
-        },
-      ),
-    );
-  }
-}
-
-class Surah {
-  final int number;
-  final String name;
-  final String englishName;
-  final String englishNameTranslation;
-
-  Surah({
-    required this.number,
-    required this.name,
-    required this.englishName,
-    required this.englishNameTranslation,
-  });
-
-  factory Surah.fromJson(Map<String, dynamic> json) {
-    return Surah(
-      number: json['number'],
-      name: json['name'],
-      englishName: json['englishName'],
-      englishNameTranslation: json['englishNameTranslation'],
-    );
-  }
-}
-
-class Ayah {
-  final String text;
-  final int numberInSurah;
-
-  Ayah({required this.text, required this.numberInSurah});
-
-  factory Ayah.fromJson(Map<String, dynamic> json) {
-    return Ayah(
-      text: json['text'],
-      numberInSurah: json['numberInSurah'],
-    );
-  }
-}
-
-// --- 3. Prayer Times Section ---
+// --- 3. Prayer Times Section (Existing Code) ---
 class PrayerTimesSection extends StatefulWidget {
   const PrayerTimesSection({super.key});
   @override
@@ -673,7 +1125,7 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
     try {
       final position = await _determinePosition();
       final placemarks =
-      await placemarkFromCoordinates(position.latitude, position.longitude);
+          await placemarkFromCoordinates(position.latitude, position.longitude);
       final locationName = placemarks.isNotEmpty
           ? '${placemarks.first.locality}, ${placemarks.first.administrativeArea}'
           : 'Unknown Location';
@@ -686,8 +1138,7 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body)['data'];
-        final newPrayerData =
-        PrayerData.fromJson(data, locationName, langCode);
+        final newPrayerData = PrayerData.fromJson(data, locationName, langCode);
         if (mounted) {
           setState(() {
             _prayerData = newPrayerData;
@@ -856,7 +1307,6 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
   }
 }
 
-// Data Models & Cache
 class PrayerData {
   final Map<String, String> timings;
   final String hijriDate;
@@ -886,7 +1336,7 @@ class PrayerData {
 
     final hijriData = json['date']['hijri'];
     final monthName =
-    langCode == 'ar' ? hijriData['month']['ar'] : hijriData['month']['en'];
+        langCode == 'ar' ? hijriData['month']['ar'] : hijriData['month']['en'];
     final hijriDate = '${hijriData['day']} $monthName ${hijriData['year']}';
     final gregorianData = json['date']['gregorian'];
     final gregorianDate = gregorianData['date'];
@@ -901,12 +1351,12 @@ class PrayerData {
   }
 
   Map<String, dynamic> toJson() => {
-    'timings': timings,
-    'hijriDate': hijriDate,
-    'location': location,
-    'gregorianDate': gregorianDate,
-    'langCode': langCode,
-  };
+        'timings': timings,
+        'hijriDate': hijriDate,
+        'location': location,
+        'gregorianDate': gregorianDate,
+        'langCode': langCode,
+      };
 
   factory PrayerData.fromJsonString(String jsonString) {
     final Map<String, dynamic> jsonMap = json.decode(jsonString);
@@ -950,7 +1400,6 @@ class _PrayerTimesCache {
   }
 }
 
-// UI Components
 class _PrayerTimesHeader extends StatelessWidget {
   final PrayerData prayerData;
   const _PrayerTimesHeader({required this.prayerData});
@@ -985,8 +1434,8 @@ class _PrayerCard extends StatelessWidget {
 
   const _PrayerCard(
       {required this.prayerKey,
-        required this.prayerTime,
-        required this.isNext});
+      required this.prayerTime,
+      required this.isNext});
 
   String _getLocalizedPrayerName(String prayerKey, AppLocalizations s) {
     switch (prayerKey) {

@@ -622,6 +622,7 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
   }
 
   Future<void> _pickDate() async {
+    FocusScope.of(context).unfocus();
     HapticFeedback.lightImpact();
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -639,6 +640,7 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
   }
 
   Future<void> _pickTime() async {
+    FocusScope.of(context).unfocus();
     HapticFeedback.lightImpact();
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -766,6 +768,7 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
         ],
       ),
       body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () => FocusScope.of(context).unfocus(),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),

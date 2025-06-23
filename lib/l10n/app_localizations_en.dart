@@ -143,7 +143,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorFileIdMissing => 'Error: File ID is missing.';
 
   @override
-  String get downloading => 'Downloading';
+  String get downloading => 'Downloading...';
 
   @override
   String errorLoadingContent(Object description) {
@@ -916,4 +916,199 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deleteTaskConfirmation =>
       'Are you sure you want to delete this task?';
+
+  @override
+  String get writeYourZikr => 'Write your Zikr';
+
+  @override
+  String get zikrHint => 'E.g., SubhanAllah, Alhamdulillah...';
+
+  @override
+  String get errorZikrEmpty => 'Please enter the Zikr text.';
+
+  @override
+  String get setRepetitions => 'Set the number of repetitions';
+
+  @override
+  String get errorCountEmpty => 'Please enter a count.';
+
+  @override
+  String get errorCountZero => 'Count must be greater than zero.';
+
+  @override
+  String get start => 'Start';
+
+  @override
+  String get myAzkarTitle => 'My Azkar';
+
+  @override
+  String get addZikrTitle => 'Add Zikr';
+
+  @override
+  String get editZikrTitle => 'Edit Zikr';
+
+  @override
+  String streakLabel(Object streakCount) {
+    return 'Streak: $streakCount';
+  }
+
+  @override
+  String get deleteConfirmationTitle => 'Delete Zikr';
+
+  @override
+  String get deleteConfirmationContent =>
+      'Are you sure you want to permanently delete this Zikr?';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get quickAddTitle => 'Quick Add Suggestions';
+
+  @override
+  String get emptyAzkarList =>
+      'Your custom Azkar list is empty.\nTap the + button to add a new one.';
+
+  @override
+  String get suggestion1 => 'Glory is to Allah';
+
+  @override
+  String get suggestion2 => 'Praise be to Allah';
+
+  @override
+  String get suggestion3 => 'Allah is the Greatest';
+
+  @override
+  String get suggestion4 => 'I seek the forgiveness of Allah';
+
+  @override
+  String dailyCountLabel(Object count) {
+    return 'Completed today: $count';
+  }
+
+  @override
+  String get quickCounterTitle => 'Quick Counter';
+
+  @override
+  String get reset => 'Reset';
+
+  @override
+  String get quranTitle => 'The Holy Quran';
+
+  @override
+  String get quranSubtitle => 'القرآن الكريم';
+
+  @override
+  String get quranDescription =>
+      'Download individual Juzs or the complete Quran for offline reading. All content is high-quality and properly formatted.';
+
+  @override
+  String get browseJuzs => 'Browse Juzs';
+
+  @override
+  String get browseJuzsSubtitle => 'Download individual parts';
+
+  @override
+  String get downloadFullQuran => 'Download Full Quran';
+
+  @override
+  String get viewFullQuran => 'View Full Quran';
+
+  @override
+  String get fullQuranReady => 'Complete Quran ready to read';
+
+  @override
+  String get pauseDownload => 'Pause Download';
+
+  @override
+  String get resumeDownload => 'Resume Download';
+
+  @override
+  String get completeQuran => 'Complete Quran';
+
+  @override
+  String get deleteFullQuran => 'Delete Full Quran';
+
+  @override
+  String get freeUpStorage => 'Free up storage space';
+
+  @override
+  String get downloadIncomplete => 'Download Incomplete';
+
+  @override
+  String pagesDownloaded(Object downloaded, Object total) {
+    return '$downloaded/$total pages downloaded';
+  }
+
+  @override
+  String get resume => 'Resume';
+
+  @override
+  String get paused => 'Paused';
+
+  @override
+  String get downloadControls => 'Download Controls';
+
+  @override
+  String get progress => 'Progress:';
+
+  @override
+  String get current => 'Current:';
+
+  @override
+  String get deleteDownloadedFiles => 'Delete Downloaded Files';
+
+  @override
+  String get stillUnderDevelopment => 'Still under development';
+
+  @override
+  String get juzListTitle => 'Browse Juzs';
+
+  @override
+  String get juzListSubtitle => 'Select Juzs to download or view';
+
+  @override
+  String get selectAll => 'Select All';
+
+  @override
+  String get deselectAll => 'Deselect All';
+
+  @override
+  String get deleteSelected => 'Delete Selected';
+
+  @override
+  String get viewSelected => 'View Selected';
+
+  @override
+  String get noJuzsSelected => 'No Juzs selected';
+
+  @override
+  String get juzProperties => 'Juz Properties';
+
+  @override
+  String get juzNumber => 'Juz Number';
+
+  @override
+  String get fileCount => 'File Count';
+
+  @override
+  String get totalSize => 'Total Size';
+
+  @override
+  String get downloadStatus => 'Download Status';
+
+  @override
+  String get notDownloaded => 'Not Downloaded';
+
+  @override
+  String get downloaded => 'Downloaded';
+
+  @override
+  String get properties => 'Properties';
+
+  @override
+  String get close => 'Close';
 }

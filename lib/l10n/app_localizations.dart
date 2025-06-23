@@ -341,7 +341,7 @@ abstract class AppLocalizations {
   /// No description provided for @downloading.
   ///
   /// In en, this message translates to:
-  /// **'Downloading'**
+  /// **'Downloading...'**
   String get downloading;
 
   /// No description provided for @errorLoadingContent.
@@ -1621,6 +1621,378 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Are you sure you want to delete this task?'**
   String get deleteTaskConfirmation;
+
+  /// No description provided for @writeYourZikr.
+  ///
+  /// In en, this message translates to:
+  /// **'Write your Zikr'**
+  String get writeYourZikr;
+
+  /// No description provided for @zikrHint.
+  ///
+  /// In en, this message translates to:
+  /// **'E.g., SubhanAllah, Alhamdulillah...'**
+  String get zikrHint;
+
+  /// No description provided for @errorZikrEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter the Zikr text.'**
+  String get errorZikrEmpty;
+
+  /// No description provided for @setRepetitions.
+  ///
+  /// In en, this message translates to:
+  /// **'Set the number of repetitions'**
+  String get setRepetitions;
+
+  /// No description provided for @errorCountEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a count.'**
+  String get errorCountEmpty;
+
+  /// No description provided for @errorCountZero.
+  ///
+  /// In en, this message translates to:
+  /// **'Count must be greater than zero.'**
+  String get errorCountZero;
+
+  /// No description provided for @start.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get start;
+
+  /// No description provided for @myAzkarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My Azkar'**
+  String get myAzkarTitle;
+
+  /// No description provided for @addZikrTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Zikr'**
+  String get addZikrTitle;
+
+  /// No description provided for @editZikrTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Zikr'**
+  String get editZikrTitle;
+
+  /// No description provided for @streakLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak: {streakCount}'**
+  String streakLabel(Object streakCount);
+
+  /// No description provided for @deleteConfirmationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Zikr'**
+  String get deleteConfirmationTitle;
+
+  /// No description provided for @deleteConfirmationContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to permanently delete this Zikr?'**
+  String get deleteConfirmationContent;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @quickAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Add Suggestions'**
+  String get quickAddTitle;
+
+  /// No description provided for @emptyAzkarList.
+  ///
+  /// In en, this message translates to:
+  /// **'Your custom Azkar list is empty.\nTap the + button to add a new one.'**
+  String get emptyAzkarList;
+
+  /// No description provided for @suggestion1.
+  ///
+  /// In en, this message translates to:
+  /// **'Glory is to Allah'**
+  String get suggestion1;
+
+  /// No description provided for @suggestion2.
+  ///
+  /// In en, this message translates to:
+  /// **'Praise be to Allah'**
+  String get suggestion2;
+
+  /// No description provided for @suggestion3.
+  ///
+  /// In en, this message translates to:
+  /// **'Allah is the Greatest'**
+  String get suggestion3;
+
+  /// No description provided for @suggestion4.
+  ///
+  /// In en, this message translates to:
+  /// **'I seek the forgiveness of Allah'**
+  String get suggestion4;
+
+  /// No description provided for @dailyCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed today: {count}'**
+  String dailyCountLabel(Object count);
+
+  /// No description provided for @quickCounterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Counter'**
+  String get quickCounterTitle;
+
+  /// No description provided for @reset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get reset;
+
+  /// No description provided for @quranTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The Holy Quran'**
+  String get quranTitle;
+
+  /// No description provided for @quranSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'القرآن الكريم'**
+  String get quranSubtitle;
+
+  /// No description provided for @quranDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Download individual Juzs or the complete Quran for offline reading. All content is high-quality and properly formatted.'**
+  String get quranDescription;
+
+  /// No description provided for @browseJuzs.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse Juzs'**
+  String get browseJuzs;
+
+  /// No description provided for @browseJuzsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Download individual parts'**
+  String get browseJuzsSubtitle;
+
+  /// No description provided for @downloadFullQuran.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Full Quran'**
+  String get downloadFullQuran;
+
+  /// No description provided for @viewFullQuran.
+  ///
+  /// In en, this message translates to:
+  /// **'View Full Quran'**
+  String get viewFullQuran;
+
+  /// No description provided for @fullQuranReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete Quran ready to read'**
+  String get fullQuranReady;
+
+  /// No description provided for @pauseDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause Download'**
+  String get pauseDownload;
+
+  /// No description provided for @resumeDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume Download'**
+  String get resumeDownload;
+
+  /// No description provided for @completeQuran.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete Quran'**
+  String get completeQuran;
+
+  /// No description provided for @deleteFullQuran.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Full Quran'**
+  String get deleteFullQuran;
+
+  /// No description provided for @freeUpStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Free up storage space'**
+  String get freeUpStorage;
+
+  /// No description provided for @downloadIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Incomplete'**
+  String get downloadIncomplete;
+
+  /// No description provided for @pagesDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'{downloaded}/{total} pages downloaded'**
+  String pagesDownloaded(Object downloaded, Object total);
+
+  /// No description provided for @resume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get resume;
+
+  /// No description provided for @paused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get paused;
+
+  /// No description provided for @downloadControls.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Controls'**
+  String get downloadControls;
+
+  /// No description provided for @progress.
+  ///
+  /// In en, this message translates to:
+  /// **'Progress:'**
+  String get progress;
+
+  /// No description provided for @current.
+  ///
+  /// In en, this message translates to:
+  /// **'Current:'**
+  String get current;
+
+  /// No description provided for @deleteDownloadedFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Downloaded Files'**
+  String get deleteDownloadedFiles;
+
+  /// No description provided for @stillUnderDevelopment.
+  ///
+  /// In en, this message translates to:
+  /// **'Still under development'**
+  String get stillUnderDevelopment;
+
+  /// No description provided for @juzListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse Juzs'**
+  String get juzListTitle;
+
+  /// No description provided for @juzListSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Juzs to download or view'**
+  String get juzListSubtitle;
+
+  /// No description provided for @selectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select All'**
+  String get selectAll;
+
+  /// No description provided for @deselectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect All'**
+  String get deselectAll;
+
+  /// No description provided for @deleteSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Selected'**
+  String get deleteSelected;
+
+  /// No description provided for @viewSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'View Selected'**
+  String get viewSelected;
+
+  /// No description provided for @noJuzsSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'No Juzs selected'**
+  String get noJuzsSelected;
+
+  /// No description provided for @juzProperties.
+  ///
+  /// In en, this message translates to:
+  /// **'Juz Properties'**
+  String get juzProperties;
+
+  /// No description provided for @juzNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Juz Number'**
+  String get juzNumber;
+
+  /// No description provided for @fileCount.
+  ///
+  /// In en, this message translates to:
+  /// **'File Count'**
+  String get fileCount;
+
+  /// No description provided for @totalSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Size'**
+  String get totalSize;
+
+  /// No description provided for @downloadStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Status'**
+  String get downloadStatus;
+
+  /// No description provided for @notDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Downloaded'**
+  String get notDownloaded;
+
+  /// No description provided for @downloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded'**
+  String get downloaded;
+
+  /// No description provided for @properties.
+  ///
+  /// In en, this message translates to:
+  /// **'Properties'**
+  String get properties;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
 }
 
 class _AppLocalizationsDelegate

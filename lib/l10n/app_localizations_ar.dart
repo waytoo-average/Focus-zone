@@ -564,7 +564,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get downloadSelected => 'تنزيل المحدد';
+  String get downloadSelected => 'تحميل المحدد';
 
   @override
   String get viewDetails => 'عرض التفاصيل';
@@ -913,4 +913,199 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get deleteTaskConfirmation => 'هل أنت متأكد أنك تريد حذف هذه المهمة؟';
+
+  @override
+  String get writeYourZikr => 'اكتب الذكر الخاص بك';
+
+  @override
+  String get zikrHint => 'مثال: سبحان الله، الحمد لله...';
+
+  @override
+  String get errorZikrEmpty => 'الرجاء إدخال نص الذكر.';
+
+  @override
+  String get setRepetitions => 'حدد عدد التكرارات';
+
+  @override
+  String get errorCountEmpty => 'الرجاء إدخال عدد.';
+
+  @override
+  String get errorCountZero => 'يجب أن يكون العدد أكبر من صفر.';
+
+  @override
+  String get start => 'ابدأ';
+
+  @override
+  String get myAzkarTitle => 'أذكاري';
+
+  @override
+  String get addZikrTitle => 'إضافة ذكر';
+
+  @override
+  String get editZikrTitle => 'تعديل الذكر';
+
+  @override
+  String streakLabel(Object streakCount) {
+    return 'متتالية: $streakCount';
+  }
+
+  @override
+  String get deleteConfirmationTitle => 'حذف الذكر';
+
+  @override
+  String get deleteConfirmationContent =>
+      'هل أنت متأكد من رغبتك في حذف هذا الذكر نهائياً؟';
+
+  @override
+  String get delete => 'حذف';
+
+  @override
+  String get save => 'حفظ';
+
+  @override
+  String get quickAddTitle => 'إضافات سريعة مقترحة';
+
+  @override
+  String get emptyAzkarList =>
+      'قائمة أذكارك فارغة.\nاضغط على زر + لإضافة ذكر جديد.';
+
+  @override
+  String get suggestion1 => 'سبحان الله';
+
+  @override
+  String get suggestion2 => 'الحمد لله';
+
+  @override
+  String get suggestion3 => 'الله أكبر';
+
+  @override
+  String get suggestion4 => 'أستغفر الله';
+
+  @override
+  String dailyCountLabel(Object count) {
+    return 'مرات الإنجاز اليوم: $count';
+  }
+
+  @override
+  String get quickCounterTitle => 'عداد سريع';
+
+  @override
+  String get reset => 'إعادة ضبط';
+
+  @override
+  String get quranTitle => 'القرآن الكريم';
+
+  @override
+  String get quranSubtitle => 'The Holy Quran';
+
+  @override
+  String get quranDescription =>
+      'قم بتحميل الأجزاء الفردية أو القرآن الكامل للقراءة دون اتصال. جميع المحتويات عالية الجودة ومُنسقة بشكل صحيح.';
+
+  @override
+  String get browseJuzs => 'تصفح الأجزاء';
+
+  @override
+  String get browseJuzsSubtitle => 'تحميل أجزاء منفصلة';
+
+  @override
+  String get downloadFullQuran => 'تحميل القرآن الكامل';
+
+  @override
+  String get viewFullQuran => 'عرض القرآن الكامل';
+
+  @override
+  String get fullQuranReady => 'القرآن الكامل جاهز للقراءة';
+
+  @override
+  String get pauseDownload => 'إيقاف التحميل مؤقتاً';
+
+  @override
+  String get resumeDownload => 'استئناف التحميل';
+
+  @override
+  String get completeQuran => 'القرآن الكامل';
+
+  @override
+  String get deleteFullQuran => 'حذف القرآن الكامل';
+
+  @override
+  String get freeUpStorage => 'تحرير مساحة التخزين';
+
+  @override
+  String get downloadIncomplete => 'التحميل غير مكتمل';
+
+  @override
+  String pagesDownloaded(Object downloaded, Object total) {
+    return '$downloaded/$total صفحة محملة';
+  }
+
+  @override
+  String get resume => 'استئناف';
+
+  @override
+  String get paused => 'متوقف مؤقتاً';
+
+  @override
+  String get downloadControls => 'أدوات التحكم في التحميل';
+
+  @override
+  String get progress => 'التقدم:';
+
+  @override
+  String get current => 'الحالي:';
+
+  @override
+  String get deleteDownloadedFiles => 'حذف الملفات المحملة';
+
+  @override
+  String get stillUnderDevelopment => 'قيد التطوير';
+
+  @override
+  String get juzListTitle => 'تصفح الأجزاء';
+
+  @override
+  String get juzListSubtitle => 'اختر الأجزاء للتحميل أو العرض';
+
+  @override
+  String get selectAll => 'اختيار الكل';
+
+  @override
+  String get deselectAll => 'إلغاء اختيار الكل';
+
+  @override
+  String get deleteSelected => 'حذف المحدد';
+
+  @override
+  String get viewSelected => 'عرض المحدد';
+
+  @override
+  String get noJuzsSelected => 'لم يتم اختيار أجزاء';
+
+  @override
+  String get juzProperties => 'خصائص الجزء';
+
+  @override
+  String get juzNumber => 'رقم الجزء';
+
+  @override
+  String get fileCount => 'عدد الملفات';
+
+  @override
+  String get totalSize => 'الحجم الإجمالي';
+
+  @override
+  String get downloadStatus => 'حالة التحميل';
+
+  @override
+  String get notDownloaded => 'غير محمل';
+
+  @override
+  String get downloaded => 'محمل';
+
+  @override
+  String get properties => 'الخصائص';
+
+  @override
+  String get close => 'إغلاق';
 }
