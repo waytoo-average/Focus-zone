@@ -26,7 +26,7 @@ import 'package:app/settings_features.dart';
 import 'package:app/zikr_features.dart';
 import 'package:app/helper.dart';
 
-// --- Helper for File Size Formatting ---
+// --- SnackBar Utilities ---
 String formatBytesSimplified(int bytes, int decimals, AppLocalizations s) {
   if (bytes <= 0) return "0 B";
   const suffixes = ["B", "KB", "MB", "GB", "TB"];
@@ -35,12 +35,11 @@ String formatBytesSimplified(int bytes, int decimals, AppLocalizations s) {
   return '${(bytes / pow(1024, i)).toStringAsFixed(decimals)} ${suffixes[i]}';
 }
 
-// --- Helper for showing SnackBar Messages ---
 void showAppSnackBar(BuildContext context, String message,
     {IconData? icon,
-      Color? iconColor,
-      SnackBarAction? action,
-      Color? backgroundColor}) {
+    Color? iconColor,
+    SnackBarAction? action,
+    Color? backgroundColor}) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Row(
@@ -57,19 +56,17 @@ void showAppSnackBar(BuildContext context, String message,
           ),
         ],
       ),
-      backgroundColor: backgroundColor ??
-          Theme.of(context).primaryColor, // Default to primary color
+      backgroundColor: backgroundColor ?? Theme.of(context).primaryColor,
       action: action,
-      duration: const Duration(seconds: 3), // Default duration
-      behavior: SnackBarBehavior.floating, // Make it float
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10)), // Rounded corners
-      margin: const EdgeInsets.all(10), // Margin from edges
+      duration: const Duration(seconds: 3),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      margin: const EdgeInsets.all(10),
     ),
   );
 }
 
-// --- Helper class for Google Sign-In HTTP Client ---
+// --- Google API HTTP Client ---
 class GoogleHttpClient extends http.BaseClient {
   final Map<String, String> _headers;
   final http.Client _client = http.Client();
@@ -82,7 +79,7 @@ class GoogleHttpClient extends http.BaseClient {
   }
 }
 
-// --- Academic Context Class to pass navigation data ---
+// --- Academic Context for Navigation ---
 class AcademicContext {
   final String grade;
   final String? department;
@@ -114,9 +111,7 @@ class AcademicContext {
     );
   }
 
-  String get displayGrade {
-    return grade;
-  }
+  String get displayGrade => grade;
 
   String get titleString {
     List<String> parts = [displayGrade];
@@ -127,7 +122,6 @@ class AcademicContext {
     return parts.join(' > ');
   }
 
-  // Helper to get the canonical (English) string for map lookup
   String? getCanonicalGrade(BuildContext context) {
     final s = AppLocalizations.of(context)!;
     if (grade == s.firstGrade) return 'First Grade';
@@ -163,7 +157,7 @@ class AcademicContext {
   }
 }
 
-// --- SignInProvider for app-wide state management ---
+// --- Google Sign-In Provider ---
 class SignInProvider extends ChangeNotifier {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: <String>[
@@ -238,7 +232,7 @@ class ThemeProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final themeString = prefs.getString('themeMode') ?? 'system';
     _themeMode = ThemeMode.values.firstWhere(
-            (e) => e.toString().split('.').last == themeString,
+        (e) => e.toString().split('.').last == themeString,
         orElse: () => ThemeMode.system);
     notifyListeners();
   }
@@ -393,7 +387,7 @@ class DownloadPathProvider extends ChangeNotifier {
         }
 
         final firstLaunchProvider =
-        Provider.of<FirstLaunchProvider>(context, listen: false);
+            Provider.of<FirstLaunchProvider>(context, listen: false);
         if (!firstLaunchProvider.hasShownPermissionDialog) {
           if (context.mounted) {
             await showDialog(
@@ -472,20 +466,20 @@ class RecentFile {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'url': url,
-    'mimeType': mimeType,
-    'accessTime': accessTime.toIso8601String(),
-  };
+        'id': id,
+        'name': name,
+        'url': url,
+        'mimeType': mimeType,
+        'accessTime': accessTime.toIso8601String(),
+      };
 
   factory RecentFile.fromJson(Map<String, dynamic> json) => RecentFile(
-    id: json['id'] as String,
-    name: json['name'] as String,
-    url: json['url'] as String?,
-    mimeType: json['mimeType'] as String,
-    accessTime: DateTime.parse(json['accessTime'] as String),
-  );
+        id: json['id'] as String,
+        name: json['name'] as String,
+        url: json['url'] as String?,
+        mimeType: json['mimeType'] as String,
+        accessTime: DateTime.parse(json['accessTime'] as String),
+      );
 }
 
 // --- RecentFilesProvider ---
@@ -503,7 +497,7 @@ class RecentFilesProvider extends ChangeNotifier {
     final String? recentFilesString = prefs.getString(_kRecentFilesKey);
     if (recentFilesString != null) {
       final List<dynamic> jsonList =
-      jsonDecode(recentFilesString) as List<dynamic>;
+          jsonDecode(recentFilesString) as List<dynamic>;
       _recentFiles = jsonList
           .map((json) => RecentFile.fromJson(json as Map<String, dynamic>))
           .toList();
@@ -514,7 +508,7 @@ class RecentFilesProvider extends ChangeNotifier {
   Future<void> _saveRecentFiles() async {
     final prefs = await SharedPreferences.getInstance();
     final String jsonString =
-    jsonEncode(_recentFiles.map((file) => file.toJson()).toList());
+        jsonEncode(_recentFiles.map((file) => file.toJson()).toList());
     await prefs.setString(_kRecentFilesKey, jsonString);
   }
 
@@ -575,10 +569,10 @@ class TodoSummaryProvider extends ChangeNotifier {
     final today = DateTime(now.year, now.month, now.day);
     _completedToday = _allTodos
         .where((todo) =>
-    todo.isCompleted &&
-        todo.dueDate != null &&
-        DateTime(todo.dueDate!.year, todo.dueDate!.month, todo.dueDate!.day)
-            .isAtSameMomentAs(today))
+            todo.isCompleted &&
+            todo.dueDate != null &&
+            DateTime(todo.dueDate!.year, todo.dueDate!.month, todo.dueDate!.day)
+                .isAtSameMomentAs(today))
         .length;
     _overdueTasks =
         _allTodos.where((todo) => todo.isOverdue && !todo.isCompleted).length;
@@ -606,7 +600,7 @@ class TodoSummaryProvider extends ChangeNotifier {
 
   Future<void> saveTodo(TodoItem todoItem) async {
     int existingIndex =
-    _allTodos.indexWhere((t) => t.creationDate == todoItem.creationDate);
+        _allTodos.indexWhere((t) => t.creationDate == todoItem.creationDate);
     if (existingIndex != -1) {
       _allTodos[existingIndex] = todoItem;
     } else {
@@ -626,7 +620,7 @@ class TodoSummaryProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final String todosString =
-      jsonEncode(_allTodos.map((todo) => todo.toJson()).toList());
+          jsonEncode(_allTodos.map((todo) => todo.toJson()).toList());
       await prefs.setString(_kTodosKey, todosString);
       _updateSummaryStats();
     } catch (e) {
@@ -649,7 +643,7 @@ class ErrorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar:
-      AppBar(title: Text(AppLocalizations.of(context)?.error ?? "Error")),
+          AppBar(title: Text(AppLocalizations.of(context)?.error ?? "Error")),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -726,9 +720,9 @@ class RootScreenState extends State<RootScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final downloadPathProvider =
-    Provider.of<DownloadPathProvider>(context, listen: false);
+        Provider.of<DownloadPathProvider>(context, listen: false);
     final firstLaunchProvider =
-    Provider.of<FirstLaunchProvider>(context, listen: false);
+        Provider.of<FirstLaunchProvider>(context, listen: false);
     final s = AppLocalizations.of(context);
     if (s != null) {
       if (!firstLaunchProvider.hasShownPermissionDialog) {
@@ -759,7 +753,7 @@ class RootScreenState extends State<RootScreen> {
             return MaterialPageRoute(builder: (context) => initialRouteWidget);
           }
           switch (routeSettings.name) {
-          // Study Features
+            // Study Features
             case '/departments':
               final academicContext = routeSettings.arguments;
               if (academicContext is AcademicContext) {
@@ -770,8 +764,8 @@ class RootScreenState extends State<RootScreen> {
               return MaterialPageRoute(
                   builder: (context) => ErrorScreen(
                       message:
-                      AppLocalizations.of(context)?.errorMissingContext ??
-                          "Missing context."));
+                          AppLocalizations.of(context)?.errorMissingContext ??
+                              "Missing context."));
             case '/years':
               final academicContext = routeSettings.arguments;
               if (academicContext is AcademicContext) {
@@ -782,8 +776,8 @@ class RootScreenState extends State<RootScreen> {
               return MaterialPageRoute(
                   builder: (context) => ErrorScreen(
                       message:
-                      AppLocalizations.of(context)?.errorMissingContext ??
-                          "Missing context."));
+                          AppLocalizations.of(context)?.errorMissingContext ??
+                              "Missing context."));
             case '/semesters':
               final academicContext = routeSettings.arguments;
               if (academicContext is AcademicContext) {
@@ -794,8 +788,8 @@ class RootScreenState extends State<RootScreen> {
               return MaterialPageRoute(
                   builder: (context) => ErrorScreen(
                       message:
-                      AppLocalizations.of(context)?.errorMissingContext ??
-                          "Missing context."));
+                          AppLocalizations.of(context)?.errorMissingContext ??
+                              "Missing context."));
             case '/subjects':
               final arguments = routeSettings.arguments;
               Map<String, String> subjectsMap = {};
@@ -825,9 +819,9 @@ class RootScreenState extends State<RootScreen> {
               }
               return MaterialPageRoute(
                   builder: (context) => SubjectSelectionScreen(
-                    subjects: subjectsMap,
-                    academicContext: academicContext!,
-                  ));
+                        subjects: subjectsMap,
+                        academicContext: academicContext!,
+                      ));
             case '/subjectContentScreen':
               final args = routeSettings.arguments;
               if (args is! Map<String, dynamic> ||
@@ -837,25 +831,25 @@ class RootScreenState extends State<RootScreen> {
                 return MaterialPageRoute(
                     builder: (context) => ErrorScreen(
                         message: AppLocalizations.of(context)
-                            ?.errorMissingSubjectDetails ??
+                                ?.errorMissingSubjectDetails ??
                             "Missing subject details."));
               }
               return MaterialPageRoute(
                   builder: (context) => SubjectContentScreen(
-                    subjectName: args['subjectName'] as String,
-                    rootFolderId: args['rootFolderId'] as String,
-                    academicContext:
-                    args['academicContext'] as AcademicContext,
-                  ));
+                        subjectName: args['subjectName'] as String,
+                        rootFolderId: args['rootFolderId'] as String,
+                        academicContext:
+                            args['academicContext'] as AcademicContext,
+                      ));
 
-          // To-Do Features
+            // To-Do Features
             case '/todoDetailScreen':
               final args = routeSettings.arguments;
               return MaterialPageRoute(
                   builder: (context) => TodoDetailScreen(
                       todoItem: args is TodoItem ? args : null));
 
-          // Settings Features
+            // Settings Features
             case '/about':
               return MaterialPageRoute(
                   builder: (context) => const AboutScreen());
@@ -867,7 +861,7 @@ class RootScreenState extends State<RootScreen> {
               return MaterialPageRoute(
                   builder: (context) => ErrorScreen(
                       message: AppLocalizations.of(context)?.errorPageNotFound(
-                          routeSettings.name ?? 'Unknown') ??
+                              routeSettings.name ?? 'Unknown') ??
                           "Page not found: ${routeSettings.name}"));
           }
         },
@@ -937,12 +931,12 @@ class RootScreenState extends State<RootScreen> {
           currentIndex: _selectedIndex,
           selectedItemColor: Theme.of(context).colorScheme.secondary,
           unselectedItemColor:
-          Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
           onTap: _onItemTapped,
           type: BottomNavigationBarType.fixed,
           backgroundColor: Theme.of(context).cardTheme.color,
           selectedLabelStyle:
-          const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           unselectedLabelStyle: const TextStyle(fontSize: 12),
           elevation: 10,
         ),
@@ -986,14 +980,14 @@ class DashboardScreen extends StatelessWidget {
                       : null,
                   child: user?.photoUrl == null
                       ? Text(
-                      user?.displayName?.isNotEmpty == true
-                          ? user!.displayName![0].toUpperCase()
-                          : (user?.email?.isNotEmpty == true
-                          ? user!.email![0].toUpperCase()
-                          : '?'),
-                      style: TextStyle(
-                          color: Theme.of(context).primaryColor,
-                          fontSize: 18))
+                          user?.displayName?.isNotEmpty == true
+                              ? user!.displayName![0].toUpperCase()
+                              : (user?.email?.isNotEmpty == true
+                                  ? user!.email![0].toUpperCase()
+                                  : '?'),
+                          style: TextStyle(
+                              color: Theme.of(context).primaryColor,
+                              fontSize: 18))
                       : null,
                 ),
               ),
@@ -1069,46 +1063,46 @@ class DashboardScreen extends StatelessWidget {
                             title: Text(s.lastOpened),
                             subtitle: recentFilesProvider.recentFiles.isNotEmpty
                                 ? Text(
-                                recentFilesProvider.recentFiles.first.name)
+                                    recentFilesProvider.recentFiles.first.name)
                                 : Text(s.noRecentFiles),
                             trailing: recentFilesProvider.recentFiles.isNotEmpty
                                 ? Icon(Icons.arrow_forward_ios,
-                                size: 16,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withOpacity(0.6))
+                                    size: 16,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.6))
                                 : null,
                             onTap: recentFilesProvider.recentFiles.isNotEmpty
                                 ? () {
-                              final file =
-                                  recentFilesProvider.recentFiles.first;
-                              if (file.mimeType.contains('pdf')) {
-                                Navigator.of(context, rootNavigator: true)
-                                    .pushNamed(
-                                  '/pdfViewer',
-                                  arguments: {
-                                    'fileUrl': file.url,
-                                    'fileId': file.id,
-                                    'fileName': file.name
-                                  },
-                                );
-                              } else if (file.url != null) {
-                                Navigator.of(context, rootNavigator: true)
-                                    .pushNamed(
-                                  '/googleDriveViewer',
-                                  arguments: {
-                                    'embedUrl': file.url,
-                                    'fileId': file.id,
-                                    'fileName': file.name,
-                                    'mimeType': file.mimeType
-                                  },
-                                );
-                              } else {
-                                showAppSnackBar(
-                                    context, s.cannotOpenFileType);
-                              }
-                            }
+                                    final file =
+                                        recentFilesProvider.recentFiles.first;
+                                    if (file.mimeType.contains('pdf')) {
+                                      Navigator.of(context, rootNavigator: true)
+                                          .pushNamed(
+                                        '/pdfViewer',
+                                        arguments: {
+                                          'fileUrl': file.url,
+                                          'fileId': file.id,
+                                          'fileName': file.name
+                                        },
+                                      );
+                                    } else if (file.url != null) {
+                                      Navigator.of(context, rootNavigator: true)
+                                          .pushNamed(
+                                        '/googleDriveViewer',
+                                        arguments: {
+                                          'embedUrl': file.url,
+                                          'fileId': file.id,
+                                          'fileName': file.name,
+                                          'mimeType': file.mimeType
+                                        },
+                                      );
+                                    } else {
+                                      showAppSnackBar(
+                                          context, s.cannotOpenFileType);
+                                    }
+                                  }
                                 : null,
                           ),
                           Divider(
@@ -1141,21 +1135,21 @@ class DashboardScreen extends StatelessWidget {
                             title: Text(s.nextDeadline),
                             subtitle: todoSummary.nextUpcomingTask != null
                                 ? Text(
-                                '${todoSummary.nextUpcomingTask!.title} (${todoSummary.nextUpcomingTask!.formatDueDate(context, s)})')
+                                    '${todoSummary.nextUpcomingTask!.title} (${todoSummary.nextUpcomingTask!.formatDueDate(context, s)})')
                                 : Text(s.noUpcomingTasks),
                             trailing: todoSummary.nextUpcomingTask != null
                                 ? Icon(Icons.arrow_forward_ios,
-                                size: 16,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withOpacity(0.6))
+                                    size: 16,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.6))
                                 : null,
                             onTap: todoSummary.nextUpcomingTask != null
                                 ? () {
-                              rootScreenKey.currentState
-                                  ?._onItemTapped(2);
-                            }
+                                    rootScreenKey.currentState
+                                        ?._onItemTapped(2);
+                                  }
                                 : null,
                           ),
                           Divider(
@@ -1173,7 +1167,7 @@ class DashboardScreen extends StatelessWidget {
                             subtitle: LinearProgressIndicator(
                               value: todoSummary.totalTasks > 0
                                   ? todoSummary.completedToday /
-                                  todoSummary.totalTasks
+                                      todoSummary.totalTasks
                                   : 0.0,
                               backgroundColor: Theme.of(context)
                                   .colorScheme
@@ -1225,7 +1219,7 @@ class DashboardScreen extends StatelessWidget {
                               style: ElevatedButton.styleFrom(
                                 minimumSize: const Size(120, 40),
                                 padding:
-                                const EdgeInsets.symmetric(horizontal: 16),
+                                    const EdgeInsets.symmetric(horizontal: 16),
                               ),
                             ),
                           ),
@@ -1297,8 +1291,8 @@ class DashboardScreen extends StatelessWidget {
   // Helper method to build consistent looking cards
   Widget _buildDashboardCard(BuildContext context,
       {required String title,
-        required IconData icon,
-        required List<Widget> children}) {
+      required IconData icon,
+      required List<Widget> children}) {
     return Card(
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -1316,8 +1310,8 @@ class DashboardScreen extends StatelessWidget {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                 ),
               ],
             ),

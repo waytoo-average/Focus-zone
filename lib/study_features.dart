@@ -21,9 +21,7 @@ import 'package:app/app_core.dart';
 
 import 'l10n/app_localizations.dart'; // For AcademicContext, SignInProvider, DownloadPathProvider, AppLocalizations, ErrorScreen, showAppSnackBar, formatBytesSimplified
 
-// Centralized data structure for all academic content
-// Structure: Grade -> Department -> Year -> Semester -> SubjectName: FolderId
-// The type needs to reflect the nesting of maps correctly.
+// --- Academic Content Data ---
 const Map<String, Map<String, Map<String, Map<String, Map<String, String>>>>>
     allAcademicContentFolders = {
   'First Grade': {
@@ -179,6 +177,7 @@ const Map<String, Map<String, Map<String, Map<String, Map<String, String>>>>>
   },
 };
 
+// --- Grade Selection UI ---
 // GradeSelectionScreen - NO LONGER HAS ITS OWN SCAFFOLD OR APPBAR
 class GradeSelectionScreen extends StatelessWidget {
   const GradeSelectionScreen({super.key});
@@ -243,32 +242,48 @@ class DepartmentSelectionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
     final List<String> departmentOptions = _getDepartmentStrings(context);
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(academicContext.titleString, softWrap: true, maxLines: 2),
         leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop()),
-        actions: [],
+        elevation: theme.appBarTheme.elevation,
+        backgroundColor: theme.appBarTheme.backgroundColor,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: List.generate(departmentOptions.length, (index) {
-            final String localizedDepartment = departmentOptions[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 20.0),
-              child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pushNamed('/years',
-                      arguments: academicContext.copyWith(
-                          department: localizedDepartment)),
-                  child: Text(localizedDepartment)),
-            );
-          }),
-        ),
-      ),
+      body: departmentOptions.isEmpty
+          ? Center(
+              child: Card(
+                margin: const EdgeInsets.all(32),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(
+                    s.notAvailableNow,
+                    style: theme.textTheme.titleMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(20.0),
+              itemCount: departmentOptions.length,
+              itemBuilder: (context, index) {
+                final String localizedDepartment = departmentOptions[index];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 16.0),
+                  child: ListTile(
+                    title: Text(localizedDepartment,
+                        style: theme.textTheme.titleMedium),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+                    onTap: () => Navigator.of(context).pushNamed('/years',
+                        arguments: academicContext.copyWith(
+                            department: localizedDepartment)),
+                  ),
+                );
+              },
+            ),
     );
   }
 }
@@ -286,31 +301,48 @@ class YearSelectionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
     final List<String> yearOptions = _getYearStrings(context);
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(academicContext.titleString, softWrap: true, maxLines: 2),
         leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.of(context).pop()),
-        actions: [],
+        elevation: theme.appBarTheme.elevation,
+        backgroundColor: theme.appBarTheme.backgroundColor,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: List.generate(yearOptions.length, (index) {
-            final String localizedYear = yearOptions[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 20.0),
-              child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pushNamed('/semesters',
-                      arguments: academicContext.copyWith(year: localizedYear)),
-                  child: Text(localizedYear)),
-            );
-          }),
-        ),
-      ),
+      body: yearOptions.isEmpty
+          ? Center(
+              child: Card(
+                margin: const EdgeInsets.all(32),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(
+                    s.notAvailableNow,
+                    style: theme.textTheme.titleMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(20.0),
+              itemCount: yearOptions.length,
+              itemBuilder: (context, index) {
+                final String localizedYear = yearOptions[index];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 16.0),
+                  child: ListTile(
+                    title:
+                        Text(localizedYear, style: theme.textTheme.titleMedium),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+                    onTap: () => Navigator.of(context).pushNamed('/semesters',
+                        arguments:
+                            academicContext.copyWith(year: localizedYear)),
+                  ),
+                );
+              },
+            ),
     );
   }
 }
@@ -353,11 +385,14 @@ class SemesterSelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
-
+    final theme = Theme.of(context);
     final Map<String, String> semester1Subjects = _getSubjectsForContext(
         context, academicContext.copyWith(semester: s.semester1));
     final Map<String, String> semester2Subjects = _getSubjectsForContext(
         context, academicContext.copyWith(semester: s.semester2));
+
+    final bool hasSem1 = semester1Subjects.isNotEmpty;
+    final bool hasSem2 = semester2Subjects.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -365,48 +400,66 @@ class SemesterSelectionScreen extends StatelessWidget {
         leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.pop(context)),
+        elevation: theme.appBarTheme.elevation,
+        backgroundColor: theme.appBarTheme.backgroundColor,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 20.0),
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pushNamed(
-                    '/subjects',
-                    arguments: {
-                      'subjects': semester1Subjects,
-                      'context':
-                          academicContext.copyWith(semester: s.semester1),
-                    },
-                  );
-                },
-                child: Text(s.semester1),
+      body: (!hasSem1 && !hasSem2)
+          ? Center(
+              child: Card(
+                margin: const EdgeInsets.all(32),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(
+                    s.notAvailableNow,
+                    style: theme.textTheme.titleMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ),
+            )
+          : ListView(
+              padding: const EdgeInsets.all(20.0),
+              children: [
+                if (hasSem1)
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 16.0),
+                    child: ListTile(
+                      title:
+                          Text(s.semester1, style: theme.textTheme.titleMedium),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+                      onTap: () {
+                        Navigator.of(context).pushNamed(
+                          '/subjects',
+                          arguments: {
+                            'subjects': semester1Subjects,
+                            'context':
+                                academicContext.copyWith(semester: s.semester1),
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                if (hasSem2)
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 16.0),
+                    child: ListTile(
+                      title:
+                          Text(s.semester2, style: theme.textTheme.titleMedium),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+                      onTap: () {
+                        Navigator.of(context).pushNamed(
+                          '/subjects',
+                          arguments: {
+                            'subjects': semester2Subjects,
+                            'context':
+                                academicContext.copyWith(semester: s.semester2),
+                          },
+                        );
+                      },
+                    ),
+                  ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 20.0),
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pushNamed(
-                    '/subjects',
-                    arguments: {
-                      'subjects': semester2Subjects,
-                      'context':
-                          academicContext.copyWith(semester: s.semester2),
-                    },
-                  );
-                },
-                child: Text(s.semester2),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -422,53 +475,56 @@ class SubjectSelectionScreen extends StatelessWidget {
     final List<MapEntry<String, String>> subjectsList =
         subjects.entries.toList();
     final s = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(academicContext.titleString, softWrap: true, maxLines: 3),
         leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.pop(context)),
+        elevation: theme.appBarTheme.elevation,
+        backgroundColor: theme.appBarTheme.backgroundColor,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            if (subjectsList.isEmpty)
-              Expanded(
-                  child: Center(
-                      child: Text(s.notAvailableNow,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontSize: 20,
-                              color: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.color))))
-            else
-              Expanded(
-                child: ListView.separated(
-                  itemCount: subjectsList.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 20),
-                  itemBuilder: (context, index) {
-                    final subjectName = subjectsList[index].key;
-                    final rootFolderId = subjectsList[index].value;
-                    return ElevatedButton(
-                        onPressed: () => Navigator.pushNamed(
-                                context, '/subjectContentScreen',
-                                arguments: {
-                                  'subjectName': subjectName,
-                                  'rootFolderId': rootFolderId,
-                                  'academicContext': academicContext.copyWith(
-                                      subjectName: subjectName)
-                                }),
-                        child: Text(subjectName));
-                  },
+      body: subjectsList.isEmpty
+          ? Center(
+              child: Card(
+                margin: const EdgeInsets.all(32),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(
+                    s.notAvailableNow,
+                    style: theme.textTheme.titleMedium,
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ),
-          ],
-        ),
-      ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(20.0),
+              itemCount: subjectsList.length,
+              itemBuilder: (context, index) {
+                final entry = subjectsList[index];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 16.0),
+                  child: ListTile(
+                    title: Text(entry.key, style: theme.textTheme.titleMedium),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SubjectContentScreen(
+                            subjectName: entry.key,
+                            rootFolderId: entry.value,
+                            academicContext: academicContext,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
     );
   }
 }
@@ -486,12 +542,15 @@ class SubjectContentScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(subjectName),
         leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.pop(context)),
+        elevation: theme.appBarTheme.elevation,
+        backgroundColor: theme.appBarTheme.backgroundColor,
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -768,7 +827,7 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         developer.log('_downloadPdf (${widget.fileId}): Download error: $e',
             name: 'PdfViewerScreen');
         if (mounted) {
-          // Ensure mounted before setState
+          // Ensure mounted
           final partialFile =
               File(localFile.path); // Use localFile.path directly
           if (await partialFile.exists()) {

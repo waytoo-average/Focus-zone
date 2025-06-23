@@ -11,6 +11,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:developer' as developer;
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
 
 // Core app imports
 import 'package:app/app_core.dart';
@@ -92,7 +93,7 @@ class SettingsScreen extends StatelessWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
                 content:
-                Text("No files found in: ${path.basename(folderPath)}")),
+                    Text("No files found in: ${path.basename(folderPath)}")),
           );
         }
         return;
@@ -138,8 +139,7 @@ class SettingsScreen extends StatelessWidget {
                     itemBuilder: (_, i) {
                       final file = files[i];
                       final fileName = path.basename(file.path);
-                      final extension =
-                      path.extension(file.path).toLowerCase();
+                      final extension = path.extension(file.path).toLowerCase();
 
                       IconData icon = switch (extension) {
                         '.md' => Icons.description,
@@ -152,8 +152,8 @@ class SettingsScreen extends StatelessWidget {
                       return ListTile(
                         leading: Icon(icon),
                         title: Text(fileName),
-                        subtitle:
-                        Text("${extension.toUpperCase()} • ${_getFileSize(file)}"),
+                        subtitle: Text(
+                            "${extension.toUpperCase()} • ${_getFileSize(file)}"),
                         trailing: PopupMenuButton<String>(
                           icon: const Icon(Icons.more_vert),
                           onSelected: (value) async {
@@ -167,7 +167,7 @@ class SettingsScreen extends StatelessWidget {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                           content:
-                                          Text("Cannot open file: $e")),
+                                              Text("Cannot open file: $e")),
                                     );
                                   }
                                 }
@@ -234,8 +234,7 @@ class SettingsScreen extends StatelessWidget {
                           } catch (e) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text("Cannot open file: $e")),
+                                SnackBar(content: Text("Cannot open file: $e")),
                               );
                             }
                           }
@@ -331,7 +330,7 @@ class SettingsScreen extends StatelessWidget {
 
               try {
                 final newPath =
-                path.join(path.dirname(file.path), '$newName$extension');
+                    path.join(path.dirname(file.path), '$newName$extension');
                 await file.rename(newPath);
                 if (context.mounted) Navigator.pop(context);
                 if (context.mounted) {
@@ -422,8 +421,8 @@ class SettingsScreen extends StatelessWidget {
       if (context.mounted) {
         showAppSnackBar(
             context,
-            s.downloadPathSetTo(
-                await pathProvider.getEffectiveDownloadPath()), // FIX: Changed to getEffectiveDownloadPath
+            s.downloadPathSetTo(await pathProvider
+                .getEffectiveDownloadPath()), // FIX: Changed to getEffectiveDownloadPath
             icon: Icons.info_outline,
             iconColor: Colors.blue);
       }
@@ -503,13 +502,13 @@ class SettingsScreen extends StatelessWidget {
                   radius: 40,
                   child: user.photoUrl == null
                       ? Text(
-                    user.displayName?.isNotEmpty == true
-                        ? user.displayName![0].toUpperCase()
-                        : (user.email.isNotEmpty == true
-                        ? user.email[0].toUpperCase()
-                        : '?'),
-                    style: const TextStyle(fontSize: 30),
-                  )
+                          user.displayName?.isNotEmpty == true
+                              ? user.displayName![0].toUpperCase()
+                              : (user.email.isNotEmpty == true
+                                  ? user.email[0].toUpperCase()
+                                  : '?'),
+                          style: const TextStyle(fontSize: 30),
+                        )
                       : null,
                 ),
               ),
@@ -540,7 +539,7 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: 30),
             ElevatedButton(
               onPressed:
-              user == null ? signInProvider.signIn : signInProvider.signOut,
+                  user == null ? signInProvider.signIn : signInProvider.signOut,
               style: ElevatedButton.styleFrom(
                 backgroundColor: user == null
                     ? Theme.of(context).primaryColor
@@ -548,11 +547,11 @@ class SettingsScreen extends StatelessWidget {
                 foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 50),
                 padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
                 textStyle:
-                const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
               ),
               child: Text(user == null ? s.signInWithGoogle : s.signOut),
             ),
@@ -579,40 +578,46 @@ class SettingsScreen extends StatelessWidget {
                             .colorScheme
                             .onSurface
                             .withOpacity(0.6))), onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext dialogContext) {
-                      return AlertDialog(
-                        title: Text(s.chooseLanguage),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            RadioListTile<Locale>(
-                                title: Text(s.english),
-                                value: const Locale('en'),
-                                groupValue: languageProvider.locale,
-                                onChanged: (Locale? value) {
-                                  if (value != null) {
-                                    languageProvider.setLocale(value);
-                                    Navigator.of(dialogContext).pop();
-                                  }
-                                }),
-                            RadioListTile<Locale>(
-                                title: Text(s.arabic),
-                                value: const Locale('ar'),
-                                groupValue: languageProvider.locale,
-                                onChanged: (Locale? value) {
-                                  if (value != null) {
-                                    languageProvider.setLocale(value);
-                                    Navigator.of(dialogContext).pop();
-                                  }
-                                }),
-                          ],
+              showModalBottomSheet(
+                context: context,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                builder: (BuildContext dialogContext) {
+                  return Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(s.chooseLanguage,
+                            style: Theme.of(context).textTheme.titleLarge),
+                        const SizedBox(height: 16),
+                        _OptionCard(
+                          title: s.english,
+                          icon: Icons.language,
+                          selected:
+                              languageProvider.locale.languageCode == 'en',
+                          onTap: () {
+                            languageProvider.setLocale(const Locale('en'));
+                            Navigator.of(dialogContext).pop();
+                          },
                         ),
-                      );
-                    },
+                        _OptionCard(
+                          title: s.arabic,
+                          icon: Icons.language,
+                          selected:
+                              languageProvider.locale.languageCode == 'ar',
+                          onTap: () {
+                            languageProvider.setLocale(const Locale('ar'));
+                            Navigator.of(dialogContext).pop();
+                          },
+                        ),
+                      ],
+                    ),
                   );
-                }),
+                },
+              );
+            }),
             _buildSettingsItem(context,
                 s: s,
                 icon: Icons.brightness_6_outlined,
@@ -621,57 +626,60 @@ class SettingsScreen extends StatelessWidget {
                     themeProvider.themeMode == ThemeMode.light
                         ? s.lightTheme
                         : themeProvider.themeMode == ThemeMode.dark
-                        ? s.darkTheme
-                        : s.systemDefault,
+                            ? s.darkTheme
+                            : s.systemDefault,
                     style: TextStyle(
                         color: Theme.of(context)
                             .colorScheme
                             .onSurface
                             .withOpacity(0.6))), onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext dialogContext) {
-                      return AlertDialog(
-                        title: Text(s.chooseTheme),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            RadioListTile<ThemeMode>(
-                                title: Text(s.lightTheme),
-                                value: ThemeMode.light,
-                                groupValue: themeProvider.themeMode,
-                                onChanged: (ThemeMode? value) {
-                                  if (value != null) {
-                                    Navigator.of(dialogContext).pop();
-                                    themeProvider.setThemeMode(value);
-                                  }
-                                }),
-                            RadioListTile<ThemeMode>(
-                                title: Text(s.darkTheme),
-                                value: ThemeMode.dark,
-                                groupValue: themeProvider.themeMode,
-                                onChanged: (ThemeMode? value) {
-                                  if (value != null) {
-                                    Navigator.of(dialogContext).pop();
-                                    themeProvider.setThemeMode(value);
-                                  }
-                                }),
-                            RadioListTile<ThemeMode>(
-                                title: Text(s.systemDefault),
-                                value: ThemeMode.system,
-                                groupValue: themeProvider.themeMode,
-                                onChanged: (ThemeMode? value) {
-                                  if (value != null) {
-                                    Navigator.of(dialogContext).pop();
-                                    themeProvider.setThemeMode(value);
-                                  }
-                                }),
-                          ],
+              showModalBottomSheet(
+                context: context,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                builder: (BuildContext dialogContext) {
+                  return Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(s.chooseTheme,
+                            style: Theme.of(context).textTheme.titleLarge),
+                        const SizedBox(height: 16),
+                        _OptionCard(
+                          title: s.lightTheme,
+                          icon: Icons.light_mode,
+                          selected: themeProvider.themeMode == ThemeMode.light,
+                          onTap: () {
+                            themeProvider.setThemeMode(ThemeMode.light);
+                            Navigator.of(dialogContext).pop();
+                          },
                         ),
-                      );
-                    },
+                        _OptionCard(
+                          title: s.darkTheme,
+                          icon: Icons.dark_mode,
+                          selected: themeProvider.themeMode == ThemeMode.dark,
+                          onTap: () {
+                            themeProvider.setThemeMode(ThemeMode.dark);
+                            Navigator.of(dialogContext).pop();
+                          },
+                        ),
+                        _OptionCard(
+                          title: s.systemDefault,
+                          icon: Icons.phone_iphone,
+                          selected: themeProvider.themeMode == ThemeMode.system,
+                          onTap: () {
+                            themeProvider.setThemeMode(ThemeMode.system);
+                            Navigator.of(dialogContext).pop();
+                          },
+                        ),
+                      ],
+                    ),
                   );
-                }),
+                },
+              );
+            }),
             _buildSettingsItem(
               context,
               s: s,
@@ -718,8 +726,8 @@ class SettingsScreen extends StatelessWidget {
                           onTap: () {
                             Navigator.pop(sheetContext);
                             final pathProvider =
-                            Provider.of<DownloadPathProvider>(context,
-                                listen: false);
+                                Provider.of<DownloadPathProvider>(context,
+                                    listen: false);
 
                             pathProvider
                                 .getEffectiveDownloadPath()
@@ -792,7 +800,7 @@ class SettingsScreen extends StatelessWidget {
             ),
           ]
               .map((item) => Padding(
-              padding: const EdgeInsets.only(bottom: 0), child: item))
+                  padding: const EdgeInsets.only(bottom: 0), child: item))
               .toList(),
         ),
       ),
@@ -801,10 +809,10 @@ class SettingsScreen extends StatelessWidget {
 
   Widget _buildSettingsItem(BuildContext context,
       {required AppLocalizations s,
-        required IconData icon,
-        required String text,
-        Widget? trailing,
-        required VoidCallback onTap}) {
+      required IconData icon,
+      required String text,
+      Widget? trailing,
+      required VoidCallback onTap}) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6.0),
       child: ListTile(
@@ -865,141 +873,131 @@ class AboutScreen extends StatelessWidget {
               icon: const Icon(Icons.arrow_back),
               onPressed: () => Navigator.pop(context))),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+        padding: const EdgeInsets.all(16.0),
         children: [
-          Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Icon(Icons.code_outlined,
-                    size: 80, color: Theme.of(context).primaryColor),
-                const SizedBox(height: 10),
-                Text(s.appTitle,
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center),
-                const SizedBox(height: 5),
-                Text('${s.appVersion}: ${AboutScreen.appCurrentVersion}',
-                    style: Theme.of(context).textTheme.bodyMedium),
-                const SizedBox(height: 8),
-                Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text(s.appDescription,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall))
-              ]),
-          const Divider(height: 40, thickness: 1),
+          // App Info Card
+          Card(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(Icons.code_outlined,
+                      size: 60, color: Theme.of(context).primaryColor),
+                  const SizedBox(height: 12),
+                  Text(s.appTitle,
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center),
+                  const SizedBox(height: 6),
+                  Text('${s.appVersion}: ${AboutScreen.appCurrentVersion}',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  Text(s.appDescription,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Developer Info
           Text(s.madeBy, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8.0),
-          Text(s.developerName,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyLarge
-                  ?.copyWith(fontWeight: FontWeight.w600)),
-          Text(s.developerDetails,
-              style: Theme.of(context).textTheme.bodyMedium),
-          const Divider(height: 40, thickness: 1),
+          Card(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(s.developerName,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyLarge
+                          ?.copyWith(fontWeight: FontWeight.w600)),
+                  Text(s.developerDetails,
+                      style: Theme.of(context).textTheme.bodyMedium),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Contact Info
           Text(s.contactInfo, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 16.0),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+          const SizedBox(height: 8.0),
+          Card(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 2,
+            child: Column(
               children: [
-                Material(
-                  color: Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(12),
-                  elevation: 4.0,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () =>
-                        _launchUrl(context, 'tel:${AboutScreen.phoneNumber}'),
-                    child: Tooltip(
-                      message: s.phoneNumber,
-                      child: SizedBox(
-                        width: 60,
-                        height: 60,
-                        child: Center(
-                          child: Icon(Icons.phone_android_outlined,
-                              size: 30, color: iconColor),
-                        ),
-                      ),
-                    ),
-                  ),
+                _ContactListTile(
+                  icon: Icons.phone_android_outlined,
+                  text: s.phoneNumber,
+                  onTap: () =>
+                      _launchUrl(context, 'tel:${AboutScreen.phoneNumber}'),
                 ),
-                const SizedBox(width: 16.0),
-                Material(
-                  color: Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(12),
-                  elevation: 4.0,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () => _launchUrl(
-                        context, 'mailto:${AboutScreen.emailAddress}'),
-                    child: Tooltip(
-                      message: s.email,
-                      child: SizedBox(
-                        width: 60,
-                        height: 60,
-                        child: Center(
-                          child: Icon(Icons.email_outlined,
-                              size: 30, color: iconColor),
-                        ),
-                      ),
-                    ),
-                  ),
+                const Divider(height: 1),
+                _ContactListTile(
+                  icon: Icons.email_outlined,
+                  text: s.email,
+                  onTap: () =>
+                      _launchUrl(context, 'mailto:${AboutScreen.emailAddress}'),
                 ),
-                const SizedBox(width: 16.0),
-                Material(
-                  color: Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(12),
-                  elevation: 4.0,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () => _launchUrl(context, AboutScreen.githubUrl),
-                    child: Tooltip(
-                      message: s.githubProfile,
-                      child: SizedBox(
-                        width: 60,
-                        height: 60,
-                        child: Center(
-                          child: Image.asset('assets/icons/github.png',
-                              width: 30, height: 30, color: iconColor),
-                        ),
-                      ),
-                    ),
-                  ),
+                const Divider(height: 1),
+                _ContactListTile(
+                  asset: 'assets/icons/github.png',
+                  text: s.githubProfile,
+                  onTap: () => _launchUrl(context, AboutScreen.githubUrl),
                 ),
-                const SizedBox(width: 16.0),
-                Material(
-                  color: Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(12),
-                  elevation: 4.0,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () =>
-                        _launchUrl(context, AboutScreen.discordProfileUrl),
-                    child: Tooltip(
-                      message: s.discordProfile,
-                      child: SizedBox(
-                        width: 60,
-                        height: 60,
-                        child: Center(
-                          child: Image.asset('assets/icons/discord.png',
-                              width: 30, height: 30, color: iconColor),
-                        ),
-                      ),
-                    ),
-                  ),
+                const Divider(height: 1),
+                _ContactListTile(
+                  asset: 'assets/icons/discord.png',
+                  text: s.discordProfile,
+                  onTap: () =>
+                      _launchUrl(context, AboutScreen.discordProfileUrl),
                 ),
               ],
             ),
           ),
-          const Divider(height: 40, thickness: 1),
         ],
       ),
+    );
+  }
+}
+
+class _ContactListTile extends StatelessWidget {
+  final IconData? icon;
+  final String? asset;
+  final String text;
+  final VoidCallback onTap;
+  const _ContactListTile(
+      {this.icon, this.asset, required this.text, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: icon != null
+          ? Icon(icon, color: Theme.of(context).primaryColor, size: 28)
+          : asset != null
+              ? Image.asset(asset!, width: 28, height: 28)
+              : null,
+      title: Text(text, style: Theme.of(context).textTheme.bodyLarge),
+      trailing: const Icon(Icons.open_in_new_outlined, size: 20),
+      onTap: onTap,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      minLeadingWidth: 0,
     );
   }
 }
@@ -1068,22 +1066,70 @@ class CollegeInfoScreen extends StatelessWidget {
           const SizedBox(height: 16),
           Card(
               child: ListTile(
-                leading: const Icon(Icons.facebook, color: Color(0xFF1877F2)),
-                title: Text(s.facebookPage),
-                trailing: const Icon(Icons.open_in_new_outlined, size: 20),
-                onTap: () => _launchUrl(context, facebookUrl),
-              )),
+            leading: const Icon(Icons.facebook, color: Color(0xFF1877F2)),
+            title: Text(s.facebookPage),
+            trailing: const Icon(Icons.open_in_new_outlined, size: 20),
+            onTap: () => _launchUrl(context, facebookUrl),
+          )),
           const SizedBox(height: 10),
           Card(
               child: ListTile(
-                leading: const Icon(Icons.location_on_outlined,
-                    color: Color(0xFFDB4437)),
-                title: Text(s.collegeLocation),
-                trailing: const Icon(Icons.open_in_new_outlined, size: 20),
-                onTap: () => _launchUrl(context, googleMapsUrl),
-              )),
+            leading: const Icon(Icons.location_on_outlined,
+                color: Color(0xFFDB4437)),
+            title: Text(s.collegeLocation),
+            trailing: const Icon(Icons.open_in_new_outlined, size: 20),
+            onTap: () => _launchUrl(context, googleMapsUrl),
+          )),
           const Divider(height: 40, thickness: 1),
         ],
+      ),
+    );
+  }
+}
+
+class _OptionCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+  const _OptionCard(
+      {required this.title,
+      required this.icon,
+      required this.selected,
+      required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    final cardColor = Theme.of(context).cardColor;
+    final borderColor =
+        selected ? Theme.of(context).colorScheme.secondary : Colors.transparent;
+    return Card(
+      elevation: selected ? 6 : 1,
+      color: cardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: borderColor, width: selected ? 2 : 0),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(icon,
+                  color: selected
+                      ? Theme.of(context).colorScheme.secondary
+                      : Theme.of(context).iconTheme.color),
+              const SizedBox(width: 16),
+              Expanded(
+                  child: Text(title,
+                      style: Theme.of(context).textTheme.titleMedium)),
+              if (selected)
+                Icon(Icons.check_circle,
+                    color: Theme.of(context).colorScheme.secondary)
+            ],
+          ),
+        ),
       ),
     );
   }

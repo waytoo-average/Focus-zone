@@ -10,13 +10,11 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import 'package:app/app_core.dart';
-
-// Assuming these files exist in your project structure as they were in the original file
-import 'package:app/src/models/task_filter_sort.dart';
+import 'package:app/src/utils/app_utilities.dart';
 import 'package:app/src/ui/widgets/deadline_tile.dart';
-import 'package:app/src/ui/widgets/sort_chip.dart';
-import 'package:app/src/ui/widgets/task_filter_chips.dart';
+import 'package:app/src/ui/widgets/task_controls.dart';
 
+// --- Todo Data Model ---
 class TodoItem {
   String title;
   bool isCompleted;
@@ -115,6 +113,7 @@ class TodoItem {
   }
 }
 
+// --- Todo List Screen ---
 class TodoListScreen extends StatefulWidget {
   const TodoListScreen({super.key});
 
@@ -397,72 +396,92 @@ class _TodoListScreenState extends State<TodoListScreen> {
         centerTitle: true,
         automaticallyImplyLeading: false,
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                SortChip(
-                  currentSort: _currentSort,
-                  onSortChanged: (sort) => setState(() => _currentSort = sort),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TaskFilterChips(
-                    currentFilter: _currentFilter,
-                    onFilterChanged: (filter) =>
-                        setState(() => _currentFilter = filter),
+      body: displayedTodos.isEmpty
+          ? Center(
+              child: Card(
+                margin: const EdgeInsets.all(32),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Text(
+                    s.noTasksYet,
+                    style: Theme.of(context).textTheme.titleMedium,
+                    textAlign: TextAlign.center,
                   ),
+                ),
+              ),
+            )
+          : Column(
+              children: [
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      SortChip(
+                        currentSort: _currentSort,
+                        onSortChanged: (sort) =>
+                            setState(() => _currentSort = sort),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TaskFilterChips(
+                          currentFilter: _currentFilter,
+                          onFilterChanged: (filter) =>
+                              setState(() => _currentFilter = filter),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: _rawTodos.isEmpty
+                      ? _buildEmptyState(
+                          Icons.checklist_rtl, s.noTasksIllustrationText)
+                      : displayedTodos.isEmpty
+                          ? _buildEmptyState(
+                              Icons.task_alt_outlined, s.noMatchingTasks)
+                          : ListView.builder(
+                              itemCount: displayedTodos.length,
+                              itemBuilder: (context, index) {
+                                final todo = displayedTodos[index];
+                                final uniqueKey = ValueKey(
+                                    todo.creationDate.toIso8601String() +
+                                        todo.title);
+                                return Dismissible(
+                                  key: uniqueKey,
+                                  confirmDismiss: (dir) {
+                                    if (dir == DismissDirection.startToEnd)
+                                      _editTodo(todo);
+                                    else
+                                      _markAsDone(todo);
+                                    return Future.value(false);
+                                  },
+                                  background: _buildDismissibleBackground(
+                                      s.edit,
+                                      Icons.edit,
+                                      Alignment.centerLeft,
+                                      Theme.of(context).primaryColor),
+                                  secondaryBackground:
+                                      _buildDismissibleBackground(
+                                          todo.isCompleted ? s.undo : s.done,
+                                          todo.isCompleted
+                                              ? Icons.undo
+                                              : Icons.check,
+                                          Alignment.centerRight,
+                                          Colors.green),
+                                  child: GestureDetector(
+                                    onLongPress: () {
+                                      HapticFeedback.mediumImpact();
+                                      _showTaskOptions(todo);
+                                    },
+                                    child: DeadlineTile(todoItem: todo),
+                                  ),
+                                );
+                              },
+                            ),
                 ),
               ],
             ),
-          ),
-          Expanded(
-            child: _rawTodos.isEmpty
-                ? _buildEmptyState(
-                    Icons.checklist_rtl, s.noTasksIllustrationText)
-                : displayedTodos.isEmpty
-                    ? _buildEmptyState(
-                        Icons.task_alt_outlined, s.noMatchingTasks)
-                    : ListView.builder(
-                        itemCount: displayedTodos.length,
-                        itemBuilder: (context, index) {
-                          final todo = displayedTodos[index];
-                          final uniqueKey = ValueKey(
-                              todo.creationDate.toIso8601String() + todo.title);
-                          return Dismissible(
-                            key: uniqueKey,
-                            confirmDismiss: (dir) {
-                              if (dir == DismissDirection.startToEnd)
-                                _editTodo(todo);
-                              else
-                                _markAsDone(todo);
-                              return Future.value(false);
-                            },
-                            background: _buildDismissibleBackground(
-                                s.edit,
-                                Icons.edit,
-                                Alignment.centerLeft,
-                                Theme.of(context).primaryColor),
-                            secondaryBackground: _buildDismissibleBackground(
-                                todo.isCompleted ? s.undo : s.done,
-                                todo.isCompleted ? Icons.undo : Icons.check,
-                                Alignment.centerRight,
-                                Colors.green),
-                            child: GestureDetector(
-                              onLongPress: () {
-                                HapticFeedback.mediumImpact();
-                                _showTaskOptions(todo);
-                              },
-                              child: DeadlineTile(todoItem: todo),
-                            ),
-                          );
-                        },
-                      ),
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           HapticFeedback.lightImpact();

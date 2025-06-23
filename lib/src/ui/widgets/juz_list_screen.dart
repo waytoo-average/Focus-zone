@@ -7,7 +7,7 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../../../google_drive_helper.dart';
 import 'juz_viewer_screen.dart';
-import '../../utils/juz_download_manager.dart';
+import '../../utils/download_manager.dart';
 import '../../../l10n/app_localizations.dart';
 
 const Map<int, String> juzFolderIds = {
@@ -43,6 +43,7 @@ const Map<int, String> juzFolderIds = {
   30: '1zi0TwtGYFX5YKiWW9CuusqzaXpcAyWEk',
 };
 
+// --- Juz List Data ---
 const List<String> juzHeaders = [
   'الجزء الأول',
   'الجزء الثاني',
@@ -215,7 +216,7 @@ class _JuzListScreenState extends State<JuzListScreen> {
       _toggleSelection(juz);
     } else {
       final manager = _getManager(juz);
-      if (manager.state.status == JuzDownloadStatus.completed) {
+      if (manager.state.status == DownloadStatus.completed) {
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -309,8 +310,9 @@ class _JuzListScreenState extends State<JuzListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(s.juzListTitle),
-        backgroundColor: theme.colorScheme.secondary,
-        foregroundColor: Colors.white,
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        foregroundColor: theme.appBarTheme.foregroundColor,
+        elevation: theme.appBarTheme.elevation,
         actions: [
           if (_isSelectionMode)
             IconButton(
@@ -326,7 +328,7 @@ class _JuzListScreenState extends State<JuzListScreen> {
                 if (_isSelectionMode) ...[
                   Container(
                     padding: const EdgeInsets.all(16),
-                    color: theme.primaryColor.withOpacity(0.1),
+                    color: theme.primaryColor.withOpacity(0.07),
                     child: Row(
                       children: [
                         Text(
@@ -372,17 +374,16 @@ class _JuzListScreenState extends State<JuzListScreen> {
                         builder: (context, _) {
                           final state = manager.state;
                           final isDownloaded =
-                              state.status == JuzDownloadStatus.completed;
+                              state.status == DownloadStatus.completed;
                           final isDownloading =
-                              state.status == JuzDownloadStatus.downloading;
+                              state.status == DownloadStatus.downloading;
                           final isPaused =
-                              state.status == JuzDownloadStatus.paused;
-                          final isError =
-                              state.status == JuzDownloadStatus.error;
-                          final isPending = state.status ==
-                                  JuzDownloadStatus.pausing ||
-                              state.status == JuzDownloadStatus.cancelling ||
-                              state.status == JuzDownloadStatus.deleting;
+                              state.status == DownloadStatus.paused;
+                          final isError = state.status == DownloadStatus.error;
+                          final isPending =
+                              state.status == DownloadStatus.pausing ||
+                                  state.status == DownloadStatus.cancelling ||
+                                  state.status == DownloadStatus.deleting;
                           return _JuzCard(
                             juz: juz,
                             title: juzHeaders[juz - 1],
@@ -413,12 +414,11 @@ class _JuzListScreenState extends State<JuzListScreen> {
                             errorMessage: state.errorMessage,
                             isError: isError,
                             isPending: isPending,
-                            pendingText: state.status ==
-                                    JuzDownloadStatus.pausing
+                            pendingText: state.status == DownloadStatus.pausing
                                 ? 'Pausing...'
-                                : state.status == JuzDownloadStatus.cancelling
+                                : state.status == DownloadStatus.cancelling
                                     ? 'Cancelling...'
-                                    : state.status == JuzDownloadStatus.deleting
+                                    : state.status == DownloadStatus.deleting
                                         ? 'Deleting...'
                                         : '',
                           );
@@ -484,14 +484,19 @@ class _JuzCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Card(
-      elevation: isSelected ? 8 : 2,
-      color: isSelected ? theme.primaryColor.withOpacity(0.1) : theme.cardColor,
+      elevation: isSelected ? 8 : theme.cardTheme.elevation ?? 2,
+      color:
+          isSelected ? theme.primaryColor.withOpacity(0.08) : theme.cardColor,
+      shape: theme.cardTheme.shape,
       child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: (theme.cardTheme.shape is RoundedRectangleBorder)
+            ? (theme.cardTheme.shape as RoundedRectangleBorder).borderRadius
+                as BorderRadius?
+            : BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

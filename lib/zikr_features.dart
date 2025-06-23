@@ -18,6 +18,7 @@ import 'package:app/l10n/app_localizations.dart';
 import 'package:app/app_core.dart';
 import 'src/ui/widgets/quran_entry_screen.dart';
 
+// --- Zikr Main Screen ---
 class ZikrScreen extends StatelessWidget {
   const ZikrScreen({super.key});
   @override
@@ -50,7 +51,7 @@ class ZikrScreen extends StatelessWidget {
   }
 }
 
-// --- 1. Azkar Section ---
+// --- Azkar Section ---
 class AzkarSection extends StatelessWidget {
   const AzkarSection({super.key});
   @override
@@ -117,7 +118,7 @@ class AzkarSection extends StatelessWidget {
   }
 }
 
-// --- PRE-BUILT AZKAR VIEWER ---
+// --- Azkar Viewer ---
 class AzkarViewerScreen extends StatefulWidget {
   final String title;
   final List<Zikr> azkarList;
@@ -190,32 +191,24 @@ class _AzkarViewerScreenState extends State<AzkarViewerScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = AppLocalizations.of(context)!;
 
     if (widget.azkarList.isEmpty) {
       return Scaffold(
-          appBar: AppBar(),
+          appBar: AppBar(title: Text(widget.title)),
           body: const Center(child: Text("No Azkar in this list.")));
     }
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        title: Text(widget.title),
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        elevation: theme.appBarTheme.elevation,
       ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-              child: Text(
-                widget.title,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
@@ -226,17 +219,16 @@ class _AzkarViewerScreenState extends State<AzkarViewerScreen> {
                 itemBuilder: (context, index) {
                   final zikr = widget.azkarList[index];
                   return SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20.0, vertical: 24.0),
                     child: Column(
                       children: [
                         Card(
-                          elevation: 3,
+                          elevation: theme.cardTheme.elevation,
                           color: theme.cardTheme.color,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15.0),
-                          ),
+                          shape: theme.cardTheme.shape,
                           child: Padding(
-                            padding: const EdgeInsets.all(16.0),
+                            padding: const EdgeInsets.all(20.0),
                             child: Text(
                               zikr.arabicText,
                               textAlign: TextAlign.center,
@@ -249,14 +241,12 @@ class _AzkarViewerScreenState extends State<AzkarViewerScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                         if (zikr.description.isNotEmpty)
                           Card(
-                            elevation: 3,
+                            elevation: theme.cardTheme.elevation,
                             color: theme.cardTheme.color,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15.0),
-                            ),
+                            shape: theme.cardTheme.shape,
                             child: Padding(
                               padding: const EdgeInsets.all(16.0),
                               child: Text(
@@ -270,36 +260,29 @@ class _AzkarViewerScreenState extends State<AzkarViewerScreen> {
                               ),
                             ),
                           ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                       ],
                     ),
                   );
                 },
               ),
             ),
-            _buildBottomCounterBar(),
+            _buildBottomCounterBar(theme, s),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBottomCounterBar() {
-    final s = AppLocalizations.of(context)!;
+  Widget _buildBottomCounterBar(ThemeData theme, AppLocalizations s) {
     final progress = _initialCount > 0 ? _currentCount / _initialCount : 0.0;
-    final theme = Theme.of(context);
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color?.withOpacity(0.5),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
-        ),
+        color: theme.cardColor,
         border: Border(
           top: BorderSide(
-            color: theme.colorScheme.onSurface.withOpacity(0.1),
+            color: theme.dividerColor.withOpacity(0.08),
             width: 1.0,
           ),
         ),
@@ -912,16 +895,14 @@ class _PerformCustomZikrScreenState extends State<PerformCustomZikrScreen> {
                 ),
               ),
             ),
-            _buildBottomCounterBar(),
+            _buildBottomCounterBar(theme, s),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBottomCounterBar() {
-    final theme = Theme.of(context);
-    final s = AppLocalizations.of(context)!;
+  Widget _buildBottomCounterBar(ThemeData theme, AppLocalizations s) {
     final progress = widget.zikr.targetCount > 0
         ? _currentCount / widget.zikr.targetCount
         : 0.0;
@@ -929,14 +910,10 @@ class _PerformCustomZikrScreenState extends State<PerformCustomZikrScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color?.withOpacity(0.5),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
-        ),
+        color: theme.cardColor,
         border: Border(
           top: BorderSide(
-            color: theme.colorScheme.onSurface.withOpacity(0.1),
+            color: theme.dividerColor.withOpacity(0.08),
             width: 1.0,
           ),
         ),

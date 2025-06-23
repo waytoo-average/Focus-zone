@@ -1,9 +1,10 @@
 // lib/src/ui/widgets/deadline_tile.dart
+// --- Deadline Tile Widget ---
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:app/src/utils/app_padding.dart'; // Make sure this path is correct
 import 'package:app/todo_features.dart'; // Import your TodoItem
 import 'package:app/l10n/app_localizations.dart'; // Import for AppLocalizations
+import 'package:app/src/utils/app_utilities.dart'; // Updated import
 
 class DeadlineTile extends StatelessWidget {
   final TodoItem todoItem; // Changed from Task to TodoItem

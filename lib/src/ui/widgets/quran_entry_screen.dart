@@ -1,10 +1,11 @@
+// --- Quran Entry Screen ---
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../../../google_drive_helper.dart';
 import 'juz_list_screen.dart';
 import 'juz_viewer_screen.dart';
-import '../../utils/full_quran_download_manager.dart';
+import '../../utils/download_manager.dart';
 import '../../../l10n/app_localizations.dart';
 
 const String wholeQuranFolderId = '1jT-vIj8rA7Aed5BzpyPPQBGQFH436tTk';
@@ -61,10 +62,10 @@ class _QuranEntryScreenState extends State<QuranEntryScreen> {
     if (s == null) return;
 
     final state = _manager.state;
-    if (state.status == FullQuranDownloadStatus.completed) {
+    if (state.status == DownloadStatus.completed) {
       openWholeQuranViewer(context);
-    } else if (state.status == FullQuranDownloadStatus.downloading ||
-        state.status == FullQuranDownloadStatus.paused) {
+    } else if (state.status == DownloadStatus.downloading ||
+        state.status == DownloadStatus.paused) {
       _showDownloadControls();
     } else {
       final shouldDownload = await showDialog<bool>(
@@ -152,16 +153,15 @@ class _QuranEntryScreenState extends State<QuranEntryScreen> {
       animation: _manager,
       builder: (context, _) {
         final state = _manager.state;
-        final isDownloaded = state.status == FullQuranDownloadStatus.completed;
-        final isDownloading =
-            state.status == FullQuranDownloadStatus.downloading;
-        final isPaused = state.status == FullQuranDownloadStatus.paused;
-        final isIdle = state.status == FullQuranDownloadStatus.idle;
-        final isError = state.status == FullQuranDownloadStatus.error;
-        final isCancelled = state.status == FullQuranDownloadStatus.cancelled;
-        final isPending = state.status == FullQuranDownloadStatus.pausing ||
-            state.status == FullQuranDownloadStatus.cancelling ||
-            state.status == FullQuranDownloadStatus.deleting;
+        final isDownloaded = state.status == DownloadStatus.completed;
+        final isDownloading = state.status == DownloadStatus.downloading;
+        final isPaused = state.status == DownloadStatus.paused;
+        final isIdle = state.status == DownloadStatus.idle;
+        final isError = state.status == DownloadStatus.error;
+        final isCancelled = state.status == DownloadStatus.cancelled;
+        final isPending = state.status == DownloadStatus.pausing ||
+            state.status == DownloadStatus.cancelling ||
+            state.status == DownloadStatus.deleting;
         return Container(
           color: theme.scaffoldBackgroundColor,
           child: ListView(
@@ -310,10 +310,9 @@ class _QuranEntryScreenState extends State<QuranEntryScreen> {
                           const CircularProgressIndicator(strokeWidth: 2),
                           const SizedBox(width: 12),
                           Text(
-                            state.status == FullQuranDownloadStatus.pausing
+                            state.status == DownloadStatus.pausing
                                 ? 'Pausing, please wait...'
-                                : state.status ==
-                                        FullQuranDownloadStatus.cancelling
+                                : state.status == DownloadStatus.cancelling
                                     ? 'Cancelling, please wait...'
                                     : 'Deleting, please wait...',
                             style: TextStyle(
@@ -466,7 +465,7 @@ class _DownloadControlsSheet extends StatelessWidget {
     }
 
     final state = manager.state;
-    final isPaused = state.status == FullQuranDownloadStatus.paused;
+    final isPaused = state.status == DownloadStatus.paused;
     return Container(
       padding: const EdgeInsets.all(20),
       child: Column(

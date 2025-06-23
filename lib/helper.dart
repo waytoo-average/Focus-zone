@@ -13,7 +13,7 @@ class NotificationService {
   static bool isAnyPermissionBeingRequested = false;
 
   static final FlutterLocalNotificationsPlugin notificationsPlugin =
-  FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
 
   static Future<void> requestNotificationPermission() async {
     while (isAnyPermissionBeingRequested) {
@@ -46,7 +46,7 @@ class NotificationService {
     }
 
     const AndroidInitializationSettings androidSettings =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/ic_launcher');
 
     const InitializationSettings initSettings = InitializationSettings(
       android: androidSettings,
@@ -62,7 +62,7 @@ class NotificationService {
 
     await notificationsPlugin
         .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
   }
 }
@@ -72,7 +72,7 @@ class AndroidUtils {
     if (Platform.isAndroid) {
       final canSchedule = await NotificationService.notificationsPlugin
           .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
+              AndroidFlutterLocalNotificationsPlugin>()
           ?.canScheduleExactNotifications();
       return canSchedule ?? false;
     }
