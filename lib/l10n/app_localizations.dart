@@ -63,7 +63,7 @@ import 'app_localizations_en.dart';
 /// property.
 abstract class AppLocalizations {
   AppLocalizations(String locale)
-    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -86,22 +86,22 @@ abstract class AppLocalizations {
   /// of delegates is preferred or required.
   static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
       <LocalizationsDelegate<dynamic>>[
-        delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ];
+    delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+  ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('ar'),
-    Locale('en'),
+    Locale('en')
   ];
 
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'ECCAT Study Station'**
+  /// **'Focus Zone'**
   String get appTitle;
 
   /// No description provided for @settings.
@@ -187,6 +187,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not signed in or client not available. Please sign in.'**
   String get notSignedInClientNotAvailable;
+
+  /// No description provided for @maxUserLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum user limit reached. You can still use other app features without signing in. Please wait for future updates.'**
+  String get maxUserLimitReached;
 
   /// No description provided for @firstGrade.
   ///
@@ -659,7 +665,7 @@ abstract class AppLocalizations {
   /// No description provided for @appDescription.
   ///
   /// In en, this message translates to:
-  /// **'ECCAT Study Station is a mobile application designed to help students access and organize their academic materials from Google Drive.'**
+  /// **'Focus Zone is a mobile application designed to help students access and organize their academic materials from Google Drive.'**
   String get appDescription;
 
   /// No description provided for @madeBy.
@@ -713,7 +719,7 @@ abstract class AppLocalizations {
   /// No description provided for @eccatIntro.
   ///
   /// In en, this message translates to:
-  /// **'The Egyptian Chinese College of Applied Technology (ECCAT) is a unique educational institution fostering practical and technological skills.'**
+  /// **'Focus Zone is a comprehensive study management application that fosters practical and technological skills for students.'**
   String get eccatIntro;
 
   /// No description provided for @connectWithUs.
@@ -1103,7 +1109,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashboardPlaceholder.
   ///
   /// In en, this message translates to:
-  /// **'Welcome to your Study Station Dashboard!'**
+  /// **'Welcome to your Focus Zone Dashboard!'**
   String get dashboardPlaceholder;
 
   /// No description provided for @dashboardComingSoon.
@@ -1993,6 +1999,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close'**
   String get close;
+
+  /// No description provided for @prayerNameJumah.
+  ///
+  /// In en, this message translates to:
+  /// **'Jumah'**
+  String get prayerNameJumah;
 }
 
 class _AppLocalizationsDelegate
@@ -2022,9 +2034,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   }
 
   throw FlutterError(
-    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-    'an issue with the localizations generation tool. Please file an issue '
-    'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.',
-  );
+      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+      'an issue with the localizations generation tool. Please file an issue '
+      'on GitHub with a reproducible sample app and the gen-l10n configuration '
+      'that was used.');
 }

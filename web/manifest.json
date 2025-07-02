@@ -1,11 +1,11 @@
 {
-    "name": "app",
-    "short_name": "app",
+    "name": "Focus Zone",
+    "short_name": "Focus Zone",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "A mobile application designed to help students access and organize their academic materials from Google Drive.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

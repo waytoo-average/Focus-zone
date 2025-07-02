@@ -38,7 +38,7 @@ void main() async {
   }
 
   const AndroidInitializationSettings initializationSettingsAndroid =
-      AndroidInitializationSettings('app_icon');
+      AndroidInitializationSettings('ic_stat_notify');
   final DarwinInitializationSettings initializationSettingsDarwin =
       DarwinInitializationSettings(
     requestAlertPermission: true,
@@ -105,7 +105,7 @@ class MyApp extends StatelessWidget {
     return Consumer2<ThemeProvider, LanguageProvider>(
       builder: (context, themeProvider, languageProvider, child) {
         return MaterialApp(
-          title: 'ECCAT Study Station',
+          title: 'Focus Zone',
           debugShowCheckedModeBanner: false,
           themeMode: themeProvider.themeMode,
           theme: AppTheme.lightTheme,

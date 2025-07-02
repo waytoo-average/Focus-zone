@@ -538,8 +538,9 @@ class SettingsScreen extends StatelessWidget {
             ],
             const SizedBox(height: 30),
             ElevatedButton(
-              onPressed:
-                  user == null ? signInProvider.signIn : signInProvider.signOut,
+              onPressed: user == null
+                  ? () => signInProvider.signInWithErrorHandling(context)
+                  : signInProvider.signOut,
               style: ElevatedButton.styleFrom(
                 backgroundColor: user == null
                     ? Theme.of(context).primaryColor

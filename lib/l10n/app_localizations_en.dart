@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'ECCAT Study Station';
+  String get appTitle => 'Focus Zone';
 
   @override
   String get settings => 'Settings';
@@ -56,6 +56,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get notSignedInClientNotAvailable =>
       'Not signed in or client not available. Please sign in.';
+
+  @override
+  String get maxUserLimitReached =>
+      'Maximum user limit reached. You can still use other app features without signing in. Please wait for future updates.';
 
   @override
   String get firstGrade => 'First Grade';
@@ -348,7 +352,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get appDescription =>
-      'ECCAT Study Station is a mobile application designed to help students access and organize their academic materials from Google Drive.';
+      'Focus Zone is a mobile application designed to help students access and organize their academic materials from Google Drive.';
 
   @override
   String get madeBy => 'Developed By';
@@ -379,7 +383,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get eccatIntro =>
-      'The Egyptian Chinese College of Applied Technology (ECCAT) is a unique educational institution fostering practical and technological skills.';
+      'Focus Zone is a comprehensive study management application that fosters practical and technological skills for students.';
 
   @override
   String get connectWithUs => 'Connect With Us';
@@ -583,7 +587,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get upComingContent => 'Up-coming content will be available soon!';
 
   @override
-  String get dashboardPlaceholder => 'Welcome to your Study Station Dashboard!';
+  String get dashboardPlaceholder => 'Welcome to your Focus Zone Dashboard!';
 
   @override
   String get dashboardComingSoon =>
@@ -1111,4 +1115,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get close => 'Close';
+
+  @override
+  String get prayerNameJumah => 'Jumah';
 }

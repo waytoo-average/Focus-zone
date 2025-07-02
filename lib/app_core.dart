@@ -207,6 +207,49 @@ class SignInProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> signInWithErrorHandling(BuildContext context) async {
+    try {
+      final account = await _googleSignIn.signIn();
+      if (account == null) {
+        developer.log('User cancelled sign-in', name: 'SignInProvider');
+      } else {
+        developer.log('Signed in as ${account.displayName}',
+            name: 'SignInProvider');
+      }
+    } catch (error, stack) {
+      developer.log('Google Sign-In failed: $error',
+          name: 'SignInProvider', error: error, stackTrace: stack);
+
+      // Check if the error is related to user limit or quota
+      final errorString = error.toString().toLowerCase();
+      if (errorString.contains('quota') ||
+          errorString.contains('limit') ||
+          errorString.contains('exceeded') ||
+          errorString.contains('maximum') ||
+          errorString.contains('user limit') ||
+          errorString.contains('oauth') ||
+          errorString.contains('403') ||
+          errorString.contains('forbidden') ||
+          errorString.contains('access denied') ||
+          errorString.contains('too many requests') ||
+          errorString.contains('rate limit')) {
+        // Show maximum user limit error message
+        if (context.mounted) {
+          final s = AppLocalizations.of(context);
+          if (s != null) {
+            showAppSnackBar(
+              context,
+              s.maxUserLimitReached,
+              icon: Icons.info_outline,
+              iconColor: Colors.orange,
+              backgroundColor: Colors.orange.shade700,
+            );
+          }
+        }
+      }
+    }
+  }
+
   Future<void> signOut() => _googleSignIn.signOut();
 
   Future<http.Client?> get authenticatedHttpClient async {
@@ -683,7 +726,7 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).primaryColor,
       body: const Center(
-        child: Text('ECCAT',
+        child: Text('Focus Zone',
             style: TextStyle(
                 fontSize: 50,
                 fontWeight: FontWeight.bold,
@@ -993,26 +1036,15 @@ class DashboardScreen extends StatelessWidget {
               ),
             ),
             flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.only(left: 72.0, bottom: 16.0),
-              centerTitle: false,
-              title: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(s.appTitle,
-                      style: Theme.of(context)
-                          .appBarTheme
-                          .titleTextStyle
-                          ?.copyWith(fontSize: 18)),
-                  if (user != null)
-                    Text(
-                      s.welcomeUser(user.displayName ?? user.email!),
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: Colors.white70, fontSize: 14),
-                    ),
-                ],
+              titlePadding: const EdgeInsets.only(bottom: 16.0),
+              centerTitle: true,
+              title: Text(
+                'Focus Zone',
+                style: Theme.of(context)
+                    .appBarTheme
+                    .titleTextStyle
+                    ?.copyWith(fontSize: 18),
+                textAlign: TextAlign.center,
               ),
               background: Container(
                 decoration: BoxDecoration(
@@ -1030,7 +1062,8 @@ class DashboardScreen extends StatelessWidget {
             actions: [
               if (user == null)
                 TextButton(
-                  onPressed: signInProvider.signIn,
+                  onPressed: () =>
+                      signInProvider.signInWithErrorHandling(context),
                   style: TextButton.styleFrom(
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 16.0)),

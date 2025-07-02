@@ -9,7 +9,7 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appTitle => 'محطة دراسة الكلية المصرية الصينية';
+  String get appTitle => 'منطقة التركيز';
 
   @override
   String get settings => 'الإعدادات';
@@ -56,6 +56,10 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get notSignedInClientNotAvailable =>
       'لم يتم تسجيل الدخول أو العميل غير متاح. يرجى تسجيل الدخول.';
+
+  @override
+  String get maxUserLimitReached =>
+      'تم الوصول للحد الأقصى للمستخدمين. يمكنك الاستمرار في استخدام ميزات التطبيق الأخرى بدون تسجيل الدخول. يرجى الانتظار للتحديثات المستقبلية.';
 
   @override
   String get firstGrade => 'الفرقة الأولى';
@@ -348,7 +352,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get appDescription =>
-      'محطة دراسة الكلية المصرية الصينية للتكنولوجيا التطبيقية (ECCAT) هو تطبيق جوال مصمم لمساعدة الطلاب على الوصول إلى موادهم الأكاديمية وتنظيمها من جوجل درايف.';
+      'منطقة التركيز هو تطبيق جوال مصمم لمساعدة الطلاب على الوصول إلى موادهم الأكاديمية وتنظيمها من جوجل درايف.';
 
   @override
   String get madeBy => 'تم التطوير بواسطة';
@@ -378,7 +382,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get eccatIntro =>
-      'الكلية المصرية الصينية للتكنولوجيا التطبيقية (ECCAT) هي مؤسسة تعليمية فريدة تعزز المهارات العملية والتكنولوجية.';
+      'منطقة التركيز هو تطبيق شامل لإدارة الدراسة يعزز المهارات العملية والتكنولوجية للطلاب.';
 
   @override
   String get connectWithUs => 'تواصل معنا';
@@ -1108,4 +1112,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get close => 'إغلاق';
+
+  @override
+  String get prayerNameJumah => 'جمعة';
 }

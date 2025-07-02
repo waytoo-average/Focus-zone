@@ -1238,7 +1238,7 @@ class _LectureFolderBrowserScreenState
         _error = null;
       });
     }
-    await signInProvider.signIn();
+    await signInProvider.signInWithErrorHandling(context);
     if (!mounted) return; // Added mounted check after await
     if (signInProvider.currentUser != null && mounted) {
       // Ensure mounted before accessing context and setState

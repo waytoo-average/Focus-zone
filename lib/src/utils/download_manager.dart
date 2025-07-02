@@ -375,8 +375,10 @@ abstract class BaseDownloadManager extends ChangeNotifier {
       }
 
       int nextFileIndex = concurrentDownloads;
-      for (final future in futures) {
-        await future;
+      int currentFutureIndex = 0;
+      while (currentFutureIndex < futures.length) {
+        await futures[currentFutureIndex];
+        currentFutureIndex++;
         if (_isCancelled || _isPaused) break;
         if (nextFileIndex < filesToDownload.length) {
           futures.add(downloadFile(filesToDownload[nextFileIndex++]));

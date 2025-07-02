@@ -1,8 +1,8 @@
-# ECCAT Study Station: Your Academic Companion
+# Focus Zone: Your Academic Companion
 
-## 🎯 What is ECCAT Study Station?
+## 🎯 What is Focus Zone?
 
-ECCAT Study Station is a mobile application designed to empower students of the Egyptian Chinese College of Applied Technology (ECCAT) by providing seamless access to and organization of their academic materials directly from Google Drive. It helps students manage their studies efficiently with features including:
+Focus Zone is a mobile application designed to empower students by providing seamless access to and organization of their academic materials directly from Google Drive. It helps students manage their studies efficiently with features including:
 
   * **Organized Study Materials:** Navigate through academic content structured by grade, department, year, semester, and subject.
   * **Integrated Document Viewing:** Directly view PDF files within the app with caching capabilities, and access other document types through an integrated web viewer.
@@ -65,14 +65,14 @@ ________________________________________________________________________________
   * **GitHub Profile:** [waytoo-average](https://github.com/waytoo-average)
   * **Discord Profile:** [Discord Profile](https://discord.com/users/858382338281963520)
   
-## 🏛️ About ECCAT
+## 🏛️ About Focus Zone
 
-The Egyptian Chinese College of Applied Technology (ECCAT) is a unique educational institution fostering practical and technological skills.
+Focus Zone is a comprehensive study management application that fosters practical and technological skills for students.
 
-### Connect with ECCAT
+### Connect with Focus Zone
 
-  * **Facebook Page:** [ECCAT Facebook](https://www.facebook.com/2018ECCAT)
-  * **College Location (Google Maps):** [ECCAT on Maps](https://maps.app.goo.gl/MTtsxuok1c5gteMw8)
+  * **Facebook Page:** [Focus Zone Facebook](https://www.facebook.com/2018ECCAT)
+  * **College Location (Google Maps):** [Focus Zone on Maps](https://maps.app.goo.gl/MTtsxuok1c5gteMw8)
 
 ## 🧾 License
 

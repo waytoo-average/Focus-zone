@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "ECCAT Study Station",
+  "appTitle": "Focus Zone",
   "settings": "Settings",
   "error": "Error",
   "ok": "OK",
@@ -15,6 +15,7 @@
   "signOut": "Sign Out",
   "signInWithGoogle": "Sign In with Google",
   "notSignedInClientNotAvailable": "Not signed in. Google Drive client not available.",
+  "maxUserLimitReached": "Maximum user limit reached. You can still use other app features without signing in. Please wait for future updates.",
   "firstGrade": "First Grade",
   "secondGrade": "Second Grade",
   "thirdGrade": "Third Grade",
@@ -93,7 +94,7 @@
   "cacheClearFailed": "Failed to clear PDF cache: {error}",
   "about": "About",
   "appVersion": "Version",
-  "appDescription": "ECCAT Study Station is a mobile application designed to help students access and organize their academic materials from Google Drive.",
+  "appDescription": "Focus Zone is a mobile application designed to help students access and organize their academic materials from Google Drive.",
   "madeBy": "Developed By",
   "developerName": "Belal Mohamed Elnemr",
   "developerDetails": "Communication and Electronics Engineering Student",
@@ -102,7 +103,7 @@
   "email": "Email",
   "couldNotLaunchUrl": "Could not launch URL: {url}",
   "collegeName": "Egyptian Chinese College of Applied Technology",
-  "eccatIntro": "The Egyptian Chinese College of Applied Technology (ECCAT) is a unique educational institution fostering practical and technological skills.",
+  "eccatIntro": "Focus Zone is a comprehensive study management application that fosters practical and technological skills for students.",
   "connectWithUs": "Connect With Us",
   "facebookPage": "Facebook Page",
   "collegeLocation": "College Location",
@@ -167,7 +168,7 @@
   "home": "Home",
   "upComing": "Up-coming",
   "upComingContent": "Up-coming content will be available soon!",
-  "dashboardPlaceholder": "Welcome to your Study Station Dashboard!",
+  "dashboardPlaceholder": "Welcome to your Focus Zone Dashboard!",
   "dashboardComingSoon": "Your activity, quick access, and personalized insights will appear here soon.",
   "errorPageNotFound": "Page not found: {pageName}",
   "@errorPageNotFound": {
@@ -458,5 +459,6 @@
   "paused": "Paused",
   "error": "Error",
   "properties": "Properties",
-  "close": "Close"
+  "close": "Close",
+  "prayerNameJumah": "Jumah"
 }

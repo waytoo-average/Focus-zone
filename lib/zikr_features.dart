@@ -213,6 +213,7 @@ class _AzkarViewerScreenState extends State<AzkarViewerScreen> {
               child: PageView.builder(
                 controller: _pageController,
                 itemCount: widget.azkarList.length,
+                reverse: false,
                 onPageChanged: (page) {
                   _initializeCountsForPage(page);
                 },
@@ -1055,6 +1056,7 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
   Duration? _timeUntilNextPrayer;
   String? _nextPrayerName;
   Locale? _dataLocale;
+  DateTime? _lastPrayerDay;
 
   @override
   void initState() {
@@ -1109,7 +1111,7 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
 
       final tune = '0,0,3,0,2,0,2,0';
       final uri = Uri.parse(
-          'https://api.aladhan.com/v1/timingsByCity?city=Cairo&country=Egypt&method=5&tune=$tune');
+          'https://api.aladhan.com/v1/timings?latitude=${position.latitude}&longitude=${position.longitude}&method=5&tune=$tune');
 
       final response = await http.get(uri);
 
@@ -1170,6 +1172,7 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
   void _startCountdown(PrayerTime nextPrayer) {
     _countdownTimer?.cancel();
     _nextPrayerName = nextPrayer.name;
+    _lastPrayerDay = DateTime.now();
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
@@ -1177,6 +1180,14 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
       }
       final now = DateTime.now();
       final difference = nextPrayer.time.difference(now);
+      if (_lastPrayerDay != null &&
+          (now.year != _lastPrayerDay!.year ||
+              now.month != _lastPrayerDay!.month ||
+              now.day != _lastPrayerDay!.day)) {
+        timer.cancel();
+        _initializePrayerTimes();
+        return;
+      }
       if (difference.isNegative) {
         timer.cancel();
         _calculateNextPrayer();
@@ -1214,6 +1225,12 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
   }
 
   String _getLocalizedPrayerName(String prayerKey, AppLocalizations s) {
+    if (prayerKey == 'Dhuhr') {
+      final now = DateTime.now();
+      if (now.weekday == DateTime.friday) {
+        return s.prayerNameJumah;
+      }
+    }
     switch (prayerKey) {
       case 'Fajr':
         return s.prayerNameFajr;
@@ -1415,6 +1432,12 @@ class _PrayerCard extends StatelessWidget {
       required this.isNext});
 
   String _getLocalizedPrayerName(String prayerKey, AppLocalizations s) {
+    if (prayerKey == 'Dhuhr') {
+      final now = DateTime.now();
+      if (now.weekday == DateTime.friday) {
+        return s.prayerNameJumah;
+      }
+    }
     switch (prayerKey) {
       case 'Fajr':
         return s.prayerNameFajr;
