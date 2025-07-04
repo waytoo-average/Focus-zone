@@ -1,0 +1,6 @@
+{
+  "latest_version": "1.0.0",
+  "apk_url": "https://yourusername.github.io/myapp-updates/myapp-v1.0.0.apk",
+  "changelog": "• Initial release\n• Feature 1: Description\n• Feature 2: Description",
+  "mandatory": false
+} 

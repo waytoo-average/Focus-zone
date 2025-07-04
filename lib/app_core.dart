@@ -25,6 +25,7 @@ import 'package:app/todo_features.dart';
 import 'package:app/settings_features.dart';
 import 'package:app/zikr_features.dart';
 import 'package:app/helper.dart';
+import 'package:app/update_helper.dart';
 
 // --- SnackBar Utilities ---
 String formatBytesSimplified(int bytes, int decimals, AppLocalizations s) {
@@ -716,6 +717,100 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _handleStartupLogic() async {
     final signInProvider = Provider.of<SignInProvider>(context, listen: false);
     await signInProvider.initiateSilentSignIn();
+
+    // --- In-app update check ---
+    final updateInfo = await UpdateHelper.checkForUpdate();
+    if (updateInfo != null) {
+      bool proceed = false;
+      await showDialog(
+        context: context,
+        barrierDismissible: !updateInfo.mandatory,
+        builder: (context) {
+          double progress = 0;
+          bool downloading = false;
+          bool downloadComplete = false;
+          String? downloadedPath;
+          return StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                title: Text('Update Available'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                        'A new version (${updateInfo.latestVersion}) is available.'),
+                    const SizedBox(height: 8),
+                    Text(updateInfo.changelog),
+                    if (downloading) ...[
+                      const SizedBox(height: 16),
+                      LinearProgressIndicator(value: progress),
+                      const SizedBox(height: 8),
+                      Text(
+                          'Downloading: ${(progress * 100).toStringAsFixed(0)}%'),
+                    ],
+                  ],
+                ),
+                actions: [
+                  if (!downloading && !downloadComplete)
+                    TextButton(
+                      onPressed: updateInfo.mandatory
+                          ? null
+                          : () {
+                              proceed = false;
+                              Navigator.of(context).pop();
+                            },
+                      child: const Text('Skip'),
+                    ),
+                  if (!downloading && !downloadComplete)
+                    ElevatedButton(
+                      onPressed: () async {
+                        setState(() {
+                          downloading = true;
+                        });
+                        final path = await UpdateHelper.downloadApk(
+                          updateInfo.apkUrl,
+                          (p) => setState(() => progress = p),
+                        );
+                        if (path != null) {
+                          setState(() {
+                            downloadComplete = true;
+                            downloadedPath = path;
+                          });
+                        } else {
+                          setState(() {
+                            downloading = false;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content:
+                                    Text('Download failed. Please try again.')),
+                          );
+                        }
+                      },
+                      child: const Text('Update Now'),
+                    ),
+                  if (downloadComplete && downloadedPath != null)
+                    ElevatedButton(
+                      onPressed: () async {
+                        await UpdateHelper.installApk(downloadedPath!);
+                        proceed = true;
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Install'),
+                    ),
+                ],
+              );
+            },
+          );
+        },
+      );
+      if (!proceed && updateInfo.mandatory) {
+        // If update is mandatory and user didn't update, exit app
+        SystemNavigator.pop();
+        return;
+      }
+    }
 
     if (!mounted) return;
     await Navigator.pushReplacementNamed(context, '/rootScreen');
