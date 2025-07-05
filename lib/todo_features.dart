@@ -396,92 +396,72 @@ class _TodoListScreenState extends State<TodoListScreen> {
         centerTitle: true,
         automaticallyImplyLeading: false,
       ),
-      body: displayedTodos.isEmpty
-          ? Center(
-              child: Card(
-                margin: const EdgeInsets.all(32),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Text(
-                    s.noTasksYet,
-                    style: Theme.of(context).textTheme.titleMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-            )
-          : Column(
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
               children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
-                    children: [
-                      SortChip(
-                        currentSort: _currentSort,
-                        onSortChanged: (sort) =>
-                            setState(() => _currentSort = sort),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TaskFilterChips(
-                          currentFilter: _currentFilter,
-                          onFilterChanged: (filter) =>
-                              setState(() => _currentFilter = filter),
-                        ),
-                      ),
-                    ],
-                  ),
+                SortChip(
+                  currentSort: _currentSort,
+                  onSortChanged: (sort) => setState(() => _currentSort = sort),
                 ),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: _rawTodos.isEmpty
-                      ? _buildEmptyState(
-                          Icons.checklist_rtl, s.noTasksIllustrationText)
-                      : displayedTodos.isEmpty
-                          ? _buildEmptyState(
-                              Icons.task_alt_outlined, s.noMatchingTasks)
-                          : ListView.builder(
-                              itemCount: displayedTodos.length,
-                              itemBuilder: (context, index) {
-                                final todo = displayedTodos[index];
-                                final uniqueKey = ValueKey(
-                                    todo.creationDate.toIso8601String() +
-                                        todo.title);
-                                return Dismissible(
-                                  key: uniqueKey,
-                                  confirmDismiss: (dir) {
-                                    if (dir == DismissDirection.startToEnd)
-                                      _editTodo(todo);
-                                    else
-                                      _markAsDone(todo);
-                                    return Future.value(false);
-                                  },
-                                  background: _buildDismissibleBackground(
-                                      s.edit,
-                                      Icons.edit,
-                                      Alignment.centerLeft,
-                                      Theme.of(context).primaryColor),
-                                  secondaryBackground:
-                                      _buildDismissibleBackground(
-                                          todo.isCompleted ? s.undo : s.done,
-                                          todo.isCompleted
-                                              ? Icons.undo
-                                              : Icons.check,
-                                          Alignment.centerRight,
-                                          Colors.green),
-                                  child: GestureDetector(
-                                    onLongPress: () {
-                                      HapticFeedback.mediumImpact();
-                                      _showTaskOptions(todo);
-                                    },
-                                    child: DeadlineTile(todoItem: todo),
-                                  ),
-                                );
-                              },
-                            ),
+                  child: TaskFilterChips(
+                    currentFilter: _currentFilter,
+                    onFilterChanged: (filter) =>
+                        setState(() => _currentFilter = filter),
+                  ),
                 ),
               ],
             ),
+          ),
+          Expanded(
+            child: _rawTodos.isEmpty
+                ? _buildEmptyState(
+                    Icons.checklist_rtl, s.noTasksIllustrationText)
+                : displayedTodos.isEmpty
+                    ? _buildEmptyState(
+                        Icons.task_alt_outlined, s.noMatchingTasks)
+                    : ListView.builder(
+                        itemCount: displayedTodos.length,
+                        itemBuilder: (context, index) {
+                          final todo = displayedTodos[index];
+                          final uniqueKey = ValueKey(
+                              todo.creationDate.toIso8601String() + todo.title);
+                          return Dismissible(
+                            key: uniqueKey,
+                            confirmDismiss: (dir) {
+                              if (dir == DismissDirection.startToEnd)
+                                _editTodo(todo);
+                              else
+                                _markAsDone(todo);
+                              return Future.value(false);
+                            },
+                            background: _buildDismissibleBackground(
+                                s.edit,
+                                Icons.edit,
+                                Alignment.centerLeft,
+                                Theme.of(context).primaryColor),
+                            secondaryBackground: _buildDismissibleBackground(
+                                todo.isCompleted ? s.undo : s.done,
+                                todo.isCompleted ? Icons.undo : Icons.check,
+                                Alignment.centerRight,
+                                Colors.green),
+                            child: GestureDetector(
+                              onLongPress: () {
+                                HapticFeedback.mediumImpact();
+                                _showTaskOptions(todo);
+                              },
+                              child: DeadlineTile(todoItem: todo),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           HapticFeedback.lightImpact();

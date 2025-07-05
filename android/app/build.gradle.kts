@@ -60,6 +60,17 @@ android {
             // Signing with the debug keys for now, so `flutter run --release` works.
         }
     }
+
+    // --- Custom APK naming logic ---
+    applicationVariants.all {
+        outputs.all {
+            val variant = this@all
+            val versionName = defaultConfig.versionName
+            val appName = "focus-zone"
+            val newApkName = "${appName}-v${versionName}.apk"
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName = newApkName
+        }
+    }
 }
 
 

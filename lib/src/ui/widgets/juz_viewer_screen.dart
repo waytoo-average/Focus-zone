@@ -107,6 +107,7 @@ class _JuzViewerScreenState extends State<JuzViewerScreen> {
                   backgroundDecoration:
                       const BoxDecoration(color: Colors.black),
                   pageController: PageController(),
+                  reverse: true,
                 ),
     );
   }
