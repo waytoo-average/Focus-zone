@@ -568,7 +568,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get downloadSelected => 'تحميل المحدد';
+  String get downloadSelected => 'تنزيل المحدد';
 
   @override
   String get viewDetails => 'عرض التفاصيل';
@@ -803,6 +803,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get prayerNameIsha => 'العشاء';
 
   @override
+  String get prayerNameJumah => 'جمعة';
+
+  @override
   String get dueToday => 'مستحق اليوم';
 
   @override
@@ -1000,119 +1003,363 @@ class AppLocalizationsAr extends AppLocalizations {
   String get quranTitle => 'القرآن الكريم';
 
   @override
-  String get quranSubtitle => 'The Holy Quran';
+  String get quranSubtitle => 'القرآن الكريم';
 
   @override
-  String get quranDescription =>
-      'قم بتحميل الأجزاء الفردية أو القرآن الكامل للقراءة دون اتصال. جميع المحتويات عالية الجودة ومُنسقة بشكل صحيح.';
+  String get quranDescription => 'اقرأ، نزّل، وادِر القرآن الكريم والأجزاء.';
 
   @override
   String get browseJuzs => 'تصفح الأجزاء';
 
   @override
-  String get browseJuzsSubtitle => 'تحميل أجزاء منفصلة';
-
-  @override
-  String get downloadFullQuran => 'تحميل القرآن الكامل';
+  String get browseJuzsSubtitle => 'عرض وتنزيل الأجزاء الفردية';
 
   @override
   String get viewFullQuran => 'عرض القرآن الكامل';
 
   @override
-  String get fullQuranReady => 'القرآن الكامل جاهز للقراءة';
+  String get pauseDownload => 'إيقاف التنزيل مؤقتًا';
 
   @override
-  String get pauseDownload => 'إيقاف التحميل مؤقتاً';
+  String get resumeDownload => 'استئناف التنزيل';
 
   @override
-  String get resumeDownload => 'استئناف التحميل';
+  String get downloadFullQuran => 'تنزيل القرآن الكامل';
 
   @override
-  String get completeQuran => 'القرآن الكامل';
+  String get fullQuranReady => 'القرآن الكامل جاهز للعرض!';
+
+  @override
+  String pagesCount(Object downloaded, Object progress, Object total) {
+    return '$downloaded/$total صفحة ($progress%)';
+  }
+
+  @override
+  String get loading => 'جارٍ التحميل...';
+
+  @override
+  String completeQuran(Object pages, Object size) {
+    return 'القرآن الكامل ($size، $pages صفحة)';
+  }
+
+  @override
+  String get pausingPleaseWait => 'يتم الإيقاف المؤقت، يرجى الانتظار...';
+
+  @override
+  String get cancellingPleaseWait => 'يتم الإلغاء، يرجى الانتظار...';
+
+  @override
+  String get deletingPleaseWait => 'يتم الحذف، يرجى الانتظار...';
 
   @override
   String get deleteFullQuran => 'حذف القرآن الكامل';
 
   @override
-  String get freeUpStorage => 'تحرير مساحة التخزين';
+  String get freeUpStorage => 'توفير مساحة تخزين';
 
   @override
-  String get downloadIncomplete => 'التحميل غير مكتمل';
+  String get downloadIncomplete => 'التنزيل غير مكتمل';
 
   @override
   String pagesDownloaded(Object downloaded, Object total) {
-    return '$downloaded/$total صفحة محملة';
+    return 'تم تنزيل $downloaded من $total صفحة';
   }
 
   @override
-  String get resume => 'استئناف';
+  String get anErrorOccurred => 'حدث خطأ أثناء التنزيل.';
 
   @override
-  String get paused => 'متوقف مؤقتاً';
+  String get stillUnderDevelopment => 'هذه الميزة قيد التطوير.';
 
   @override
-  String get downloadControls => 'أدوات التحكم في التحميل';
+  String downloadFullQuranDialog(Object pages, Object size) {
+    return 'حجم القرآن الكامل تقريبًا $size ويحتوي على $pages صفحة. قد يستغرق التنزيل بعض الوقت. هل تريد المتابعة؟';
+  }
 
   @override
-  String get progress => 'التقدم:';
+  String get areYouSureDeleteQuran =>
+      'هل أنت متأكد أنك تريد حذف القرآن الكامل؟ سيؤدي ذلك إلى توفير مساحة تخزين ولكن ستحتاج إلى تنزيله مرة أخرى للعرض.';
 
   @override
-  String get current => 'الحالي:';
+  String get fullQuranDeleted => 'تم حذف القرآن الكامل بنجاح.';
 
   @override
-  String get deleteDownloadedFiles => 'حذف الملفات المحملة';
+  String get downloadControls => 'إدارة التنزيل';
 
   @override
-  String get stillUnderDevelopment => 'قيد التطوير';
+  String get progress => 'التقدم';
 
   @override
-  String get juzListTitle => 'تصفح الأجزاء';
+  String get current => 'الملف الحالي:';
 
   @override
-  String get juzListSubtitle => 'اختر الأجزاء للتحميل أو العرض';
+  String get pause => 'إيقاف مؤقت';
 
   @override
-  String get selectAll => 'اختيار الكل';
+  String get deleteDownloadedFiles => 'حذف الملفات التي تم تنزيلها';
 
   @override
-  String get deselectAll => 'إلغاء اختيار الكل';
+  String get juzListTitle => 'قائمة الأجزاء';
+
+  @override
+  String selectedCount(Object count) {
+    return '$count محدد';
+  }
 
   @override
   String get deleteSelected => 'حذف المحدد';
 
   @override
-  String get viewSelected => 'عرض المحدد';
-
-  @override
-  String get noJuzsSelected => 'لم يتم اختيار أجزاء';
+  String juzNotDownloaded(Object juz) {
+    return 'الجزء $juz غير مُنزّل.';
+  }
 
   @override
   String get juzProperties => 'خصائص الجزء';
 
   @override
-  String get juzNumber => 'رقم الجزء';
-
-  @override
   String get fileCount => 'عدد الملفات';
 
   @override
-  String get totalSize => 'الحجم الإجمالي';
-
-  @override
-  String get downloadStatus => 'حالة التحميل';
-
-  @override
-  String get notDownloaded => 'غير محمل';
-
-  @override
-  String get downloaded => 'محمل';
-
-  @override
-  String get properties => 'الخصائص';
+  String get totalSize => 'الحجم الكلي';
 
   @override
   String get close => 'إغلاق';
 
   @override
-  String get prayerNameJumah => 'جمعة';
+  String get couldNotLoadProperties => 'تعذر تحميل الخصائص.';
+
+  @override
+  String get pendingPausing => 'يتم الإيقاف المؤقت...';
+
+  @override
+  String get pendingCancelling => 'يتم الإلغاء...';
+
+  @override
+  String get pendingDeleting => 'يتم الحذف...';
+
+  @override
+  String get pagesLabel => 'صفحات';
+
+  @override
+  String get surahListTitle => 'قائمة السور';
+
+  @override
+  String get surahLoadError => 'خطأ في تحميل السور';
+
+  @override
+  String get noSurahData => 'لا توجد بيانات سور متاحة.';
+
+  @override
+  String get ayahCountLabel => 'آيات';
+
+  @override
+  String get makkiType => 'مكية';
+
+  @override
+  String get madaniType => 'مدنية';
+
+  @override
+  String get readingSettings => 'إعدادات القراءة';
+
+  @override
+  String get nightMode => 'الوضع الليلي';
+
+  @override
+  String get nightModeSubtitle => 'خلفية داكنة للإضاءة المنخفضة';
+
+  @override
+  String get scrollDirection => 'اتجاه التمرير';
+
+  @override
+  String get horizontal => 'أفقي';
+
+  @override
+  String get vertical => 'عمودي';
+
+  @override
+  String get readingTimer => 'مؤقت القراءة';
+
+  @override
+  String timerRunning(Object time) {
+    return 'يعمل: $time';
+  }
+
+  @override
+  String get timerNotRunning => 'غير نشط';
+
+  @override
+  String get autoScroll => 'التمرير التلقائي';
+
+  @override
+  String autoScrollEnabled(Object seconds) {
+    return 'مفعل ($secondsث/صفحة)';
+  }
+
+  @override
+  String get autoScrollDisabled => 'معطل';
+
+  @override
+  String get scrollSpeed => 'سرعة التمرير';
+
+  @override
+  String secondsPerPage(Object seconds) {
+    return '$seconds ثانية لكل صفحة';
+  }
+
+  @override
+  String get minTimeToCountPage => 'الحد الأدنى لاحتساب الصفحة كمقروءة';
+
+  @override
+  String secondsLabel(Object seconds) {
+    return '$seconds ثانية';
+  }
+
+  @override
+  String get readingAnalytics => 'تحليلات القراءة';
+
+  @override
+  String get streaks => 'سلاسل القراءة';
+
+  @override
+  String get dayStreak => 'سلسلة الأيام';
+
+  @override
+  String get today => 'اليوم';
+
+  @override
+  String get goals => 'الأهداف';
+
+  @override
+  String get dailyGoal => 'الهدف اليومي';
+
+  @override
+  String goalProgress(Object progress) {
+    return '$progress%';
+  }
+
+  @override
+  String minutesGoalProgress(Object goal, Object minutes) {
+    return '$minutes / $goal دقيقة';
+  }
+
+  @override
+  String get weeklyGoal => 'الهدف الأسبوعي';
+
+  @override
+  String pagesGoalProgress(Object goal, Object pages) {
+    return '$pages / $goal صفحة';
+  }
+
+  @override
+  String get noInsights => 'لا توجد نصائح بعد. ابدأ القراءة لرؤية النصائح!';
+
+  @override
+  String get noReadingSessions => 'لا توجد جلسات قراءة بعد.';
+
+  @override
+  String get startStreakTip => 'ابدأ سلسلة بقراءة كل يوم!';
+
+  @override
+  String totalTimeReading(Object seconds) {
+    return 'إجمالي وقت القراءة: $seconds ثانية';
+  }
+
+  @override
+  String get insights => 'نصائح';
+
+  @override
+  String get weekendReadingTip => 'You read more on weekends!';
+
+  @override
+  String get weekdayReadingTip => 'You read more on weekdays!';
+
+  @override
+  String amazingStreakTip(Object streak) {
+    return 'Amazing! You have a $streak-day streak!';
+  }
+
+  @override
+  String greatStreakTip(Object streak) {
+    return 'Great! Keep your $streak-day streak going!';
+  }
+
+  @override
+  String get weeklyGoalAchievedTip => 'You reached your weekly goal! 🎉';
+
+  @override
+  String get closeWeeklyGoalTip => 'You are close to your weekly goal!';
+
+  @override
+  String dailyGoalMetTip(Object days) {
+    return 'You met your daily goal $days times this week!';
+  }
+
+  @override
+  String get sessionInsights => 'إحصاءات الجلسة';
+
+  @override
+  String avgTimePerPage(Object time) {
+    return 'Average time per page: $time seconds';
+  }
+
+  @override
+  String mostReadPage(Object page, Object time) {
+    return 'Most read page: $page ($time seconds)';
+  }
+
+  @override
+  String leastReadPage(Object page, Object time) {
+    return 'Least read page: $page ($time seconds)';
+  }
+
+  @override
+  String uniquePagesRead(Object pages) {
+    return 'Unique pages read: $pages';
+  }
+
+  @override
+  String get noSessionData =>
+      'لا توجد بيانات جلسة بعد. ابدأ جلسة لرؤية الإحصاءات.';
+
+  @override
+  String get history => 'السجل';
+
+  @override
+  String get pagesReadLast7Days => 'الصفحات المقروءة (آخر 7 أيام)';
+
+  @override
+  String get recentSessions => 'الجلسات الأخيرة';
+
+  @override
+  String get fullQuran => 'Full Quran';
+
+  @override
+  String juz(Object juz) {
+    return 'Juz $juz';
+  }
+
+  @override
+  String get removeBookmark => 'Remove Bookmark';
+
+  @override
+  String get bookmarkPage => 'Bookmark Page';
+
+  @override
+  String get surahList => 'Surah List';
+
+  @override
+  String get more => 'More';
+
+  @override
+  String get noImagesFoundForThisJuz => 'No images found for this Juz.';
+
+  @override
+  String get autoScrolling => 'Auto-scrolling';
+
+  @override
+  String get readingGoals => 'Reading Goals';
+
+  @override
+  String get setDailyGoal => 'تعيين الهدف اليومي';
 }

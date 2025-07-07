@@ -11,6 +11,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:ui' as ui;
 
 import 'package:app/database_helper.dart';
 import 'package:app/azkar_data.dart';
@@ -27,24 +28,30 @@ class ZikrScreen extends StatelessWidget {
 
     return DefaultTabController(
       length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(s.zikr),
-          bottom: TabBar(
-            indicatorColor: Theme.of(context).colorScheme.secondary,
-            tabs: [
-              Tab(text: s.azkar),
-              Tab(text: s.quran),
-              Tab(text: s.prayerTimes),
+      child: Directionality(
+        textDirection: ui.TextDirection.ltr,
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(s.zikr),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(kToolbarHeight),
+              child: TabBar(
+                indicatorColor: Theme.of(context).colorScheme.secondary,
+                tabs: [
+                  Tab(text: s.azkar),
+                  Tab(text: s.quran),
+                  Tab(text: s.prayerTimes),
+                ],
+              ),
+            ),
+          ),
+          body: const TabBarView(
+            children: [
+              AzkarSection(),
+              QuranSection(),
+              PrayerTimesSection(),
             ],
           ),
-        ),
-        body: const TabBarView(
-          children: [
-            AzkarSection(),
-            QuranSection(),
-            PrayerTimesSection(),
-          ],
         ),
       ),
     );

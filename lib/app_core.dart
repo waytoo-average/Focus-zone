@@ -27,6 +27,52 @@ import 'package:app/zikr_features.dart';
 import 'package:app/helper.dart';
 import 'package:app/update_helper.dart';
 
+// --- Surah Model and Loader ---
+class Surah {
+  final int number;
+  final String name;
+  final int ayahs;
+  final String type;
+  final int page;
+
+  Surah({
+    required this.number,
+    required this.name,
+    required this.ayahs,
+    required this.type,
+    required this.page,
+  });
+
+  factory Surah.fromJson(Map<String, dynamic> json) {
+    return Surah(
+      number: json['number'],
+      name: json['name'],
+      ayahs: json['ayahs'],
+      type: json['type'],
+      page: json['page'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'number': number,
+      'name': name,
+      'ayahs': ayahs,
+      'type': type,
+      'page': page,
+    };
+  }
+}
+
+class SurahLoader {
+  static Future<List<Surah>> loadSurahs() async {
+    final String jsonString =
+        await rootBundle.loadString('lib/assets/surah_list.json');
+    final List<dynamic> jsonList = json.decode(jsonString);
+    return jsonList.map((json) => Surah.fromJson(json)).toList();
+  }
+}
+
 // --- SnackBar Utilities ---
 String formatBytesSimplified(int bytes, int decimals, AppLocalizations s) {
   if (bytes <= 0) return "0 B";
@@ -1038,45 +1084,48 @@ class RootScreenState extends State<RootScreen> {
             _buildOffstageNavigator(4, const SettingsScreen()),
           ],
         ),
-        bottomNavigationBar: BottomNavigationBar(
-          items: <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.star_outline),
-              activeIcon: const Icon(Icons.star),
-              label: s.home,
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.school_outlined),
-              activeIcon: const Icon(Icons.school),
-              label: s.studyButton,
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.task_alt_outlined),
-              activeIcon: const Icon(Icons.task_alt),
-              label: s.todoListButton,
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.mosque_outlined),
-              activeIcon: const Icon(Icons.mosque),
-              label: s.zikr,
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.settings_outlined),
-              activeIcon: const Icon(Icons.settings),
-              label: s.settings,
-            ),
-          ],
-          currentIndex: _selectedIndex,
-          selectedItemColor: Theme.of(context).colorScheme.secondary,
-          unselectedItemColor:
-              Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-          onTap: _onItemTapped,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Theme.of(context).cardTheme.color,
-          selectedLabelStyle:
-              const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          unselectedLabelStyle: const TextStyle(fontSize: 12),
-          elevation: 10,
+        bottomNavigationBar: Directionality(
+          textDirection: TextDirection.ltr,
+          child: BottomNavigationBar(
+            items: <BottomNavigationBarItem>[
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.star_outline),
+                activeIcon: const Icon(Icons.star),
+                label: s.home,
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.school_outlined),
+                activeIcon: const Icon(Icons.school),
+                label: s.studyButton,
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.task_alt_outlined),
+                activeIcon: const Icon(Icons.task_alt),
+                label: s.todoListButton,
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.mosque_outlined),
+                activeIcon: const Icon(Icons.mosque),
+                label: s.zikr,
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.settings_outlined),
+                activeIcon: const Icon(Icons.settings),
+                label: s.settings,
+              ),
+            ],
+            currentIndex: _selectedIndex,
+            selectedItemColor: Theme.of(context).colorScheme.secondary,
+            unselectedItemColor:
+                Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            onTap: _onItemTapped,
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Theme.of(context).cardTheme.color,
+            selectedLabelStyle:
+                const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            unselectedLabelStyle: const TextStyle(fontSize: 12),
+            elevation: 10,
+          ),
         ),
       ),
     );

@@ -1,1 +1,24 @@
-{}
+{
+  "ar": [
+    "weekendReadingTip",
+    "weekdayReadingTip",
+    "amazingStreakTip",
+    "greatStreakTip",
+    "weeklyGoalAchievedTip",
+    "closeWeeklyGoalTip",
+    "dailyGoalMetTip",
+    "avgTimePerPage",
+    "mostReadPage",
+    "leastReadPage",
+    "uniquePagesRead",
+    "fullQuran",
+    "juz",
+    "removeBookmark",
+    "bookmarkPage",
+    "surahList",
+    "more",
+    "noImagesFoundForThisJuz",
+    "autoScrolling",
+    "readingGoals"
+  ]
+}

@@ -154,6 +154,18 @@ abstract class BaseDownloadManager extends ChangeNotifier {
         );
         _state = correctedState;
         notifyListeners();
+        // Cache info if files are present
+        if (info['fileCount'] > 0) {
+          await cacheQuranDownloadInfo(
+            isFullQuran: this is FullQuranDownloadManager,
+            downloaded: true,
+            fileSize: info['totalSize'] ?? 0,
+            pageCount: info['fileCount'] ?? 0,
+            juzNumber: this is JuzDownloadManager
+                ? (this as JuzDownloadManager).juzNumber
+                : null,
+          );
+        }
       } catch (_) {
         _state = DownloadState.initial();
         notifyListeners();
@@ -219,6 +231,16 @@ abstract class BaseDownloadManager extends ChangeNotifier {
         await dir.delete(recursive: true);
       }
       _updateState(DownloadState.initial());
+      // Cache info as deleted
+      await cacheQuranDownloadInfo(
+        isFullQuran: this is FullQuranDownloadManager,
+        downloaded: false,
+        fileSize: 0,
+        pageCount: 0,
+        juzNumber: this is JuzDownloadManager
+            ? (this as JuzDownloadManager).juzNumber
+            : null,
+      );
     } catch (e) {
       _updateState(_state.copyWith(
         status: DownloadStatus.error,
@@ -291,6 +313,16 @@ abstract class BaseDownloadManager extends ChangeNotifier {
           totalFiles: _allFiles!.length,
           progress: 1.0,
         ));
+        // Cache info as completed
+        await cacheQuranDownloadInfo(
+          isFullQuran: this is FullQuranDownloadManager,
+          downloaded: true,
+          fileSize: await _getTotalSize(),
+          pageCount: _allFiles!.length,
+          juzNumber: this is JuzDownloadManager
+              ? (this as JuzDownloadManager).juzNumber
+              : null,
+        );
         return;
       }
 
@@ -393,6 +425,16 @@ abstract class BaseDownloadManager extends ChangeNotifier {
         _updateState(_state.copyWith(status: DownloadStatus.paused));
       } else if (downloadedFiles == totalFiles) {
         _updateState(_state.copyWith(status: DownloadStatus.completed));
+        // Cache info as completed
+        await cacheQuranDownloadInfo(
+          isFullQuran: this is FullQuranDownloadManager,
+          downloaded: true,
+          fileSize: await _getTotalSize(),
+          pageCount: _allFiles!.length,
+          juzNumber: this is JuzDownloadManager
+              ? (this as JuzDownloadManager).juzNumber
+              : null,
+        );
       }
     } catch (e) {
       if (!_isCancelled) {
@@ -404,6 +446,18 @@ abstract class BaseDownloadManager extends ChangeNotifier {
     } finally {
       _isActive = false;
     }
+  }
+
+  Future<int> _getTotalSize() async {
+    final dir = await _getDownloadDirectory();
+    if (!await dir.exists()) return 0;
+    int totalSize = 0;
+    await for (final entity in dir.list(recursive: true)) {
+      if (entity is File) {
+        totalSize += await entity.length();
+      }
+    }
+    return totalSize;
   }
 }
 
@@ -433,4 +487,32 @@ class FullQuranDownloadManager extends BaseDownloadManager {
           concurrentDownloads: 4,
           prefsKey: 'full_quran_download_state',
         );
+}
+
+// --- Caching Helpers ---
+Future<void> cacheQuranDownloadInfo({
+  required bool isFullQuran,
+  required bool downloaded,
+  required int fileSize,
+  required int pageCount,
+  int? juzNumber,
+}) async {
+  final prefs = await SharedPreferences.getInstance();
+  final prefix = isFullQuran ? 'quran_full' : 'juz_${juzNumber ?? 0}';
+  await prefs.setBool('${prefix}_downloaded', downloaded);
+  await prefs.setInt('${prefix}_size', fileSize);
+  await prefs.setInt('${prefix}_page_count', pageCount);
+}
+
+Future<Map<String, dynamic>> getCachedQuranDownloadInfo({
+  required bool isFullQuran,
+  int? juzNumber,
+}) async {
+  final prefs = await SharedPreferences.getInstance();
+  final prefix = isFullQuran ? 'quran_full' : 'juz_${juzNumber ?? 0}';
+  return {
+    'downloaded': prefs.getBool('${prefix}_downloaded') ?? false,
+    'fileSize': prefs.getInt('${prefix}_size') ?? 0,
+    'pageCount': prefs.getInt('${prefix}_page_count') ?? 0,
+  };
 }

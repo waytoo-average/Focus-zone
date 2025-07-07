@@ -123,4 +123,6 @@ flutter:
   assets:
     - lib/l10n/
     - assets/icons/
-    - assets/database/Quraan.db
+    - lib/assets/surah_list.json
+    - assets/icons/kaaba.png
+    - assets/icons/green_dome.png

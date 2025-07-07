@@ -93,6 +93,7 @@ class _JuzListScreenState extends State<JuzListScreen> {
 
   // Holds the expected download size for each Juz
   final Map<int, String> _expectedSizes = {};
+  final Map<int, int> _expectedPageCounts = {};
   bool _isLoadingStatuses = true; // To show initial loading indicator
 
   // Cache keys for SharedPreferences
@@ -257,7 +258,7 @@ class _JuzListScreenState extends State<JuzListScreen> {
             if (snapshot.hasError) {
               return AlertDialog(
                 title: Text(s.error),
-                content: const Text('Could not load properties.'),
+                content: Text(s.couldNotLoadProperties),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
@@ -268,18 +269,20 @@ class _JuzListScreenState extends State<JuzListScreen> {
             }
             final info = snapshot.data!;
             final expectedSize = _expectedSizes[juz] ?? 'Unknown';
+            final pageCount =
+                _expectedPageCounts[juz] ?? manager.state.totalFiles;
             return AlertDialog(
               title: Text('${s.juzProperties} $juz'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('${s.fileCount}: ${info['fileCount']}'),
+                  Text('${s.fileCount} : $pageCount'),
                   const SizedBox(height: 8),
                   Text(
-                      '${s.totalSize}: ${(info['totalSize'] / (1024 * 1024)).toStringAsFixed(1)}MB'),
+                      '${s.totalSize} : ${(info['totalSize'] / (1024 * 1024)).toStringAsFixed(1)}MB'),
                   const SizedBox(height: 8),
-                  Text('${s.totalSize}: $expectedSize'),
+                  Text('${s.totalSize} : $expectedSize'),
                 ],
               ),
               actions: [
@@ -375,6 +378,8 @@ class _JuzListScreenState extends State<JuzListScreen> {
                           final state = manager.state;
                           final isDownloaded =
                               state.status == DownloadStatus.completed;
+                          final pageCount = _expectedPageCounts[juz] ?? 0;
+                          final size = _expectedSizes[juz] ?? 'Unknown';
                           final isDownloading =
                               state.status == DownloadStatus.downloading;
                           final isPaused =
@@ -387,7 +392,7 @@ class _JuzListScreenState extends State<JuzListScreen> {
                           return _JuzCard(
                             juz: juz,
                             title: juzHeaders[juz - 1],
-                            expectedSize: _expectedSizes[juz] ?? 'Unknown',
+                            expectedSize: size,
                             isSelected: _selectedJuzs.contains(juz),
                             isDownloaded: isDownloaded,
                             isDownloading: isDownloading,
@@ -409,18 +414,12 @@ class _JuzListScreenState extends State<JuzListScreen> {
                                   },
                             onDelete: isPending ? null : () => manager.delete(),
                             onProperties: () => _showJuzProperties(juz),
-                            fileCount: state.downloadedFiles,
+                            fileCount: pageCount,
                             totalFiles: state.totalFiles,
                             errorMessage: state.errorMessage,
                             isError: isError,
                             isPending: isPending,
-                            pendingText: state.status == DownloadStatus.pausing
-                                ? 'Pausing...'
-                                : state.status == DownloadStatus.cancelling
-                                    ? 'Cancelling...'
-                                    : state.status == DownloadStatus.deleting
-                                        ? 'Deleting...'
-                                        : '',
+                            pendingText: isPending ? (s.pendingPausing) : '',
                           );
                         },
                       );
@@ -483,6 +482,7 @@ class _JuzCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = AppLocalizations.of(context);
     return Card(
       elevation: isSelected ? 8 : theme.cardTheme.elevation ?? 2,
       color:

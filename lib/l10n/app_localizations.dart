@@ -347,7 +347,7 @@ abstract class AppLocalizations {
   /// No description provided for @downloading.
   ///
   /// In en, this message translates to:
-  /// **'Downloading...'**
+  /// **'Downloading'**
   String get downloading;
 
   /// No description provided for @errorLoadingContent.
@@ -1472,6 +1472,12 @@ abstract class AppLocalizations {
   /// **'Isha'**
   String get prayerNameIsha;
 
+  /// No description provided for @prayerNameJumah.
+  ///
+  /// In en, this message translates to:
+  /// **'Jumah'**
+  String get prayerNameJumah;
+
   /// No description provided for @dueToday.
   ///
   /// In en, this message translates to:
@@ -1775,19 +1781,19 @@ abstract class AppLocalizations {
   /// No description provided for @quranTitle.
   ///
   /// In en, this message translates to:
-  /// **'The Holy Quran'**
+  /// **'Quran'**
   String get quranTitle;
 
   /// No description provided for @quranSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'القرآن الكريم'**
+  /// **'The Holy Quran'**
   String get quranSubtitle;
 
   /// No description provided for @quranDescription.
   ///
   /// In en, this message translates to:
-  /// **'Download individual Juzs or the complete Quran for offline reading. All content is high-quality and properly formatted.'**
+  /// **'Read, download, and manage the full Quran and Juzs.'**
   String get quranDescription;
 
   /// No description provided for @browseJuzs.
@@ -1799,26 +1805,14 @@ abstract class AppLocalizations {
   /// No description provided for @browseJuzsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Download individual parts'**
+  /// **'View and download individual Juzs'**
   String get browseJuzsSubtitle;
-
-  /// No description provided for @downloadFullQuran.
-  ///
-  /// In en, this message translates to:
-  /// **'Download Full Quran'**
-  String get downloadFullQuran;
 
   /// No description provided for @viewFullQuran.
   ///
   /// In en, this message translates to:
   /// **'View Full Quran'**
   String get viewFullQuran;
-
-  /// No description provided for @fullQuranReady.
-  ///
-  /// In en, this message translates to:
-  /// **'Complete Quran ready to read'**
-  String get fullQuranReady;
 
   /// No description provided for @pauseDownload.
   ///
@@ -1832,11 +1826,53 @@ abstract class AppLocalizations {
   /// **'Resume Download'**
   String get resumeDownload;
 
+  /// No description provided for @downloadFullQuran.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Full Quran'**
+  String get downloadFullQuran;
+
+  /// No description provided for @fullQuranReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Quran is ready to view!'**
+  String get fullQuranReady;
+
+  /// No description provided for @pagesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{downloaded}/{total} pages ({progress}%)'**
+  String pagesCount(Object downloaded, Object progress, Object total);
+
+  /// No description provided for @loading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading...'**
+  String get loading;
+
   /// No description provided for @completeQuran.
   ///
   /// In en, this message translates to:
-  /// **'Complete Quran'**
-  String get completeQuran;
+  /// **'Complete Quran ({size}, {pages} pages)'**
+  String completeQuran(Object pages, Object size);
+
+  /// No description provided for @pausingPleaseWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Pausing, please wait...'**
+  String get pausingPleaseWait;
+
+  /// No description provided for @cancellingPleaseWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelling, please wait...'**
+  String get cancellingPleaseWait;
+
+  /// No description provided for @deletingPleaseWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting, please wait...'**
+  String get deletingPleaseWait;
 
   /// No description provided for @deleteFullQuran.
   ///
@@ -1853,26 +1889,44 @@ abstract class AppLocalizations {
   /// No description provided for @downloadIncomplete.
   ///
   /// In en, this message translates to:
-  /// **'Download Incomplete'**
+  /// **'Download incomplete'**
   String get downloadIncomplete;
 
   /// No description provided for @pagesDownloaded.
   ///
   /// In en, this message translates to:
-  /// **'{downloaded}/{total} pages downloaded'**
+  /// **'{downloaded} of {total} pages downloaded'**
   String pagesDownloaded(Object downloaded, Object total);
 
-  /// No description provided for @resume.
+  /// No description provided for @anErrorOccurred.
   ///
   /// In en, this message translates to:
-  /// **'Resume'**
-  String get resume;
+  /// **'An error occurred during download.'**
+  String get anErrorOccurred;
 
-  /// No description provided for @paused.
+  /// No description provided for @stillUnderDevelopment.
   ///
   /// In en, this message translates to:
-  /// **'Paused'**
-  String get paused;
+  /// **'This feature is still under development.'**
+  String get stillUnderDevelopment;
+
+  /// No description provided for @downloadFullQuranDialog.
+  ///
+  /// In en, this message translates to:
+  /// **'The full Quran is approximately {size} and contains {pages} pages. This may take some time to download. Continue?'**
+  String downloadFullQuranDialog(Object pages, Object size);
+
+  /// No description provided for @areYouSureDeleteQuran.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete the full Quran? This will free up storage space but you will need to download it again to view it.'**
+  String get areYouSureDeleteQuran;
+
+  /// No description provided for @fullQuranDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Quran deleted successfully.'**
+  String get fullQuranDeleted;
 
   /// No description provided for @downloadControls.
   ///
@@ -1883,14 +1937,20 @@ abstract class AppLocalizations {
   /// No description provided for @progress.
   ///
   /// In en, this message translates to:
-  /// **'Progress:'**
+  /// **'Progress'**
   String get progress;
 
   /// No description provided for @current.
   ///
   /// In en, this message translates to:
-  /// **'Current:'**
+  /// **'Current file:'**
   String get current;
+
+  /// No description provided for @pause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get pause;
 
   /// No description provided for @deleteDownloadedFiles.
   ///
@@ -1898,35 +1958,17 @@ abstract class AppLocalizations {
   /// **'Delete Downloaded Files'**
   String get deleteDownloadedFiles;
 
-  /// No description provided for @stillUnderDevelopment.
-  ///
-  /// In en, this message translates to:
-  /// **'Still under development'**
-  String get stillUnderDevelopment;
-
   /// No description provided for @juzListTitle.
   ///
   /// In en, this message translates to:
-  /// **'Browse Juzs'**
+  /// **'Juz List'**
   String get juzListTitle;
 
-  /// No description provided for @juzListSubtitle.
+  /// No description provided for @selectedCount.
   ///
   /// In en, this message translates to:
-  /// **'Select Juzs to download or view'**
-  String get juzListSubtitle;
-
-  /// No description provided for @selectAll.
-  ///
-  /// In en, this message translates to:
-  /// **'Select All'**
-  String get selectAll;
-
-  /// No description provided for @deselectAll.
-  ///
-  /// In en, this message translates to:
-  /// **'Deselect All'**
-  String get deselectAll;
+  /// **'{count} selected'**
+  String selectedCount(Object count);
 
   /// No description provided for @deleteSelected.
   ///
@@ -1934,17 +1976,11 @@ abstract class AppLocalizations {
   /// **'Delete Selected'**
   String get deleteSelected;
 
-  /// No description provided for @viewSelected.
+  /// No description provided for @juzNotDownloaded.
   ///
   /// In en, this message translates to:
-  /// **'View Selected'**
-  String get viewSelected;
-
-  /// No description provided for @noJuzsSelected.
-  ///
-  /// In en, this message translates to:
-  /// **'No Juzs selected'**
-  String get noJuzsSelected;
+  /// **'Juz {juz} is not downloaded.'**
+  String juzNotDownloaded(Object juz);
 
   /// No description provided for @juzProperties.
   ///
@@ -1952,47 +1988,17 @@ abstract class AppLocalizations {
   /// **'Juz Properties'**
   String get juzProperties;
 
-  /// No description provided for @juzNumber.
-  ///
-  /// In en, this message translates to:
-  /// **'Juz Number'**
-  String get juzNumber;
-
   /// No description provided for @fileCount.
   ///
   /// In en, this message translates to:
-  /// **'File Count'**
+  /// **'File count'**
   String get fileCount;
 
   /// No description provided for @totalSize.
   ///
   /// In en, this message translates to:
-  /// **'Total Size'**
+  /// **'Total size'**
   String get totalSize;
-
-  /// No description provided for @downloadStatus.
-  ///
-  /// In en, this message translates to:
-  /// **'Download Status'**
-  String get downloadStatus;
-
-  /// No description provided for @notDownloaded.
-  ///
-  /// In en, this message translates to:
-  /// **'Not Downloaded'**
-  String get notDownloaded;
-
-  /// No description provided for @downloaded.
-  ///
-  /// In en, this message translates to:
-  /// **'Downloaded'**
-  String get downloaded;
-
-  /// No description provided for @properties.
-  ///
-  /// In en, this message translates to:
-  /// **'Properties'**
-  String get properties;
 
   /// No description provided for @close.
   ///
@@ -2000,11 +2006,413 @@ abstract class AppLocalizations {
   /// **'Close'**
   String get close;
 
-  /// No description provided for @prayerNameJumah.
+  /// No description provided for @couldNotLoadProperties.
   ///
   /// In en, this message translates to:
-  /// **'Jumah'**
-  String get prayerNameJumah;
+  /// **'Could not load properties.'**
+  String get couldNotLoadProperties;
+
+  /// No description provided for @pendingPausing.
+  ///
+  /// In en, this message translates to:
+  /// **'Pausing...'**
+  String get pendingPausing;
+
+  /// No description provided for @pendingCancelling.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelling...'**
+  String get pendingCancelling;
+
+  /// No description provided for @pendingDeleting.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting...'**
+  String get pendingDeleting;
+
+  /// No description provided for @pagesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'pages'**
+  String get pagesLabel;
+
+  /// No description provided for @surahListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Surah List'**
+  String get surahListTitle;
+
+  /// No description provided for @surahLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading Surahs'**
+  String get surahLoadError;
+
+  /// No description provided for @noSurahData.
+  ///
+  /// In en, this message translates to:
+  /// **'No Surah data available.'**
+  String get noSurahData;
+
+  /// No description provided for @ayahCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Ayahs'**
+  String get ayahCountLabel;
+
+  /// No description provided for @makkiType.
+  ///
+  /// In en, this message translates to:
+  /// **'Makki'**
+  String get makkiType;
+
+  /// No description provided for @madaniType.
+  ///
+  /// In en, this message translates to:
+  /// **'Madani'**
+  String get madaniType;
+
+  /// No description provided for @readingSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading Settings'**
+  String get readingSettings;
+
+  /// No description provided for @nightMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Night Mode'**
+  String get nightMode;
+
+  /// No description provided for @nightModeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark background for low light'**
+  String get nightModeSubtitle;
+
+  /// No description provided for @scrollDirection.
+  ///
+  /// In en, this message translates to:
+  /// **'Scroll Direction'**
+  String get scrollDirection;
+
+  /// No description provided for @horizontal.
+  ///
+  /// In en, this message translates to:
+  /// **'Horizontal'**
+  String get horizontal;
+
+  /// No description provided for @vertical.
+  ///
+  /// In en, this message translates to:
+  /// **'Vertical'**
+  String get vertical;
+
+  /// No description provided for @readingTimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading Timer'**
+  String get readingTimer;
+
+  /// No description provided for @timerRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Running: {time}'**
+  String timerRunning(Object time);
+
+  /// No description provided for @timerNotRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Not running'**
+  String get timerNotRunning;
+
+  /// No description provided for @autoScroll.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto Scroll'**
+  String get autoScroll;
+
+  /// No description provided for @autoScrollEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled ({seconds}s/page)'**
+  String autoScrollEnabled(Object seconds);
+
+  /// No description provided for @autoScrollDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get autoScrollDisabled;
+
+  /// No description provided for @scrollSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Scroll Speed'**
+  String get scrollSpeed;
+
+  /// No description provided for @secondsPerPage.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} seconds per page'**
+  String secondsPerPage(Object seconds);
+
+  /// No description provided for @minTimeToCountPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimum Time to Count Page as Read'**
+  String get minTimeToCountPage;
+
+  /// No description provided for @secondsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} seconds'**
+  String secondsLabel(Object seconds);
+
+  /// No description provided for @readingAnalytics.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading Analytics'**
+  String get readingAnalytics;
+
+  /// No description provided for @streaks.
+  ///
+  /// In en, this message translates to:
+  /// **'Streaks'**
+  String get streaks;
+
+  /// No description provided for @dayStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Day Streak'**
+  String get dayStreak;
+
+  /// No description provided for @today.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get today;
+
+  /// No description provided for @goals.
+  ///
+  /// In en, this message translates to:
+  /// **'Goals'**
+  String get goals;
+
+  /// No description provided for @dailyGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Goal'**
+  String get dailyGoal;
+
+  /// No description provided for @goalProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{progress}%'**
+  String goalProgress(Object progress);
+
+  /// No description provided for @minutesGoalProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} / {goal} minutes'**
+  String minutesGoalProgress(Object goal, Object minutes);
+
+  /// No description provided for @weeklyGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly Goal'**
+  String get weeklyGoal;
+
+  /// No description provided for @pagesGoalProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{pages} / {goal} pages'**
+  String pagesGoalProgress(Object goal, Object pages);
+
+  /// No description provided for @noInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'No insights yet. Start reading to see tips!'**
+  String get noInsights;
+
+  /// No description provided for @noReadingSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'No reading sessions yet.'**
+  String get noReadingSessions;
+
+  /// No description provided for @startStreakTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a streak by reading every day!'**
+  String get startStreakTip;
+
+  /// No description provided for @totalTimeReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Total time reading: {seconds} seconds'**
+  String totalTimeReading(Object seconds);
+
+  /// No description provided for @insights.
+  ///
+  /// In en, this message translates to:
+  /// **'Insights'**
+  String get insights;
+
+  /// No description provided for @weekendReadingTip.
+  ///
+  /// In en, this message translates to:
+  /// **'You read more on weekends!'**
+  String get weekendReadingTip;
+
+  /// No description provided for @weekdayReadingTip.
+  ///
+  /// In en, this message translates to:
+  /// **'You read more on weekdays!'**
+  String get weekdayReadingTip;
+
+  /// No description provided for @amazingStreakTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Amazing! You have a {streak}-day streak!'**
+  String amazingStreakTip(Object streak);
+
+  /// No description provided for @greatStreakTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Great! Keep your {streak}-day streak going!'**
+  String greatStreakTip(Object streak);
+
+  /// No description provided for @weeklyGoalAchievedTip.
+  ///
+  /// In en, this message translates to:
+  /// **'You reached your weekly goal! 🎉'**
+  String get weeklyGoalAchievedTip;
+
+  /// No description provided for @closeWeeklyGoalTip.
+  ///
+  /// In en, this message translates to:
+  /// **'You are close to your weekly goal!'**
+  String get closeWeeklyGoalTip;
+
+  /// No description provided for @dailyGoalMetTip.
+  ///
+  /// In en, this message translates to:
+  /// **'You met your daily goal {days} times this week!'**
+  String dailyGoalMetTip(Object days);
+
+  /// No description provided for @sessionInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'Session Insights'**
+  String get sessionInsights;
+
+  /// No description provided for @avgTimePerPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Average time per page: {time} seconds'**
+  String avgTimePerPage(Object time);
+
+  /// No description provided for @mostReadPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Most read page: {page} ({time} seconds)'**
+  String mostReadPage(Object page, Object time);
+
+  /// No description provided for @leastReadPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Least read page: {page} ({time} seconds)'**
+  String leastReadPage(Object page, Object time);
+
+  /// No description provided for @uniquePagesRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Unique pages read: {pages}'**
+  String uniquePagesRead(Object pages);
+
+  /// No description provided for @noSessionData.
+  ///
+  /// In en, this message translates to:
+  /// **'No session data yet. Start a session to see insights.'**
+  String get noSessionData;
+
+  /// No description provided for @history.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get history;
+
+  /// No description provided for @pagesReadLast7Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Pages Read (Last 7 Days)'**
+  String get pagesReadLast7Days;
+
+  /// No description provided for @recentSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Sessions'**
+  String get recentSessions;
+
+  /// No description provided for @fullQuran.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Quran'**
+  String get fullQuran;
+
+  /// No description provided for @juz.
+  ///
+  /// In en, this message translates to:
+  /// **'Juz {juz}'**
+  String juz(Object juz);
+
+  /// No description provided for @removeBookmark.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Bookmark'**
+  String get removeBookmark;
+
+  /// No description provided for @bookmarkPage.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmark Page'**
+  String get bookmarkPage;
+
+  /// No description provided for @surahList.
+  ///
+  /// In en, this message translates to:
+  /// **'Surah List'**
+  String get surahList;
+
+  /// No description provided for @more.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get more;
+
+  /// No description provided for @noImagesFoundForThisJuz.
+  ///
+  /// In en, this message translates to:
+  /// **'No images found for this Juz.'**
+  String get noImagesFoundForThisJuz;
+
+  /// No description provided for @autoScrolling.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-scrolling'**
+  String get autoScrolling;
+
+  /// No description provided for @readingGoals.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading Goals'**
+  String get readingGoals;
+
+  /// No description provided for @setDailyGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Set Daily Goal'**
+  String get setDailyGoal;
 }
 
 class _AppLocalizationsDelegate

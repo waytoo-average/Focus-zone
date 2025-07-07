@@ -104,63 +104,66 @@ class MyApp extends StatelessWidget {
     // Use Consumer2 to efficiently listen to both ThemeProvider and LanguageProvider
     return Consumer2<ThemeProvider, LanguageProvider>(
       builder: (context, themeProvider, languageProvider, child) {
-        return MaterialApp(
-          title: 'Focus Zone',
-          debugShowCheckedModeBanner: false,
-          themeMode: themeProvider.themeMode,
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          locale: languageProvider.locale,
-          supportedLocales: const [
-            Locale('en'),
-            Locale('ar'),
-          ],
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          initialRoute: '/',
-          // --- Routing ---
-          routes: {
-            '/': (context) => const SplashScreen(),
-            '/rootScreen': (context) => RootScreen(key: rootScreenKey),
-            '/googleDriveViewer': (context) {
-              final args = ModalRoute.of(context)?.settings.arguments
-                  as Map<String, dynamic>?;
-              return GoogleDriveViewerScreen(
-                embedUrl: args?['embedUrl'] as String?,
-                fileId: args?['fileId'] as String?,
-                fileName: args?['fileName'] as String?,
-                mimeType: args?['mimeType'] as String?,
-              );
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: MaterialApp(
+            title: 'Focus Zone',
+            debugShowCheckedModeBanner: false,
+            themeMode: themeProvider.themeMode,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            locale: languageProvider.locale,
+            supportedLocales: const [
+              Locale('en'),
+              Locale('ar'),
+            ],
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            initialRoute: '/',
+            // --- Routing ---
+            routes: {
+              '/': (context) => const SplashScreen(),
+              '/rootScreen': (context) => RootScreen(key: rootScreenKey),
+              '/googleDriveViewer': (context) {
+                final args = ModalRoute.of(context)?.settings.arguments
+                    as Map<String, dynamic>?;
+                return GoogleDriveViewerScreen(
+                  embedUrl: args?['embedUrl'] as String?,
+                  fileId: args?['fileId'] as String?,
+                  fileName: args?['fileName'] as String?,
+                  mimeType: args?['mimeType'] as String?,
+                );
+              },
+              '/lectureFolderBrowser': (context) {
+                final args =
+                    ModalRoute.of(context)?.settings.arguments as String?;
+                return LectureFolderBrowserScreen(initialFolderId: args);
+              },
+              '/pdfViewer': (context) {
+                final args = ModalRoute.of(context)?.settings.arguments
+                    as Map<String, dynamic>?;
+                final s = AppLocalizations.of(context);
+                if (s == null) {
+                  return const ErrorScreen(
+                      message: 'Error: Localization not available.');
+                }
+                if (args == null ||
+                    !args.containsKey('fileUrl') ||
+                    !args.containsKey('fileId')) {
+                  return ErrorScreen(message: s.errorNoUrlProvided);
+                }
+                return PdfViewerScreen(
+                  fileUrl: args['fileUrl'] as String?,
+                  fileId: args['fileId'] as String,
+                  fileName: args['fileName'] as String?,
+                );
+              },
             },
-            '/lectureFolderBrowser': (context) {
-              final args =
-                  ModalRoute.of(context)?.settings.arguments as String?;
-              return LectureFolderBrowserScreen(initialFolderId: args);
-            },
-            '/pdfViewer': (context) {
-              final args = ModalRoute.of(context)?.settings.arguments
-                  as Map<String, dynamic>?;
-              final s = AppLocalizations.of(context);
-              if (s == null) {
-                return const ErrorScreen(
-                    message: 'Error: Localization not available.');
-              }
-              if (args == null ||
-                  !args.containsKey('fileUrl') ||
-                  !args.containsKey('fileId')) {
-                return ErrorScreen(message: s.errorNoUrlProvided);
-              }
-              return PdfViewerScreen(
-                fileUrl: args['fileUrl'] as String?,
-                fileId: args['fileId'] as String,
-                fileName: args['fileName'] as String?,
-              );
-            },
-          },
+          ),
         );
       },
     );
