@@ -56,7 +56,7 @@ This project serves as a comprehensive learning endeavor focusing on building a 
 
 **ENG/Belal Mohamed Elnemr**
 
-  * Communication and Electronics Engineering Student
+  * Communication Engineering Student
 
 ### Contact & Social
 
