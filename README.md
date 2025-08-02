@@ -54,7 +54,7 @@ This project serves as a comprehensive learning endeavor focusing on building a 
 
 ## 👥 Developed By
 
-**Belal Mohamed Elnemr**
+**ENG/Belal Mohamed Elnemr**
 
   * Communication and Electronics Engineering Student
 
