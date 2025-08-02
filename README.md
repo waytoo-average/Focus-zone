@@ -35,19 +35,19 @@ This project serves as a comprehensive learning endeavor focusing on building a 
   * **Asynchronous Operations:** Handling network requests and file operations asynchronously.
 
 ## 🛠 Tech Stack
-___________________________________________________________________________________________________________________________________
-|---------Layer---------|--------------------Technology---------------------|--------------------- Purpose------------------------|
-| **Frontend**:         | Flutter, Dart                                     | UI development, Cross-platform                      |
-| **Networking**:       | `http`, `dio`                                     | API communication                                   |
-| **Authentication**:   | `google_sign_in`, `googleapis`                    | Google Sign-In, Google Drive access                 |
-| **File Management**:  | `path_provider`, `file_picker`, `open_filex`      | Local storage access, file selection, opening files |
-| **Document Viewing**: | `webview_flutter`, `syncfusion_flutter_pdfviewer` | In-app document and PDF display                     |
-| **Notifications** :   | `flutter_local_notifications`, `timezone`         | Scheduling local reminders                          |
-| **State Management**: | `provider`                                        | App-wide state management                           |
-| **Localization**      | `flutter_localizations`, `intl`                   | Multi-language support                              |
-| **Permissions**:      | `permission_handler`, `android_intent_plus`       | Runtime permission handling                         |
-| **App Info** :        | `package_info_plus`                               | Retrieve app package information                    |
-___________________________________________________________________________________________________________________________________
+| **Layer**            | **Technology**                                   | **Purpose**                                         |
+| -------------------- | ------------------------------------------------ | --------------------------------------------------- |
+| **Frontend**         | Flutter, Dart                                    | UI development, Cross-platform                      |
+| **Networking**       | http, dio                                        | API communication                                   |
+| **Authentication**   | google\_sign\_in, googleapis                     | Google Sign-In, Google Drive access                 |
+| **File Management**  | path\_provider, file\_picker, open\_filex        | Local storage access, file selection, opening files |
+| **Document Viewing** | webview\_flutter, syncfusion\_flutter\_pdfviewer | In-app document and PDF display                     |
+| **Notifications**    | flutter\_local\_notifications, timezone          | Scheduling local reminders                          |
+| **State Management** | provider                                         | App-wide state management                           |
+| **Localization**     | flutter\_localizations, intl                     | Multi-language support                              |
+| **Permissions**      | permission\_handler, android\_intent\_plus       | Runtime permission handling                         |
+| **App Info**         | package\_info\_plus                              | Retrieve app package information                    |
+
 ## 🧭 Project Status
 
 **IN DEVELOPMENT:** This project is actively being developed with continuous updates and enhancements planned. Follow the GitHub repository for progress updates\!
