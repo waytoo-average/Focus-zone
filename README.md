@@ -65,14 +65,14 @@ This project serves as a comprehensive learning endeavor focusing on building a 
   * **GitHub Profile:** [waytoo-average](https://github.com/waytoo-average)
   * **Discord Profile:** [Discord Profile](https://discord.com/users/858382338281963520)
   
-## 🏛️ About Focus Zone
+## 🏛️ About ECCAT
 
-Focus Zone is a comprehensive study management application that fosters practical and technological skills for students.
+The Egyptian-Chinese College for Applied Technology at Suez Canal University is a joint initiative with China offering hands-on, industry-focused education in fields like mechatronics, electronics, and communication technology. 
 
-### Connect with Focus Zone
+### Connect with ECCAT
 
-  * **Facebook Page:** [Focus Zone Facebook](https://www.facebook.com/2018ECCAT)
-  * **College Location (Google Maps):** [Focus Zone on Maps](https://maps.app.goo.gl/MTtsxuok1c5gteMw8)
+  * **Facebook Page:** [ECCAT Facebook](https://www.facebook.com/2018ECCAT)
+  * **College Location (Google Maps):** [ECCAT on Maps](https://maps.app.goo.gl/MTtsxuok1c5gteMw8)
 
 ## 🧾 License
 
