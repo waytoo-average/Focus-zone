@@ -683,7 +683,7 @@ abstract class AppLocalizations {
   /// No description provided for @developerDetails.
   ///
   /// In en, this message translates to:
-  /// **'Communication and Electronics Engineering Student'**
+  /// **'Communication Engineering Student'**
   String get developerDetails;
 
   /// No description provided for @contactInfo.
@@ -719,7 +719,7 @@ abstract class AppLocalizations {
   /// No description provided for @eccatIntro.
   ///
   /// In en, this message translates to:
-  /// **'Focus Zone is a comprehensive study management application that fosters practical and technological skills for students.'**
+  /// **'The Egyptian-Chinese College for Applied Technology at Suez Canal University is a joint initiative with China offering hands-on, industry-focused education in fields like mechatronics, electronics, and communication technology..'**
   String get eccatIntro;
 
   /// No description provided for @connectWithUs.
@@ -1913,7 +1913,7 @@ abstract class AppLocalizations {
   /// No description provided for @downloadFullQuranDialog.
   ///
   /// In en, this message translates to:
-  /// **'The full Quran is approximately {size} and contains {pages} pages. This may take some time to download. Continue?'**
+  /// **'The full Quran is approximately {size} and contains {pages} pages. This may take some time to download. Continue? KEEP INTERNET CONNECTION ON'**
   String downloadFullQuranDialog(Object pages, Object size);
 
   /// No description provided for @areYouSureDeleteQuran.
@@ -2413,6 +2413,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Set Daily Goal'**
   String get setDailyGoal;
+
+  /// No description provided for @viewDownloadedJuzs.
+  ///
+  /// In en, this message translates to:
+  /// **'View Downloaded Juzs'**
+  String get viewDownloadedJuzs;
+
+  /// No description provided for @switchJuz.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch Juz'**
+  String get switchJuz;
+
+  /// No description provided for @downloadedJuzsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded Juzs'**
+  String get downloadedJuzsTitle;
+
+  /// No description provided for @juzsDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'{downloaded}/{total} Juzs downloaded'**
+  String juzsDownloaded(Object downloaded, Object total);
 }
 
 class _AppLocalizationsDelegate

@@ -58,6 +58,9 @@ dependencies:
   flutter_timezone: ^4.1.1
   sqflite: ^2.3.3+1
   photo_view: ^0.14.0
+  connectivity_plus: ^5.0.2
+  riverpod: ^2.6.1
+  flutter_riverpod: ^2.6.1
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
 
@@ -126,3 +129,11 @@ flutter:
     - lib/assets/surah_list.json
     - assets/icons/kaaba.png
     - assets/icons/green_dome.png
+    # Add any other assets here
+  fonts:
+    - family: Amiri
+      fonts:
+        - asset: assets/fonts/Amiri-Regular.ttf
+        - asset: assets/fonts/Amiri-Bold.ttf
+          weight: 700
+    

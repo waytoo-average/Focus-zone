@@ -1361,5 +1361,19 @@ class AppLocalizationsAr extends AppLocalizations {
   String get readingGoals => 'Reading Goals';
 
   @override
-  String get setDailyGoal => 'تعيين الهدف اليومي';
+  String get setDailyGoal => 'تحديد الهدف اليومي';
+
+  @override
+  String get viewDownloadedJuzs => 'عرض الأجزاء المُنزّلة';
+
+  @override
+  String get switchJuz => 'تبديل الجزء';
+
+  @override
+  String get downloadedJuzsTitle => 'الأجزاء المُنزّلة';
+
+  @override
+  String juzsDownloaded(Object downloaded, Object total) {
+    return '$downloaded/$total جزء مُنزّل';
+  }
 }

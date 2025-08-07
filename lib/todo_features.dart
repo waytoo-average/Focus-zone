@@ -5,14 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'dart:developer' as developer;
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/timezone.dart' as tz;
 
 import 'package:app/app_core.dart';
 import 'package:app/src/utils/app_utilities.dart';
 import 'package:app/src/ui/widgets/deadline_tile.dart';
 import 'package:app/src/ui/widgets/task_controls.dart';
+import 'package:app/notification_manager.dart';
 
 // --- Todo Data Model ---
 class TodoItem {
@@ -195,7 +193,8 @@ class _TodoListScreenState extends State<TodoListScreen> {
               .allTodos
               .firstWhere((t) => t.creationDate == todoItem.creationDate,
                   orElse: () => todoItem);
-      await _scheduleNotification(updatedItem, s);
+      await NotificationManager.scheduleTodoNotification(
+          context, updatedItem, s);
     }
   }
 
@@ -221,13 +220,12 @@ class _TodoListScreenState extends State<TodoListScreen> {
     if (updatedItem.isCompleted) {
       showAppSnackBar(context, s.taskCompleted,
           icon: Icons.check_circle_outline, iconColor: Colors.green);
-      final plugin =
-          Provider.of<FlutterLocalNotificationsPlugin>(context, listen: false);
-      plugin.cancel(updatedItem.hashCode);
+      await NotificationManager.cancelTodoNotification(context, updatedItem);
     } else {
       showAppSnackBar(context, s.taskReactivated,
           icon: Icons.refresh, iconColor: Colors.blue);
-      await _scheduleNotification(updatedItem, s);
+      await NotificationManager.scheduleTodoNotification(
+          context, updatedItem, s);
     }
   }
 
@@ -257,9 +255,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
     if (mounted) {
       showAppSnackBar(context, s.taskDeleted,
           icon: Icons.delete_outline, iconColor: Colors.red);
-      final plugin =
-          Provider.of<FlutterLocalNotificationsPlugin>(context, listen: false);
-      plugin.cancel(itemToDelete.hashCode);
+      await NotificationManager.cancelTodoNotification(context, itemToDelete);
     }
   }
 
@@ -305,64 +301,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
       }
     });
     return currentTodos;
-  }
-
-  Future<void> _scheduleNotification(TodoItem task, AppLocalizations s) async {
-    final plugin =
-        Provider.of<FlutterLocalNotificationsPlugin>(context, listen: false);
-    if (task.dueDate == null || task.dueTime == null || task.isCompleted) {
-      await plugin.cancel(task.hashCode);
-      return;
-    }
-
-    final now = DateTime.now();
-    DateTime scheduleDateTime = DateTime(
-      task.dueDate!.year,
-      task.dueDate!.month,
-      task.dueDate!.day,
-      task.dueTime!.hour,
-      task.dueTime!.minute,
-    );
-
-    if (scheduleDateTime.isBefore(now)) {
-      await plugin.cancel(task.hashCode);
-      return;
-    }
-
-    final tz.TZDateTime tzScheduleDateTime =
-        tz.TZDateTime.from(scheduleDateTime, tz.local);
-    const androidDetails = AndroidNotificationDetails(
-      'task_reminders_channel',
-      'Task Reminders',
-      channelDescription: 'Reminders for your tasks',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
-    const notificationDetails = NotificationDetails(android: androidDetails);
-
-    DateTimeComponents? dateTimeComponents;
-    if (task.isRepeating) {
-      if (task.repeatInterval == s.daily)
-        dateTimeComponents = DateTimeComponents.time;
-      else if (task.repeatInterval == s.weekly)
-        dateTimeComponents = DateTimeComponents.dayOfWeekAndTime;
-      else if (task.repeatInterval == s.monthly)
-        dateTimeComponents = DateTimeComponents.dayOfMonthAndTime;
-    }
-
-    await plugin.cancel(task.hashCode);
-    await plugin.zonedSchedule(
-      task.hashCode,
-      s.appTitle,
-      '${s.notificationReminderBody} ${task.title}',
-      tzScheduleDateTime,
-      notificationDetails,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime, // FIX
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: dateTimeComponents,
-      payload: 'task_id:${task.hashCode}',
-    );
   }
 
   @override
@@ -681,71 +619,13 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
 
     await Provider.of<TodoSummaryProvider>(context, listen: false)
         .saveTodo(todoToSave);
-    if (mounted) await _scheduleNotification(todoToSave, s);
+    await NotificationManager.scheduleTodoNotification(context, todoToSave, s);
 
     if (mounted) {
       showAppSnackBar(context, s.taskSaved,
           icon: Icons.check, iconColor: Colors.green);
       Navigator.pop(context);
     }
-  }
-
-  Future<void> _scheduleNotification(TodoItem task, AppLocalizations s) async {
-    final plugin =
-        Provider.of<FlutterLocalNotificationsPlugin>(context, listen: false);
-    if (task.dueDate == null || task.dueTime == null || task.isCompleted) {
-      await plugin.cancel(task.hashCode);
-      return;
-    }
-
-    final now = DateTime.now();
-    DateTime scheduleDateTime = DateTime(
-      task.dueDate!.year,
-      task.dueDate!.month,
-      task.dueDate!.day,
-      task.dueTime!.hour,
-      task.dueTime!.minute,
-    );
-
-    if (scheduleDateTime.isBefore(now)) {
-      await plugin.cancel(task.hashCode);
-      return;
-    }
-
-    final tz.TZDateTime tzScheduleDateTime =
-        tz.TZDateTime.from(scheduleDateTime, tz.local);
-    const androidDetails = AndroidNotificationDetails(
-      'task_reminders_channel',
-      'Task Reminders',
-      channelDescription: 'Reminders for your tasks',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
-    const notificationDetails = NotificationDetails(android: androidDetails);
-
-    DateTimeComponents? dateTimeComponents;
-    if (task.isRepeating) {
-      if (task.repeatInterval == s.daily)
-        dateTimeComponents = DateTimeComponents.time;
-      else if (task.repeatInterval == s.weekly)
-        dateTimeComponents = DateTimeComponents.dayOfWeekAndTime;
-      else if (task.repeatInterval == s.monthly)
-        dateTimeComponents = DateTimeComponents.dayOfMonthAndTime;
-    }
-
-    await plugin.cancel(task.hashCode);
-    await plugin.zonedSchedule(
-      task.hashCode,
-      s.appTitle,
-      '${s.notificationReminderBody} ${task.title}',
-      tzScheduleDateTime,
-      notificationDetails,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime, // FIX
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: dateTimeComponents,
-      payload: 'task_id:${task.hashCode}',
-    );
   }
 
   @override

@@ -1116,7 +1116,7 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
           ? '${placemarks.first.locality}, ${placemarks.first.administrativeArea}'
           : 'Unknown Location';
 
-      final tune = '0,0,3,0,2,0,2,0';
+      final tune = '0,0,0,0,0,0,0,0';
       final uri = Uri.parse(
           'https://api.aladhan.com/v1/timings?latitude=${position.latitude}&longitude=${position.longitude}&method=5&tune=$tune');
 

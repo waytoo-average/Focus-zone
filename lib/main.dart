@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'dart:async';
 import 'dart:developer' as developer;
+import 'dart:convert';
 
 // For notifications and timezone handling
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -19,14 +20,24 @@ import 'package:app/helper.dart';
 import 'package:app/study_features.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:app/src/utils/app_theme.dart';
+import 'package:app/src/utils/download_manager_v3.dart' as new_dm;
 
 // --- App Initialization ---
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
+// Global download manager instance for notification actions
+new_dm.FullQuranDownloadManager? globalDownloadManager;
+
 // --- Main Entry Point ---
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize global download manager
+  globalDownloadManager = new_dm.FullQuranDownloadManager();
+
+  // Ensure the manager is properly initialized
+  await globalDownloadManager!.loadState();
 
   // Timezone and notification setup
   tz.initializeTimeZones();
@@ -53,14 +64,9 @@ void main() async {
 
   await flutterLocalNotificationsPlugin.initialize(
     initializationSettings,
-    onDidReceiveNotificationResponse:
-        (NotificationResponse notificationResponse) async {
-      if (notificationResponse.payload != null) {
-        developer.log(
-          'notification payload: ${notificationResponse.payload}',
-          name: 'Notifications',
-        );
-      }
+    onDidReceiveNotificationResponse: (NotificationResponse response) async {
+      // No action handling needed - notifications are read-only
+      print('🔔 Notification tapped: ${response.payload}');
     },
     onDidReceiveBackgroundNotificationResponse:
         _onDidReceiveBackgroundNotificationResponse,
@@ -77,6 +83,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => RecentFilesProvider()),
         ChangeNotifierProvider(create: (_) => TodoSummaryProvider()),
         ChangeNotifierProvider(create: (_) => FirstLaunchProvider()),
+        ChangeNotifierProvider(create: (_) => globalDownloadManager!),
         Provider<FlutterLocalNotificationsPlugin>.value(
             value: flutterLocalNotificationsPlugin),
       ],
@@ -87,10 +94,9 @@ void main() async {
 
 @pragma('vm:entry-point')
 void _onDidReceiveBackgroundNotificationResponse(
-    NotificationResponse notificationResponse) {
-  developer.log(
-      'onDidReceiveBackgroundNotificationResponse: ${notificationResponse.payload}',
-      name: 'Notifications Background');
+    NotificationResponse notificationResponse) async {
+  // Handle background notification actions
+  // No action handling needed - notifications are read-only
 }
 
 // --- App Widget Tree ---

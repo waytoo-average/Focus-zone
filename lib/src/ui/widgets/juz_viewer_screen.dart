@@ -10,6 +10,8 @@ import 'package:intl/intl.dart';
 import 'surah_list_screen.dart';
 import '../../../l10n/app_localizations.dart';
 import 'dart:ui' as ui;
+import 'package:provider/provider.dart';
+import '../../utils/download_manager_v3.dart' as new_dm;
 
 enum ScrollDirection { horizontal, vertical }
 
@@ -28,12 +30,16 @@ class PageVisit {
 class JuzViewerScreen extends StatefulWidget {
   final int juzNumber;
   final bool isWholeQuran;
+  final bool isDownloadedJuzsOnly;
   final int? initialPage;
+  final int? initialGlobalPage;
   const JuzViewerScreen({
     Key? key,
     required this.juzNumber,
     this.isWholeQuran = false,
+    this.isDownloadedJuzsOnly = false,
     this.initialPage,
+    this.initialGlobalPage,
   }) : super(key: key);
 
   @override
@@ -192,7 +198,14 @@ class _JuzViewerScreenState extends State<JuzViewerScreen> {
   Future<void> _setInitialPage() async {
     if (_initialPageSet || _images.isEmpty) return;
     int page = 0;
-    if (widget.initialPage != null &&
+    if (widget.initialGlobalPage != null) {
+      // Find the index in _images whose filename matches the global page number
+      final idx = _images.indexWhere(
+          (f) => _extractPageNumber(f.path) == widget.initialGlobalPage);
+      if (idx != -1) {
+        page = idx;
+      }
+    } else if (widget.initialPage != null &&
         widget.initialPage! >= 0 &&
         widget.initialPage! < _images.length) {
       page = widget.initialPage!;
@@ -253,38 +266,109 @@ class _JuzViewerScreenState extends State<JuzViewerScreen> {
   Future<void> _loadImages() async {
     setState(() => _loading = true);
     final dir = await getApplicationDocumentsDirectory();
-    final targetDir = widget.isWholeQuran
-        ? Directory('${dir.path}/quran_full')
-        : Directory('${dir.path}/quran_juz_${widget.juzNumber}');
-    if (targetDir.existsSync()) {
-      final files = targetDir
-          .listSync()
-          .whereType<File>()
-          .where((f) =>
-              f.path.endsWith('.jpg') ||
-              f.path.endsWith('.jpeg') ||
-              f.path.endsWith('.png'))
-          .toList();
-
-      // Sort files properly based on page numbers
-      files.sort((a, b) {
+    if (widget.isWholeQuran) {
+      // Aggregate images from all Juz folders
+      List<File> allImages = [];
+      for (int juz = 1; juz <= 30; juz++) {
+        final juzDir = Directory('${dir.path}/quran_juz_$juz');
+        if (juzDir.existsSync()) {
+          final files = juzDir
+              .listSync()
+              .whereType<File>()
+              .where((f) =>
+                  f.path.endsWith('.jpg') ||
+                  f.path.endsWith('.jpeg') ||
+                  f.path.endsWith('.png'))
+              .toList();
+          allImages.addAll(files);
+        }
+      }
+      // Sort all images by page number
+      allImages.sort((a, b) {
         final aPage = _extractPageNumber(a.path);
         final bPage = _extractPageNumber(b.path);
         return aPage.compareTo(bPage);
       });
-
       setState(() {
-        _images = files;
+        _images = allImages;
         _loading = false;
         _initialPageSet = false;
       });
-      // Set initial page after images are loaded
+      await _setInitialPage();
+    } else if (widget.isDownloadedJuzsOnly) {
+      // Aggregate images from all downloaded Juz folders in order
+      List<File> allImages = [];
+
+      // Get downloaded Juzs in order (1, 2, 3, etc.)
+      List<int> downloadedJuzs = [];
+      for (int juz = 1; juz <= 30; juz++) {
+        // Check if Juz is downloaded by looking at the directory
+        final juzDir = Directory('${dir.path}/quran_juz_$juz');
+        if (juzDir.existsSync()) {
+          final files = juzDir.listSync().whereType<File>().toList();
+          if (files.isNotEmpty) {
+            downloadedJuzs.add(juz);
+          }
+        }
+      }
+
+      // Load images from each Juz in order
+      for (int juz in downloadedJuzs) {
+        final juzDir = Directory('${dir.path}/quran_juz_$juz');
+        if (juzDir.existsSync()) {
+          final files = juzDir
+              .listSync()
+              .whereType<File>()
+              .where((f) =>
+                  f.path.endsWith('.jpg') ||
+                  f.path.endsWith('.jpeg') ||
+                  f.path.endsWith('.png'))
+              .toList();
+          // Sort files within this Juz by page number
+          files.sort((a, b) {
+            final aPage = _extractPageNumber(a.path);
+            final bPage = _extractPageNumber(b.path);
+            return aPage.compareTo(bPage);
+          });
+          allImages.addAll(files);
+        }
+      }
+
+      setState(() {
+        _images = allImages;
+        _loading = false;
+        _initialPageSet = false;
+      });
       await _setInitialPage();
     } else {
-      setState(() {
-        _images = [];
-        _loading = false;
-      });
+      // Single Juz
+      final targetDir = Directory('${dir.path}/quran_juz_${widget.juzNumber}');
+      if (targetDir.existsSync()) {
+        final files = targetDir
+            .listSync()
+            .whereType<File>()
+            .where((f) =>
+                f.path.endsWith('.jpg') ||
+                f.path.endsWith('.jpeg') ||
+                f.path.endsWith('.png'))
+            .toList();
+        files.sort((a, b) {
+          final aPage = _extractPageNumber(a.path);
+          final bPage = _extractPageNumber(b.path);
+          return aPage.compareTo(bPage);
+        });
+        setState(() {
+          _images = files;
+          _loading = false;
+          _initialPageSet = false;
+        });
+        await _setInitialPage();
+      } else {
+        setState(() {
+          _images = [];
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -1262,6 +1346,63 @@ class _JuzViewerScreenState extends State<JuzViewerScreen> {
     );
   }
 
+  void _showJuzSwitcher() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final downloadedJuzs = <int>[];
+    for (int juz = 1; juz <= 30; juz++) {
+      final juzDir = Directory('${dir.path}/quran_juz_$juz');
+      if (juzDir.existsSync()) {
+        final files = juzDir.listSync().whereType<File>().toList();
+        if (files.isNotEmpty) {
+          downloadedJuzs.add(juz);
+        }
+      }
+    }
+    // downloadedJuzs is already in order (1, 2, 3, etc.) since we iterate from 1 to 30
+
+    final selectedJuz = await showModalBottomSheet<int>(
+      context: context,
+      builder: (context) {
+        return ListView(
+          children: downloadedJuzs
+              .map((juz) => ListTile(
+                    title: Text('Juz $juz'),
+                    onTap: () => Navigator.of(context).pop(juz),
+                  ))
+              .toList(),
+        );
+      },
+    );
+    if (selectedJuz != null) {
+      // Find the first page index for the selected Juz
+      final dir = await getApplicationDocumentsDirectory();
+      final juzDir = Directory('${dir.path}/quran_juz_$selectedJuz');
+      if (juzDir.existsSync()) {
+        final files = juzDir
+            .listSync()
+            .whereType<File>()
+            .where((f) =>
+                f.path.endsWith('.jpg') ||
+                f.path.endsWith('.jpeg') ||
+                f.path.endsWith('.png'))
+            .toList();
+        files.sort((a, b) {
+          final aPage = _extractPageNumber(a.path);
+          final bPage = _extractPageNumber(b.path);
+          return aPage.compareTo(bPage);
+        });
+        if (files.isNotEmpty) {
+          final firstFile = files.first;
+          final pageIndex =
+              _images.indexWhere((img) => img.path == firstFile.path);
+          if (pageIndex != -1) {
+            _jumpToPage(pageIndex);
+          }
+        }
+      }
+    }
+  }
+
   Widget _buildPageIndicator() {
     final currentPage = _currentPage;
     return GestureDetector(
@@ -1340,7 +1481,11 @@ class _JuzViewerScreenState extends State<JuzViewerScreen> {
             ),
             centerTitle: true,
             title: Text(
-              widget.isWholeQuran ? s.quran : 'Juz ${widget.juzNumber}',
+              widget.isWholeQuran
+                  ? s.quran
+                  : widget.isDownloadedJuzsOnly
+                      ? s.downloadedJuzsTitle
+                      : 'Juz ${widget.juzNumber}',
               style: const TextStyle(
                 fontFamily: 'Amiri',
                 fontWeight: FontWeight.bold,
@@ -1411,6 +1556,15 @@ class _JuzViewerScreenState extends State<JuzViewerScreen> {
                               if (_images.isNotEmpty) _showReadingAnalytics();
                             },
                           ),
+                          if (widget.isDownloadedJuzsOnly)
+                            ListTile(
+                              leading: const Icon(Icons.swap_horiz),
+                              title: Text(s.switchJuz),
+                              onTap: () {
+                                Navigator.pop(context);
+                                _showJuzSwitcher();
+                              },
+                            ),
                         ],
                       ),
                     ),
@@ -1565,7 +1719,7 @@ class ReadingSession {
         durationMinutes: json['durationMinutes'],
         pagesRead: json['pagesRead'],
         juzNumber: json['juzNumber'],
-        isWholeQuran: json['isWholeQuran'],
+        isWholeQuran: json['isWholeQuran'] ?? false,
       );
 }
 

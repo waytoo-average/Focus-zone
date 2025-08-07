@@ -11,7 +11,7 @@ import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io'; // For File operations
 import 'package:intl/intl.dart'; // For date formatting
-import 'package:permission_handler/permission_handler.dart'; // For permissions
+// For permissions
 // import 'package:file_picker/file_picker.dart'; // Not directly used here, but keep in pubspec if needed elsewhere
 import 'package:open_filex/open_filex.dart'; // For opening files
 import 'dart:developer' as developer; // For logging
@@ -82,12 +82,22 @@ const Map<String, Map<String, Map<String, Map<String, Map<String, String>>>>>
   'Second Grade': {
     'Communication': {
       'Current Year': {
-        'Semester 1': <String, String>{},
+        'Semester 1': <String, String>{}, //new leader foleder ids here
         'Semester 2': <String, String>{},
       },
       'Last Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
+        'Semester 1': <String, String>{
+          'Advanced Applications': '1uUVlSCePNIdodWrEse09syRa1GG8CuWX',
+          'C': '1MvfdtvfgEYHuYnnBoq7dQd4_cgST-lKF',
+          'chinese': '1R8bkpCpeFE2RZkvsRB_oBJ6XTmhMSclE',
+          'communication system': '1ViffWHEGFhcPZHScw-9TgszMtQvM5-AR',
+          'digital': '1ywJQBhI6rZrTloOxZ-wRUYP76A1zUOqQ',
+          'English': '1sMw6xH-xe8zroik167iIz4qAEXDu7l5V',
+        },
+        'Semester 2': <String, String>{
+          'Chinese': '17MkwuLxXrBWBSYU3n5kMa8cv_dkTCDfc',
+          'English': '1qchN-Frn_bTsgg3qbh9A5fqkhhrhwVNO',
+        },
       },
     },
     'Electronics': {
@@ -1212,42 +1222,9 @@ class _LectureFolderBrowserScreenState
           name: 'LectureFolderBrowser');
     }
 
-    final signInProvider = Provider.of<SignInProvider>(context, listen: false);
-
-    if (signInProvider.currentUser != null &&
-        (_files == null && _error == null ||
-            (_error != null && _error == s?.notSignedInClientNotAvailable))) {
-      // Added null-aware operator for s
+    // Automatically fetch files when dependencies change, no sign-in required
+    if (_files == null && _error == null) {
       _fetchDriveFiles();
-    } else if (signInProvider.currentUser == null && mounted && s != null) {
-      if (_isLoading) {
-        setState(() {
-          _error = s!.notSignedInClientNotAvailable;
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _handleSignIn() async {
-    final signInProvider = Provider.of<SignInProvider>(context, listen: false);
-    if (mounted) {
-      // Ensure mounted before setState
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
-    }
-    await signInProvider.signInWithErrorHandling(context);
-    if (!mounted) return; // Added mounted check after await
-    if (signInProvider.currentUser != null && mounted) {
-      // Ensure mounted before accessing context and setState
-      _fetchDriveFiles();
-    } else if (signInProvider.currentUser == null && mounted && s != null) {
-      setState(() {
-        _error = s!.notSignedInClientNotAvailable;
-        _isLoading = false;
-      });
     }
   }
 
@@ -1256,7 +1233,6 @@ class _LectureFolderBrowserScreenState
 
     if (s == null) {
       if (mounted) {
-        // Ensure mounted before setState
         setState(() {
           _error = AppLocalizations.of(context)?.error ??
               "Localization service not available.";
@@ -1273,16 +1249,14 @@ class _LectureFolderBrowserScreenState
       _selectedFiles.clear();
     });
 
-    final signInProvider = Provider.of<SignInProvider>(context,
-        listen: false); // Safe, listen: false
+    final signInProvider = Provider.of<SignInProvider>(context, listen: false);
     final http.Client? authenticatedClient =
         await signInProvider.authenticatedHttpClient;
 
-    if (!mounted) return; // Added mounted check after await
+    if (!mounted) return;
 
     if (authenticatedClient == null) {
       if (mounted) {
-        // Ensure mounted before setState
         setState(() {
           _error = s!.notSignedInClientNotAvailable;
           _isLoading = false;
@@ -1293,7 +1267,6 @@ class _LectureFolderBrowserScreenState
 
     if (_currentFolderId == null) {
       if (mounted) {
-        // Ensure mounted before setState
         setState(() {
           _error = s!.errorMissingFolderId;
           _isLoading = false;
@@ -1308,14 +1281,13 @@ class _LectureFolderBrowserScreenState
       final result = await driveApi.files.list(
         q: "'$_currentFolderId' in parents and trashed = false",
         $fields:
-            'files(id, name, mimeType, webViewLink, iconLink, size, modifiedTime, webContentLink)', // Added webContentLink for direct download
+            'files(id, name, mimeType, webViewLink, iconLink, size, modifiedTime, webContentLink)',
         orderBy: 'folder,name',
       );
 
-      if (!mounted) return; // Added mounted check after await
+      if (!mounted) return;
 
       if (mounted) {
-        // Ensure mounted before setState
         setState(() {
           _files = result.files;
           _isLoading = false;
@@ -1324,7 +1296,6 @@ class _LectureFolderBrowserScreenState
       }
     } catch (e) {
       if (mounted) {
-        // Ensure mounted before setState
         setState(() {
           _error = s!.failedToLoadFiles(e.toString());
           _isLoading = false;
@@ -1527,14 +1498,7 @@ class _LectureFolderBrowserScreenState
             }
           },
           options: Options(
-              headers: (mounted &&
-                      Provider.of<SignInProvider>(context, listen: false)
-                              .currentUser !=
-                          null)
-                  ? (await Provider.of<SignInProvider>(context, listen: false)
-                      .currentUser!
-                      .authHeaders)
-                  : {}), // Safe, check mounted
+              headers: {}), // No authentication headers needed for public files
         );
 
         if (!mounted) return; // Added mounted check after await
@@ -1654,9 +1618,6 @@ class _LectureFolderBrowserScreenState
 
   @override
   Widget build(BuildContext context) {
-    final signInProvider = Provider.of<SignInProvider>(context);
-    final user = signInProvider.currentUser;
-
     if (s == null) {
       return Scaffold(
           appBar: AppBar(
@@ -1714,27 +1675,9 @@ class _LectureFolderBrowserScreenState
               ] else ...[
                 IconButton(
                   icon: const Icon(Icons.refresh),
-                  onPressed: _isDownloadingMultiple
-                      ? null
-                      : (user != null ? _fetchDriveFiles : _handleSignIn),
+                  onPressed: _isDownloadingMultiple ? null : _fetchDriveFiles,
                   tooltip: s!.refresh,
                 ),
-                if (user != null)
-                  IconButton(
-                    icon: const Icon(Icons.logout),
-                    onPressed:
-                        _isDownloadingMultiple ? null : signInProvider.signOut,
-                    tooltip: s!.signOut,
-                  )
-                else
-                  TextButton(
-                    onPressed: _handleSignIn,
-                    style: TextButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0)),
-                    child:
-                        Text(s!.signIn, style: const TextStyle(fontSize: 16)),
-                  ),
               ],
             ],
           ),
@@ -1756,12 +1699,6 @@ class _LectureFolderBrowserScreenState
                                       color: Colors.red, fontSize: 16),
                                   textAlign: TextAlign.center),
                               const SizedBox(height: 20),
-                              if (user == null)
-                                ElevatedButton.icon(
-                                  icon: const Icon(Icons.login),
-                                  onPressed: _handleSignIn,
-                                  label: Text(s!.signInWithGoogle),
-                                ),
                               ElevatedButton.icon(
                                 icon: const Icon(Icons.refresh),
                                 onPressed: _fetchDriveFiles,

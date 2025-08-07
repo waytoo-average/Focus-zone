@@ -522,6 +522,10 @@
   "history": "السجل",
   "pagesReadLast7Days": "الصفحات المقروءة (آخر 7 أيام)",
   "recentSessions": "الجلسات الأخيرة",
-  "setDailyGoal": "تعيين الهدف اليومي",
+  "setDailyGoal": "تحديد الهدف اليومي",
+  "viewDownloadedJuzs": "عرض الأجزاء المُنزّلة",
+  "switchJuz": "تبديل الجزء",
+  "downloadedJuzsTitle": "الأجزاء المُنزّلة",
+  "juzsDownloaded": "{downloaded}/{total} جزء مُنزّل",
   "noSessionData": "لا توجد بيانات جلسة بعد. ابدأ جلسة لرؤية الإحصاءات."
 }

@@ -361,8 +361,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get developerName => 'Belal Mohamed Elnemr';
 
   @override
-  String get developerDetails =>
-      'Communication and Electronics Engineering Student';
+  String get developerDetails => 'Communication Engineering Student';
 
   @override
   String get contactInfo => 'Contact Info';
@@ -383,7 +382,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get eccatIntro =>
-      'Focus Zone is a comprehensive study management application that fosters practical and technological skills for students.';
+      'The Egyptian-Chinese College for Applied Technology at Suez Canal University is a joint initiative with China offering hands-on, industry-focused education in fields like mechatronics, electronics, and communication technology..';
 
   @override
   String get connectWithUs => 'Connect With Us';
@@ -1078,7 +1077,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String downloadFullQuranDialog(Object pages, Object size) {
-    return 'The full Quran is approximately $size and contains $pages pages. This may take some time to download. Continue?';
+    return 'The full Quran is approximately $size and contains $pages pages. This may take some time to download. Continue? KEEP INTERNET CONNECTION ON';
   }
 
   @override
@@ -1367,4 +1366,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get setDailyGoal => 'Set Daily Goal';
+
+  @override
+  String get viewDownloadedJuzs => 'View Downloaded Juzs';
+
+  @override
+  String get switchJuz => 'Switch Juz';
+
+  @override
+  String get downloadedJuzsTitle => 'Downloaded Juzs';
+
+  @override
+  String juzsDownloaded(Object downloaded, Object total) {
+    return '$downloaded/$total Juzs downloaded';
+  }
 }
