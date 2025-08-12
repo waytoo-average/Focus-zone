@@ -9,6 +9,41 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
+  String get feedbackCenter => 'مركز التقييم';
+
+  @override
+  String get sendFeedback => 'إرسال ملاحظة';
+
+  @override
+  String get sendFeedbackDesc => 'شاركنا أفكارك أو المشاكل التي تواجهك.';
+
+  @override
+  String get yourSuggestions => 'اقتراحاتك';
+
+  @override
+  String get yourSuggestionsDesc => 'عرض وإدارة ملاحظاتك المرسلة.';
+
+  @override
+  String get developerSuggestions => 'اقتراحات المطور';
+
+  @override
+  String get developerSuggestionsDesc =>
+      'شاهد ما يعمل عليه المطور وصوّت أو أضف تعليقًا.';
+
+  @override
+  String get userInfo => 'معلوماتك';
+
+  @override
+  String get userInfoDesc =>
+      'يمكنك إدخال اسمك ورقمك لمساعدتنا في التواصل معك (اختياري).';
+
+  @override
+  String get feedbackHint => 'اكتب ملاحظتك هنا...';
+
+  @override
+  String get submit => 'إرسال';
+
+  @override
   String get appTitle => 'منطقة التركيز';
 
   @override
@@ -325,6 +360,51 @@ class AppLocalizationsAr extends AppLocalizations {
       'تم مسح مسار التنزيل المخصص. ستذهب التنزيلات الآن إلى التخزين الخاص بالتطبيق.';
 
   @override
+  String get notificationSettingsTitle => 'إعدادات الإشعارات';
+
+  @override
+  String get todoNotifications => 'إشعارات المهام';
+
+  @override
+  String get todoVibration => 'اهتزاز';
+
+  @override
+  String get quranDownloadNotifications => 'إشعارات تحميل القرآن';
+
+  @override
+  String get quranVibration => 'اهتزاز';
+
+  @override
+  String get taskReminderTime => 'وقت تذكير المهمة';
+
+  @override
+  String get atDeadline => 'عند الموعد النهائي';
+
+  @override
+  String get min5 => 'قبل 5 دقائق';
+
+  @override
+  String get min15 => 'قبل 15 دقيقة';
+
+  @override
+  String get min30 => 'قبل 30 دقيقة';
+
+  @override
+  String get hr1 => 'قبل ساعة';
+
+  @override
+  String get hr2 => 'قبل ساعتين';
+
+  @override
+  String get hr3 => 'قبل 3 ساعات';
+
+  @override
+  String get todoVibrationSubtitle => 'إشعارات المهام';
+
+  @override
+  String get quranVibrationSubtitle => 'إشعارات تحميل القرآن';
+
+  @override
   String get clearPdfCache => 'مسح ذاكرة التخزين المؤقت لملفات PDF';
 
   @override
@@ -364,6 +444,37 @@ class AppLocalizationsAr extends AppLocalizations {
   String get developerDetails => 'طالب هندسة اتصالات وإلكترونيات';
 
   @override
+  String get feedbackCenterSubtitle => 'شارك أفكارك واقتراحاتك';
+
+  @override
+  String get developerSuggestionsSubtitle =>
+      'إليك بعض الميزات التي نخطط لإضافتها:';
+
+  @override
+  String get yourOpinion => 'رأيك';
+
+  @override
+  String get opinionHint => 'شارك أفكارك حول التطبيق...';
+
+  @override
+  String get suggestionHint => 'اقترح ميزات جديدة أو تحسينات...';
+
+  @override
+  String get submitOpinion => 'إرسال الرأي';
+
+  @override
+  String get submitSuggestion => 'إرسال الاقتراح';
+
+  @override
+  String get feedbackSubmitted => 'شكراً لك على تقييمك!';
+
+  @override
+  String get feedbackError => 'فشل في إرسال التقييم. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get feedbackEmpty => 'يرجى إدخال تقييمك قبل الإرسال.';
+
+  @override
   String get contactInfo => 'معلومات الاتصال';
 
   @override
@@ -382,7 +493,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get eccatIntro =>
-      'منطقة التركيز هو تطبيق شامل لإدارة الدراسة يعزز المهارات العملية والتكنولوجية للطلاب.';
+      'الكلية المصرية الصينية للتكنولوجيا التطبيقية بجامعة قناة السويس هي مبادرة مشتركة مع الصين تقدم تعليماً عملياً يركز على الصناعة في مجالات مثل الميكاترونيات والإلكترونيات وتكنولوجيا الاتصالات.';
 
   @override
   String get connectWithUs => 'تواصل معنا';
@@ -1376,4 +1487,79 @@ class AppLocalizationsAr extends AppLocalizations {
   String juzsDownloaded(Object downloaded, Object total) {
     return '$downloaded/$total جزء مُنزّل';
   }
+
+  @override
+  String get enterYourInfo =>
+      'أدخل معلوماتك (اختياري) لمساعدتنا في تحسين التواصل.';
+
+  @override
+  String get continueButton => 'إستمرار';
+
+  @override
+  String get name => 'الاسم';
+
+  @override
+  String get phone => 'الهاتف';
+
+  @override
+  String get skip => 'تخطي';
+
+  @override
+  String get updateYourInfo => 'تحديث معلوماتك';
+
+  @override
+  String get like => 'إعجاب';
+
+  @override
+  String get dislike => 'لا إعجاب';
+
+  @override
+  String get addComment => 'إضافة تعليق';
+
+  @override
+  String get recentComments => 'التعليقات الأخيرة';
+
+  @override
+  String get prayerReminderTime => 'تذكير وقت الصلاة';
+
+  @override
+  String get prayerVibration => 'اهتزاز';
+
+  @override
+  String get prayerVibrationSubtitle => 'إشعارات الصلاة';
+
+  @override
+  String get globalNotificationsDisabled => 'إشعارات المهام العامة معطلة';
+
+  @override
+  String get prayerNotifications => 'إشعارات مواقيت الصلاة';
+
+  @override
+  String prayerNotificationBody(Object prayerName) {
+    return 'تبقّى دقيقة على صلاة $prayerName';
+  }
+
+  @override
+  String prayerNotificationBodyAdvance(Object prayerName, Object timeText) {
+    return 'تبقّى $timeText على صلاة $prayerName';
+  }
+
+  @override
+  String get atPrayerTime => 'في وقت الصلاة';
+
+  @override
+  String inMinutes(Object count) {
+    return '$count دقائق';
+  }
+
+  @override
+  String inHours(Object count) {
+    return '$count ساعات';
+  }
+
+  @override
+  String get inOneMinute => 'دقيقة واحدة';
+
+  @override
+  String get inOneHour => 'ساعة واحدة';
 }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:app/app_core.dart';
 import 'package:app/src/utils/app_utilities.dart';
@@ -532,10 +533,12 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
   bool _isEditing = false;
   late DateTime _creationDate;
   bool _notificationsEnabled = true;
+  bool _globalTodoNotificationsEnabled = true;
 
   @override
   void initState() {
     super.initState();
+    _loadGlobalNotificationSetting();
     if (widget.todoItem != null) {
       _isEditing = true;
       _titleController.text = widget.todoItem!.title;
@@ -549,6 +552,20 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
     } else {
       _creationDate = DateTime.now();
       _notificationsEnabled = false;
+    }
+  }
+
+  Future<void> _loadGlobalNotificationSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+    final globalEnabled = prefs.getBool('notif_todo_enabled') ?? true;
+    if (mounted) {
+      setState(() {
+        _globalTodoNotificationsEnabled = globalEnabled;
+        // If global notifications are disabled, disable per-task notifications
+        if (!globalEnabled) {
+          _notificationsEnabled = false;
+        }
+      });
     }
   }
 
@@ -694,11 +711,13 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
               _buildSectionHeader(s.notifications),
               SwitchListTile(
                 title: Text(s.enableNotifications),
+                subtitle: !_globalTodoNotificationsEnabled 
+                    ? Text(s.globalNotificationsDisabled ?? 'Global todo notifications are disabled')
+                    : null,
                 value: _notificationsEnabled,
-                onChanged: (_selectedDate != null || _selectedTime != null)
+                onChanged: _globalTodoNotificationsEnabled
                     ? (value) => setState(() {
                           _notificationsEnabled = value;
-                          if (!value) _selectedRepeatInterval = s.noRepeat;
                         })
                     : null,
                 tileColor: Theme.of(context).cardTheme.color,
@@ -708,8 +727,7 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
               const SizedBox(height: 20),
               _buildSectionHeader(s.repeat),
               _buildDropdown(repeatOptions, _selectedRepeatInterval,
-                  (v) => setState(() => _selectedRepeatInterval = v),
-                  enabled: _notificationsEnabled),
+                  (v) => setState(() => _selectedRepeatInterval = v)),
               const SizedBox(height: 20),
               _buildSectionHeader(s.addToLlist),
               _buildDropdown(listOptions, _selectedListName,

@@ -46,3 +46,4 @@ app.*.map.json
 .aider*
 # Ignore Android keystore properties
 /android/key.properties
+tools/suggestions_manager/

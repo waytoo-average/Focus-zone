@@ -61,6 +61,7 @@ class _QuranEntryScreenState extends State<QuranEntryScreen>
   String _expectedSize = 'Unknown';
   int _expectedFileCount = 0;
   int _downloadedJuzsCount = 0; // Add this to track downloaded Juzs
+  bool _hasAnyQuranFiles = false; // Tracks if any Quran files exist locally
 
   // Hardcoded Quran constants
   static const int TOTAL_QURAN_PAGES = 604;
@@ -107,6 +108,7 @@ class _QuranEntryScreenState extends State<QuranEntryScreen>
     _initializeManager();
     _loadCachedQuranInfo(); // Load cached info (will only override if valid)
     _loadDownloadedJuzsCount();
+    _updateHasAnyQuranFiles();
     _startVerseRotation();
     _startRefreshTimer();
   }
@@ -140,6 +142,7 @@ class _QuranEntryScreenState extends State<QuranEntryScreen>
       setState(() {
         _loadDownloadedJuzsCount();
         _loadCachedQuranInfo();
+        _updateHasAnyQuranFiles();
       });
     }
   }
@@ -163,10 +166,62 @@ class _QuranEntryScreenState extends State<QuranEntryScreen>
           // Normal refresh for other states
           setState(() {
             _loadDownloadedJuzsCount();
+            _updateHasAnyQuranFiles();
           });
         }
       }
     });
+  }
+
+  // Check if any Quran files exist in storage (quran_full or any quran_juz_<n>)
+  Future<void> _updateHasAnyQuranFiles() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final basePath = dir.path;
+
+      // Helper to check if a directory contains any non-temp files
+      Future<bool> dirHasFiles(String path) async {
+        final d = Directory(path);
+        if (!await d.exists()) return false;
+        try {
+          await for (final entity in d.list(recursive: true, followLinks: false)) {
+            if (entity is File) {
+              final name = entity.path.split(Platform.pathSeparator).last;
+              if (!name.endsWith('.part')) {
+                return true;
+              }
+            }
+          }
+        } catch (_) {
+          // Ignore errors and treat as no files
+        }
+        return false;
+      }
+
+      // Check full Quran folder
+      final hasFull = await dirHasFiles('$basePath${Platform.pathSeparator}quran_full');
+      bool hasAny = hasFull;
+
+      // If not found yet, check each juz folder quickly
+      if (!hasAny) {
+        for (int i = 1; i <= 30; i++) {
+          final hasJuz = await dirHasFiles(
+              '$basePath${Platform.pathSeparator}quran_juz_$i');
+          if (hasJuz) {
+            hasAny = true;
+            break;
+          }
+        }
+      }
+
+      if (mounted && _hasAnyQuranFiles != hasAny) {
+        setState(() {
+          _hasAnyQuranFiles = hasAny;
+        });
+      }
+    } catch (_) {
+      // On error, don't change state
+    }
   }
 
   void _startVerseRotation() {
@@ -193,6 +248,7 @@ class _QuranEntryScreenState extends State<QuranEntryScreen>
           // Force refresh of all state
           _loadDownloadedJuzsCount();
           _loadCachedQuranInfo();
+          _updateHasAnyQuranFiles();
         });
 
         // Update notification if background is enabled
@@ -312,6 +368,7 @@ class _QuranEntryScreenState extends State<QuranEntryScreen>
   Future<void> _reloadCachedInfo() async {
     await _loadCachedQuranInfo();
     await _loadDownloadedJuzsCount();
+    await _updateHasAnyQuranFiles();
   }
 
   // Enhanced state calculation that handles all edge cases
@@ -535,6 +592,7 @@ class _QuranEntryScreenState extends State<QuranEntryScreen>
       // Delete all downloaded Juzs
       await _manager?.delete();
       await _loadCachedQuranInfo();
+      await _updateHasAnyQuranFiles();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Full Quran deleted successfully.')),
@@ -1003,9 +1061,8 @@ class _QuranEntryScreenState extends State<QuranEntryScreen>
                           ),
                         ),
                       ],
-                      // Delete Button (if any files are present and not downloading)
-                      if (downloadState['hasProgress'] &&
-                          !downloadState['isDownloading']) ...[
+                      // Delete Button (show whenever any Quran files exist locally)
+                      if (_hasAnyQuranFiles) ...[
                         const SizedBox(height: 16),
                         _ModernQuranCard(
                           icon: Icons.delete_outline,

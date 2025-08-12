@@ -1525,3 +1525,283 @@ class FirstLaunchProvider with ChangeNotifier {
 
   bool get hasShownPermissionDialog => _hasShownPermissionDialog;
 }
+
+// --- UserInfoProvider for feedback user info state ---
+class UserInfoProvider with ChangeNotifier {
+  static const String _hasSeenUserInfoScreenKey = 'has_seen_user_info_screen';
+  static const String _userNameKey = 'user_info_name';
+  static const String _userPhoneKey = 'user_info_phone';
+
+  bool _hasSeenUserInfoScreen = false;
+  String? _userName;
+  String? _userPhone;
+
+  UserInfoProvider() {
+    _loadUserInfo();
+  }
+
+  Future<void> _loadUserInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    _hasSeenUserInfoScreen = prefs.getBool(_hasSeenUserInfoScreenKey) ?? false;
+    _userName = prefs.getString(_userNameKey);
+    _userPhone = prefs.getString(_userPhoneKey);
+    notifyListeners();
+  }
+
+  Future<void> setUserInfo({String? name, String? phone}) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (name != null) {
+      await prefs.setString(_userNameKey, name);
+      _userName = name;
+    }
+    if (phone != null) {
+      await prefs.setString(_userPhoneKey, phone);
+      _userPhone = phone;
+    }
+    notifyListeners();
+  }
+
+  Future<void> markUserInfoScreenSeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_hasSeenUserInfoScreenKey, true);
+    _hasSeenUserInfoScreen = true;
+    notifyListeners();
+  }
+
+  bool get hasSeenUserInfoScreen => _hasSeenUserInfoScreen;
+  String? get userName => _userName;
+  String? get userPhone => _userPhone;
+
+  Future<void> resetUserInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_userNameKey);
+    await prefs.remove(_userPhoneKey);
+    _userName = null;
+    _userPhone = null;
+    notifyListeners();
+  }
+}
+
+// --- User feedback local storage ---
+class UserFeedbackItem {
+  final String content;
+  final DateTime submittedAt;
+
+  UserFeedbackItem({required this.content, required this.submittedAt});
+
+  Map<String, dynamic> toJson() => {
+        'content': content,
+        'submittedAt': submittedAt.toIso8601String(),
+      };
+
+  factory UserFeedbackItem.fromJson(Map<String, dynamic> json) =>
+      UserFeedbackItem(
+        content: json['content'] as String,
+        submittedAt: DateTime.parse(json['submittedAt'] as String),
+      );
+}
+
+class UserFeedbackProvider with ChangeNotifier {
+  static const String _kUserFeedbackListKey = 'user_feedback_list';
+
+  List<UserFeedbackItem> _feedbackItems = [];
+  List<UserFeedbackItem> get feedbackItems => List.unmodifiable(_feedbackItems);
+
+  UserFeedbackProvider() {
+    _loadFeedback();
+  }
+
+  Future<void> _loadFeedback() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_kUserFeedbackListKey);
+    if (raw != null) {
+      final List<dynamic> jsonList = jsonDecode(raw) as List<dynamic>;
+      _feedbackItems = jsonList
+          .map((e) => UserFeedbackItem.fromJson(e as Map<String, dynamic>))
+          .toList()
+        ..sort((a, b) => b.submittedAt.compareTo(a.submittedAt));
+    }
+    notifyListeners();
+  }
+
+  Future<void> _persistFeedback() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString =
+        jsonEncode(_feedbackItems.map((e) => e.toJson()).toList());
+    await prefs.setString(_kUserFeedbackListKey, jsonString);
+  }
+
+  Future<void> addFeedback(String content) async {
+    final item =
+        UserFeedbackItem(content: content, submittedAt: DateTime.now());
+    _feedbackItems.insert(0, item);
+    await _persistFeedback();
+    notifyListeners();
+  }
+
+  Future<void> clearAll() async {
+    _feedbackItems.clear();
+    await _persistFeedback();
+    notifyListeners();
+  }
+}
+
+class DeveloperSuggestionComment {
+  final String id;
+  String content;
+  DateTime createdAt;
+  DateTime? updatedAt;
+
+  DeveloperSuggestionComment({
+    required this.id,
+    required this.content,
+    DateTime? createdAt,
+    this.updatedAt,
+  }) : createdAt = createdAt ?? DateTime.now();
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'content': content,
+        'createdAt': createdAt.toIso8601String(),
+        'updatedAt': updatedAt?.toIso8601String(),
+      };
+
+  factory DeveloperSuggestionComment.fromJson(Map<String, dynamic> json) =>
+      DeveloperSuggestionComment(
+        id: json['id'] as String,
+        content: json['content'] as String,
+        createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+            DateTime.now(),
+        updatedAt: (json['updatedAt'] as String?) != null
+            ? DateTime.tryParse(json['updatedAt'] as String)
+            : null,
+      );
+}
+
+class DeveloperSuggestionState {
+  // vote: -1 = dislike, 0 = neutral, 1 = like
+  int vote;
+  List<DeveloperSuggestionComment> comments;
+
+  DeveloperSuggestionState(
+      {this.vote = 0, List<DeveloperSuggestionComment>? comments})
+      : comments = comments ?? [];
+
+  Map<String, dynamic> toJson() => {
+        'vote': vote,
+        'comments': comments.map((c) => c.toJson()).toList(),
+      };
+
+  factory DeveloperSuggestionState.fromJson(Map<String, dynamic> json) {
+    final rawComments = json['comments'];
+    List<DeveloperSuggestionComment> parsedComments = [];
+    if (rawComments is List) {
+      // Migration support: either list of objects or list of strings
+      if (rawComments.isNotEmpty && rawComments.first is Map) {
+        parsedComments = rawComments
+            .map((e) => DeveloperSuggestionComment.fromJson(
+                (e as Map).cast<String, dynamic>()))
+            .toList();
+      } else {
+        // Legacy strings
+        parsedComments = rawComments
+            .map((e) => DeveloperSuggestionComment(
+                  id: UniqueKey().toString(),
+                  content: e.toString(),
+                ))
+            .toList();
+      }
+    }
+    return DeveloperSuggestionState(
+      vote: (json['vote'] as int?) ?? 0,
+      comments: parsedComments,
+    );
+  }
+}
+
+class DeveloperSuggestionsProvider with ChangeNotifier {
+  static const String _kSuggestionsStateKey = 'developer_suggestions_state';
+
+  // suggestionId -> state
+  Map<String, DeveloperSuggestionState> _stateById = {};
+
+  DeveloperSuggestionState stateFor(String id) {
+    return _stateById[id] ?? DeveloperSuggestionState();
+  }
+
+  DeveloperSuggestionsProvider() {
+    _loadState();
+  }
+
+  Future<void> _loadState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_kSuggestionsStateKey);
+    if (raw != null) {
+      final Map<String, dynamic> map = jsonDecode(raw) as Map<String, dynamic>;
+      _stateById = map.map(
+        (key, value) => MapEntry(
+          key,
+          DeveloperSuggestionState.fromJson(value as Map<String, dynamic>),
+        ),
+      );
+    }
+    notifyListeners();
+  }
+
+  Future<void> _persistState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = jsonEncode(
+      _stateById.map((k, v) => MapEntry(k, v.toJson())),
+    );
+    await prefs.setString(_kSuggestionsStateKey, jsonString);
+  }
+
+  Future<void> setVote(String id, int vote) async {
+    final current = stateFor(id);
+    // Toggle off if same vote clicked again
+    if (current.vote == vote) {
+      current.vote = 0;
+    } else {
+      current.vote = vote.clamp(-1, 1);
+    }
+    _stateById[id] = current;
+    await _persistState();
+    notifyListeners();
+  }
+
+  Future<void> addComment(String id, String comment) async {
+    if (comment.trim().isEmpty) return;
+    final current = stateFor(id);
+    current.comments.insert(
+      0,
+      DeveloperSuggestionComment(
+        id: UniqueKey().toString(),
+        content: comment.trim(),
+      ),
+    );
+    _stateById[id] = current;
+    await _persistState();
+    notifyListeners();
+  }
+
+  Future<void> editComment(
+      String id, String commentId, String newContent) async {
+    final current = stateFor(id);
+    final idx = current.comments.indexWhere((c) => c.id == commentId);
+    if (idx != -1) {
+      current.comments[idx].content = newContent.trim();
+      current.comments[idx].updatedAt = DateTime.now();
+      _stateById[id] = current;
+      await _persistState();
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteComment(String id, String commentId) async {
+    final current = stateFor(id);
+    current.comments.removeWhere((c) => c.id == commentId);
+    _stateById[id] = current;
+    await _persistState();
+    notifyListeners();
+  }
+}

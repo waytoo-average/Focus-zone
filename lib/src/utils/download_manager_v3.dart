@@ -1,16 +1,16 @@
 // --- Download State & Managers ---
 import 'dart:async';
-import 'dart:io';
 import 'dart:convert';
-import 'dart:developer' as developer;
-import 'package:flutter/foundation.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+
 import '../../../google_drive_helper.dart';
-import '../../../main.dart';
 import '../../../notification_manager.dart';
 
 // --- Download Status Enum ---
@@ -115,7 +115,15 @@ class DownloadState {
 }
 
 // --- Base Download Manager ---
-abstract class BaseDownloadManager extends ChangeNotifier {
+abstract class BaseDownloadManager with ChangeNotifier {
+  // Abstract methods that must be implemented by subclasses
+  // Abstract methods that must be implemented by subclasses
+  @protected
+  Future<List<MapEntry<String, String>>> _getFilesToDownload();
+
+  @protected
+  String _getFileSavePath(String fileName);
+
   final String folderId;
   final String localFolderName;
   final int concurrentDownloads;
@@ -124,13 +132,26 @@ abstract class BaseDownloadManager extends ChangeNotifier {
   DownloadState _state = DownloadState.initial();
   DownloadState get state => _state;
 
+  // Add stream controller for real-time progress updates
+  final StreamController<DownloadState> _progressController =
+      StreamController<DownloadState>.broadcast();
+  Stream<DownloadState> get progressStream => _progressController.stream;
+
+  // Expose state changes as a broadcast stream
+  final StreamController<DownloadState> _stateController =
+      StreamController<DownloadState>.broadcast();
+  Stream<DownloadState> get downloadStateStream => _stateController.stream;
+
   bool _isCancelled = false;
   bool _isPaused = false;
   bool _isActive = false;
   bool _isDisposed = false;
   List<DriveFile>? _allFiles;
   Directory? _downloadDir;
-  final Dio _dio = Dio();
+
+  // Lazy initialize Dio only when needed
+  Dio? _httpClient;
+  Dio get _dio => _httpClient ??= Dio();
 
   // Background download support
   bool _isBackgroundEnabled = false;
@@ -155,22 +176,43 @@ abstract class BaseDownloadManager extends ChangeNotifier {
   }
 
   BaseDownloadManager({
-    required this.folderId,
-    required this.localFolderName,
-    required this.concurrentDownloads,
-    required this.prefsKey,
-  }) {
-    loadState();
+    required String folderId,
+    required String localFolderName,
+    required int concurrentDownloads,
+    required String prefsKey,
+  })  : folderId = folderId,
+        localFolderName = localFolderName,
+        concurrentDownloads = concurrentDownloads,
+        prefsKey = prefsKey {
+    // Initialize state
+    _state = DownloadState.initial();
+    // Load saved state if available
+    _loadSavedState();
+  }
+
+  Future<void> _loadSavedState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedState = prefs.getString(prefsKey);
+      if (savedState != null) {
+        _state = DownloadState.fromJson(
+            Map<String, dynamic>.from(jsonDecode(savedState)));
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error loading saved state: $e');
+    }
   }
 
   static Map<String, dynamic> _decodeJson(String jsonStr) =>
       Map<String, dynamic>.from(jsonDecode(jsonStr));
 
-  @override
+  @mustCallSuper
   void dispose() {
+    _isDisposed = true;
     _backgroundTimer?.cancel();
     _networkCheckTimer?.cancel();
-    _isDisposed = true;
+    _progressController.close();
     super.dispose();
   }
 
@@ -324,8 +366,17 @@ abstract class BaseDownloadManager extends ChangeNotifier {
   void _updateState(DownloadState newState) {
     if (_isDisposed) return;
     _state = newState;
-    notifyListeners();
-    saveState();
+    // Safely emit to streams; ignore if a controller was closed elsewhere
+    try {
+      _progressController.add(newState);
+    } catch (_) {}
+    try {
+      _stateController.add(newState);
+    } catch (_) {}
+    if (!_isDisposed) {
+      notifyListeners();
+      saveState();
+    }
 
     // Trigger notification update if background is enabled
     if (_isBackgroundEnabled) {
@@ -372,12 +423,25 @@ abstract class BaseDownloadManager extends ChangeNotifier {
   Future<void> delete() async {
     _updateState(_state.copyWith(status: DownloadStatus.deleting));
     try {
-      final dir = await _getDownloadDirectory();
-      if (await dir.exists()) {
-        await dir.delete(recursive: true);
+      // Delete from both possible locations to prevent duplicates
+      final appDir = await getApplicationDocumentsDirectory();
+
+      // Delete from juz-specific directory if this is a juz download
+      if (this is JuzDownloadManager) {
+        final juzNumber = (this as JuzDownloadManager).juzNumber;
+        final juzDir = Directory('${appDir.path}/quran_juz_$juzNumber');
+        if (await juzDir.exists()) {
+          await juzDir.delete(recursive: true);
+        }
       }
-      _updateState(DownloadState.initial());
-      // Cache info as deleted
+
+      // Also clean up from full quran directory
+      final fullDir = Directory('${appDir.path}/quran_full');
+      if (await fullDir.exists()) {
+        await fullDir.delete(recursive: true);
+      }
+
+      // Update cache info
       await cacheQuranDownloadInfo(
         isFullQuran: this is FullQuranDownloadManager,
         downloaded: false,
@@ -387,6 +451,8 @@ abstract class BaseDownloadManager extends ChangeNotifier {
             ? (this as JuzDownloadManager).juzNumber
             : null,
       );
+
+      _updateState(DownloadState.initial());
     } catch (e) {
       _updateState(_state.copyWith(
         status: DownloadStatus.error,
@@ -397,8 +463,14 @@ abstract class BaseDownloadManager extends ChangeNotifier {
 
   Future<Directory> _getDownloadDirectory() async {
     if (_downloadDir != null) return _downloadDir!;
-    final appDir = await getApplicationDocumentsDirectory();
-    _downloadDir = Directory('${appDir.path}/$localFolderName');
+
+    if (Platform.isAndroid || Platform.isIOS) {
+      final appDir = await getApplicationDocumentsDirectory();
+      _downloadDir = Directory('${appDir.path}/quran_full');
+    } else {
+      final appDir = await getApplicationDocumentsDirectory();
+      _downloadDir = Directory('${appDir.path}/quran_full');
+    }
     if (!await _downloadDir!.exists()) {
       await _downloadDir!.create(recursive: true);
     }
@@ -447,8 +519,36 @@ abstract class BaseDownloadManager extends ChangeNotifier {
       final filesToDownload = <DriveFile>[];
 
       for (final file in _allFiles!) {
-        final localFile = File('${dir.path}/${file.name}');
-        if (!await localFile.exists()) {
+        final targetFile = File('${dir.path}/${file.name}');
+        final exists = await targetFile.exists();
+        if (!exists) {
+          filesToDownload.add(file);
+          continue;
+        }
+        // Validate existing file by size and magic bytes; if mismatches, re-download
+        try {
+          final localLen = await targetFile.length();
+          final remoteLen = file.size ?? -1;
+          final raf = await targetFile.open();
+          final header = await raf.read(8);
+          await raf.close();
+          final isJpeg = header.length >= 3 && header[0] == 0xFF && header[1] == 0xD8;
+          final isPng = header.length >= 8 &&
+              header[0] == 0x89 &&
+              header[1] == 0x50 &&
+              header[2] == 0x4E &&
+              header[3] == 0x47 &&
+              header[4] == 0x0D &&
+              header[5] == 0x0A &&
+              header[6] == 0x1A &&
+              header[7] == 0x0A;
+          final magicOk = isJpeg || isPng;
+          if ((remoteLen <= 0 || localLen == remoteLen) && magicOk) {
+            // Looks complete, skip
+          } else {
+            filesToDownload.add(file);
+          }
+        } catch (_) {
           filesToDownload.add(file);
         }
       }
@@ -516,11 +616,12 @@ abstract class BaseDownloadManager extends ChangeNotifier {
 
         try {
           activeDownloads++;
-          final localFile = File('${dir.path}/${file.name}');
+          final targetFile = File('${dir.path}/${file.name}');
+          final tempFile = File('${dir.path}/${file.name}.part');
 
-          if (await localFile.exists()) {
+          if (await targetFile.exists()) {
             downloadedFiles++;
-            downloadedBytes += await localFile.length();
+            downloadedBytes += await targetFile.length();
             _updateState(_state.copyWith(
               downloadedFiles: downloadedFiles,
               downloadedBytes: downloadedBytes,
@@ -539,9 +640,13 @@ abstract class BaseDownloadManager extends ChangeNotifier {
           dio.options.sendTimeout = const Duration(seconds: 30);
 
           try {
+            // Ensure no stale temp file
+            if (await tempFile.exists()) {
+              await tempFile.delete();
+            }
             final response = await dio.download(
-              'https://drive.google.com/uc?export=download&id=${file.id}',
-              localFile.path,
+              'https://drive.usercontent.google.com/download?id=${file.id}&export=download',
+              tempFile.path,
               onReceiveProgress: (received, total) {
                 // Check for pause/cancel during download
                 if (_isCancelled || _isPaused) {
@@ -551,17 +656,55 @@ abstract class BaseDownloadManager extends ChangeNotifier {
             );
 
             if (response.statusCode == 200) {
+              // Validate magic bytes before finalizing
+              bool magicOk = false;
+              try {
+                final raf = await tempFile.open();
+                final header = await raf.read(8);
+                await raf.close();
+                final isJpeg = header.length >= 3 && header[0] == 0xFF && header[1] == 0xD8;
+                final isPng = header.length >= 8 &&
+                    header[0] == 0x89 &&
+                    header[1] == 0x50 &&
+                    header[2] == 0x4E &&
+                    header[3] == 0x47 &&
+                    header[4] == 0x0D &&
+                    header[5] == 0x0A &&
+                    header[6] == 0x1A &&
+                    header[7] == 0x0A;
+                magicOk = isJpeg || isPng;
+              } catch (_) {
+                magicOk = false;
+              }
+
+              if (!magicOk) {
+                // Treat as failed download so it will retry next run
+                throw Exception('Invalid image data (bad magic header)');
+              }
+
               downloadedFiles++;
-              downloadedBytes += await localFile.length();
+              // Atomically move completed temp file into place
+              if (await targetFile.exists()) {
+                await targetFile.delete();
+              }
+              await tempFile.rename(targetFile.path);
+              downloadedBytes += await targetFile.length();
               _updateState(_state.copyWith(
                 downloadedFiles: downloadedFiles,
                 downloadedBytes: downloadedBytes,
                 progress: downloadedFiles / totalFiles,
+                currentFile: file.name,
               ));
             }
           } catch (e) {
             if (_isCancelled || _isPaused) {
               // Download was intentionally interrupted
+              // Clean up partial temp file
+              try {
+                if (await tempFile.exists()) {
+                  await tempFile.delete();
+                }
+              } catch (_) {}
               return;
             }
             throw e; // Re-throw other errors
@@ -594,6 +737,14 @@ abstract class BaseDownloadManager extends ChangeNotifier {
           if (activeDownloads == 0 && semaphore.isCompleted == false) {
             semaphore.complete();
           }
+          // On any non-success path, ensure temp file is removed
+          try {
+            final tempPath = '${dir.path}/${file.name}.part';
+            final f = File(tempPath);
+            if (await f.exists()) {
+              await f.delete();
+            }
+          } catch (_) {}
         }
       }
 
@@ -726,6 +877,44 @@ abstract class BaseDownloadManager extends ChangeNotifier {
 // --- Juz Download Manager ---
 class JuzDownloadManager extends BaseDownloadManager {
   final int juzNumber;
+  bool _isInitialized = false;
+
+  // This field is intentionally unused as it's only used in the base class
+  // ignore: unused_field
+  final Dio? _httpClient = null;
+
+  static const List<int> _juzStartingPages = [
+    1,
+    22,
+    42,
+    62,
+    82,
+    102,
+    121,
+    142,
+    162,
+    182,
+    201,
+    222,
+    242,
+    262,
+    282,
+    302,
+    322,
+    342,
+    362,
+    382,
+    402,
+    422,
+    442,
+    462,
+    482,
+    502,
+    522,
+    542,
+    562,
+    582
+  ];
 
   JuzDownloadManager({required this.juzNumber, required String folderId})
       : super(
@@ -733,7 +922,153 @@ class JuzDownloadManager extends BaseDownloadManager {
           localFolderName: 'quran_juz_$juzNumber',
           concurrentDownloads: 3,
           prefsKey: 'juz_download_state_$juzNumber',
-        );
+        ) {
+    _initialize();
+  }
+
+  // Get directory for this juz - handled by base class
+  // This method is intentionally empty as the base class handles directory creation
+  
+  // Override to save Juz files under a juz-specific directory that matches
+  // the progress scanner (quran_juz_<juzNumber>) used by the UI.
+  @override
+  Future<Directory> _getDownloadDirectory() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final dir = Directory('${appDir.path}/quran_juz_$juzNumber');
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    return dir;
+  }
+
+  Future<void> _initialize() async {
+    if (_isInitialized) return;
+    _isInitialized = true;
+
+    // Load existing state
+    await loadState();
+
+    // If we were downloading, reset to idle
+    if (_state.status == DownloadStatus.downloading) {
+      _updateState(_state.copyWith(
+        status: DownloadStatus.idle,
+        progress: 0,
+        currentFile: '',
+      ));
+    }
+  }
+
+  @override
+  Future<List<MapEntry<String, String>>> _getFilesToDownload() async {
+    try {
+      final files = await GoogleDriveHelper.listFilesInFolder(folderId);
+
+      // Filter only image files for this juz and map to (id, name) pairs
+      final juzFiles = <MapEntry<String, String>>[];
+      for (final file in files) {
+        final fileName = file.name ?? '';
+        if (fileName.isEmpty) continue;
+
+        final pageNumber = _extractPageNumber(fileName);
+        if (pageNumber > 0 && _isPageInJuz(pageNumber)) {
+          final fileId = file.id ?? '';
+          if (fileId.isNotEmpty) {
+            juzFiles.add(MapEntry(fileId, fileName));
+          }
+        }
+      }
+
+      return juzFiles;
+    } catch (e) {
+      _updateState(_state.copyWith(
+        status: DownloadStatus.error,
+        errorMessage: 'Failed to fetch file list: $e',
+      ));
+      rethrow;
+    }
+  }
+
+  @override
+  String _getFileSavePath(String fileName) {
+    // Extract page number from filename
+    final pageNumber = _extractPageNumber(fileName);
+
+    // If we can't determine the page number, just use the original filename
+    if (pageNumber <= 0) {
+      return fileName;
+    }
+
+    // Return just the filename, the full path will be handled by the base class
+    return 'juz_${juzNumber}_page_${pageNumber.toString().padLeft(3, '0')}.jpg';
+  }
+
+  static const List<int> juzStartingPages = [
+    1,
+    22,
+    42,
+    62,
+    82,
+    102,
+    121,
+    142,
+    162,
+    182,
+    201,
+    222,
+    242,
+    262,
+    282,
+    302,
+    322,
+    342,
+    362,
+    382,
+    402,
+    422,
+    442,
+    462,
+    482,
+    502,
+    522,
+    542,
+    562,
+    582
+  ];
+
+  bool _isPageInJuz(int pageNumber) {
+    if (juzNumber < 1 || juzNumber > 30) return false;
+
+    // Get page range for this juz
+    final startPage = _juzStartingPages[juzNumber - 1];
+    final endPage = juzNumber < 30 ? _juzStartingPages[juzNumber] - 1 : 604;
+
+    return pageNumber >= startPage && pageNumber <= endPage;
+  }
+
+  int _extractPageNumber(String filename) {
+    try {
+      // Try to extract page number from common patterns
+      final RegExp pageNumRegex =
+          RegExp(r'(\d{3})\.(jpg|jpeg|png)', caseSensitive: false);
+      final match = pageNumRegex.firstMatch(filename);
+      if (match != null && match.groupCount >= 1) {
+        return int.parse(match.group(1)!.trim());
+      }
+
+      // Try alternative patterns if needed
+      final altRegex = RegExp(r'page[_\s]*(\d+)', caseSensitive: false);
+      final altMatch = altRegex.firstMatch(filename);
+      if (altMatch != null && altMatch.groupCount >= 1) {
+        return int.parse(altMatch.group(1)!.trim());
+      }
+
+      debugPrint('Could not extract page number from: $filename');
+      return -1;
+    } catch (e) {
+      debugPrint('Error extracting page number from $filename: $e');
+      return -1;
+    }
+  }
 }
 
 // --- Full Quran Download Manager ---
@@ -741,6 +1076,28 @@ class FullQuranDownloadManager extends BaseDownloadManager {
   static final FullQuranDownloadManager _instance =
       FullQuranDownloadManager._internal();
   factory FullQuranDownloadManager() => _instance;
+
+  @override
+  @protected
+  Future<List<MapEntry<String, String>>> _getFilesToDownload() async {
+    final files = await GoogleDriveHelper.listFilesInFolder(folderId);
+
+    // Filter and map files to their IDs and names
+    return files
+        .where((file) => file.name.endsWith('.jpg'))
+        .map((file) => MapEntry(file.id, file.name))
+        .toList();
+  }
+
+  @override
+  @protected
+  String _getFileSavePath(String fileName) {
+    // For full Quran, files are stored directly in the download directory
+    if (_downloadDir == null) {
+      throw StateError('Download directory not initialized');
+    }
+    return '${_downloadDir!.path}/$fileName';
+  }
 
   // Hardcoded Quran constants
   static const int TOTAL_QURAN_PAGES = 604;
@@ -860,50 +1217,118 @@ class FullQuranDownloadManager extends BaseDownloadManager {
   // Override to get Juz-specific directory
   @override
   Future<Directory> _getDownloadDirectory() async {
-    // This method is overridden to handle Juz-specific directories
-    // The actual directory will be determined per file during download
-    final appDir = await getApplicationDocumentsDirectory();
-    _downloadDir = Directory('${appDir.path}/quran_full'); // Default fallback
+    // Always use juz-specific directory to prevent duplicates
+    if (this is JuzDownloadManager) {
+      final juzNumber = (this as JuzDownloadManager).juzNumber;
+      final appDir = await getApplicationDocumentsDirectory();
+      _downloadDir = Directory('${appDir.path}/quran_juz_$juzNumber');
+    } else {
+      final appDir = await getApplicationDocumentsDirectory();
+      _downloadDir = Directory('${appDir.path}/quran_full');
+    }
+
     if (!await _downloadDir!.exists()) {
       await _downloadDir!.create(recursive: true);
     }
     return _downloadDir!;
   }
 
-  // Get the appropriate Juz directory for a given page number
-  Future<Directory> _getJuzDirectoryForPage(int pageNumber) async {
-    final appDir = await getApplicationDocumentsDirectory();
-
-    // Find which Juz this page belongs to
-    final juzNumber = _getJuzNumberForPage(pageNumber);
-
-    final juzDir = Directory('${appDir.path}/quran_juz_$juzNumber');
-    if (!await juzDir.exists()) {
-      await juzDir.create(recursive: true);
+  // Get directory for a specific juz
+  Future<Directory> _getJuzDirectory(int juzNumber) async {
+    final dir = Directory(
+        '${(await getApplicationDocumentsDirectory()).path}/quran_juz_$juzNumber');
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
     }
-    return juzDir;
+    return dir;
   }
+
+  // Get directory for a specific juz by page number
+  Future<Directory> _getJuzDirectoryForPage(int pageNumber) =>
+      _getJuzDirectory(_getJuzNumberForPage(pageNumber));
+
+  // Juz starting pages (1-based)
+  static const List<int> _juzStartingPages = [
+    1,
+    22,
+    42,
+    62,
+    82,
+    102,
+    121,
+    142,
+    162,
+    182,
+    201,
+    222,
+    242,
+    262,
+    282,
+    302,
+    322,
+    342,
+    362,
+    382,
+    402,
+    422,
+    442,
+    462,
+    482,
+    502,
+    522,
+    542,
+    562,
+    582
+  ];
 
   // Extract page number from filename
   int _extractPageNumber(String filename) {
-    // Common patterns: page_001.jpg, 001.jpg, page001.jpg, etc.
-    final pageMatch = RegExp(r'(\d+)').firstMatch(filename);
-    if (pageMatch != null) {
-      return int.tryParse(pageMatch.group(1)!) ?? 0;
+    try {
+      // Try matching common page number patterns
+      final patterns = [
+        RegExp(r'page[_\s]*(\d+)'), // page_001, page 001, page001
+        RegExp(r'(\d{3,})\.'), // 001.jpg, 001.png, etc.
+        RegExp(r'(\d+)') // any number sequence
+      ];
+
+      for (final pattern in patterns) {
+        final match = pattern.firstMatch(filename.toLowerCase());
+        if (match != null && match.groupCount >= 1) {
+          final number = int.tryParse(match.group(1) ?? '');
+          if (number != null && number > 0) {
+            return number;
+          }
+        }
+      }
+      return 0;
+    } catch (e) {
+      return 0;
     }
-    return 0;
   }
 
-  // Helper method to get Juz number for a given page
+  // Get juz number for a page (1-based)
   int _getJuzNumberForPage(int pageNumber) {
-    // Find the correct Juz by checking page ranges
-    for (int i = 0; i < juzPageRanges.length; i++) {
-      final range = juzPageRanges[i];
-      if (pageNumber >= range.key && pageNumber <= range.value) {
+    // Check if using page ranges (preferred method)
+    if (juzPageRanges.isNotEmpty) {
+      for (int i = 0; i < juzPageRanges.length; i++) {
+        final range = juzPageRanges[i];
+        if (pageNumber >= range.key && pageNumber <= range.value) {
+          return i + 1; // Juz numbers are 1-based
+        }
+      }
+      return 1; // Default to Juz 1 if not found
+    }
+
+    // Fallback to starting pages method if ranges not available
+    if (pageNumber <= 0) return 1;
+
+    for (int i = 0; i < _juzStartingPages.length; i++) {
+      if (i == _juzStartingPages.length - 1 ||
+          pageNumber < _juzStartingPages[i + 1]) {
         return i + 1; // Juz numbers are 1-based
       }
     }
-    return 1; // Default to Juz 1 if not found
+    return _juzStartingPages.length; // Last juz
   }
 
   // Get the expected page count for a specific Juz

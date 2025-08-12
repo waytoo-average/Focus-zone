@@ -11,11 +11,12 @@ import 'package:open_filex/open_filex.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:developer' as developer;
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/cupertino.dart';
+import 'src/utils/feedback_manager.dart';
 
 // Core app imports
 import 'package:app/app_core.dart';
 import 'l10n/app_localizations.dart';
+import 'src/ui/notification_settings_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -566,59 +567,90 @@ class SettingsScreen extends StatelessWidget {
                 Navigator.pushNamed(context, '/collegeInfo');
               },
             ),
-            _buildSettingsItem(context,
-                s: s,
-                icon: Icons.language,
-                text: s.chooseLanguage,
-                trailing: Text(
-                    languageProvider.locale.languageCode == 'en'
-                        ? s.english
-                        : s.arabic,
-                    style: TextStyle(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withOpacity(0.6))), onTap: () {
-              showModalBottomSheet(
-                context: context,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            _buildSettingsItem(
+              context,
+              s: s,
+              icon: Icons.feedback_outlined,
+              text: s.feedbackCenter,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const FeedbackCenterScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+            _buildSettingsItem(
+              context,
+              s: s,
+              icon: Icons.language_outlined,
+              text: s.chooseLanguage,
+              trailing: Text(
+                languageProvider.locale.languageCode == 'ar'
+                    ? 'العربية'
+                    : 'English',
+                style: TextStyle(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withOpacity(0.6),
                 ),
-                builder: (BuildContext dialogContext) {
-                  return Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(s.chooseLanguage,
-                            style: Theme.of(context).textTheme.titleLarge),
-                        const SizedBox(height: 16),
-                        _OptionCard(
-                          title: s.english,
-                          icon: Icons.language,
-                          selected:
-                              languageProvider.locale.languageCode == 'en',
-                          onTap: () {
-                            languageProvider.setLocale(const Locale('en'));
-                            Navigator.of(dialogContext).pop();
-                          },
-                        ),
-                        _OptionCard(
-                          title: s.arabic,
-                          icon: Icons.language,
-                          selected:
-                              languageProvider.locale.languageCode == 'ar',
-                          onTap: () {
-                            languageProvider.setLocale(const Locale('ar'));
-                            Navigator.of(dialogContext).pop();
-                          },
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            }),
+              ),
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  builder: (BuildContext dialogContext) {
+                    return Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(s.chooseLanguage,
+                              style: Theme.of(context).textTheme.titleLarge),
+                          const SizedBox(height: 16),
+                          _OptionCard(
+                            title: 'English',
+                            icon: Icons.language,
+                            selected: languageProvider.locale.languageCode == 'en',
+                            onTap: () {
+                              languageProvider.setLocale(const Locale('en'));
+                              Navigator.of(dialogContext).pop();
+                            },
+                          ),
+                          _OptionCard(
+                            title: 'العربية',
+                            icon: Icons.language,
+                            selected: languageProvider.locale.languageCode == 'ar',
+                            onTap: () {
+                              languageProvider.setLocale(const Locale('ar'));
+                              Navigator.of(dialogContext).pop();
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+            _buildSettingsItem(
+              context,
+              s: s,
+              icon: Icons.notifications_outlined,
+              text: s.notificationSettingsTitle, 
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (ctx) => const NotificationSettingsScreen(),
+                  ),
+                );
+              },
+            ),
             _buildSettingsItem(context,
                 s: s,
                 icon: Icons.brightness_6_outlined,
@@ -799,10 +831,7 @@ class SettingsScreen extends StatelessWidget {
                 Navigator.pushNamed(context, '/about');
               },
             ),
-          ]
-              .map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 0), child: item))
-              .toList(),
+          ],
         ),
       ),
     );
@@ -841,7 +870,7 @@ class AboutScreen extends StatelessWidget {
   static const String facebookUrl = 'https://www.facebook.com/belal.elnmr/';
   static const String appCurrentVersion = '0.1.3';
   static const String phoneNumber = '+201026027552';
-  static const String emailAddress = 'belal.elnemr.work@gmail.com';
+  static const String emailAddress = 'belalmohamedelnemr0@gmail.com';
 
   Future<void> _launchUrl(BuildContext context, String url) async {
     final s = AppLocalizations.of(context);
@@ -1030,7 +1059,7 @@ class CollegeInfoScreen extends StatelessWidget {
     final s = AppLocalizations.of(context)!;
     const String facebookUrl = 'https://www.facebook.com/2018ECCAT';
     const String googleMapsUrl =
-        'https://www.google.com/maps/place/Higher+Institute+of+Engineering+and+Technology+in+Belbeis';
+        'https://maps.app.goo.gl/xC55Rg5va37txSqC7';
     return Scaffold(
       appBar: AppBar(
           title: Text(s.aboutCollege),

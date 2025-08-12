@@ -2,7 +2,6 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -1095,7 +1094,7 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
     final currentLocale = langProvider.locale;
     final langCode = currentLocale.languageCode;
 
-    final cachedData = await _PrayerTimesCache.load();
+    final cachedData = await PrayerTimesCache.load();
     if (cachedData != null) {
       if (mounted) {
         setState(() {
@@ -1131,7 +1130,7 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
             _isLoading = false;
             _dataLocale = currentLocale;
           });
-          await _PrayerTimesCache.save(newPrayerData);
+          await PrayerTimesCache.save(newPrayerData);
           _calculateNextPrayer();
         }
       } else {
@@ -1377,7 +1376,7 @@ class PrayerTime {
   PrayerTime({required this.name, required this.time});
 }
 
-class _PrayerTimesCache {
+class PrayerTimesCache {
   static const _kPrayerDataKey = 'prayerData';
 
   static Future<void> save(PrayerData data) async {

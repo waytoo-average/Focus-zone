@@ -4,9 +4,10 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app/todo_features.dart';
 import 'package:app/l10n/app_localizations.dart';
-import 'package:app/src/utils/download_manager_v3.dart' as download_manager;
+import 'package:app/zikr_features.dart';
 
 class NotificationManager {
   NotificationManager._privateConstructor();
@@ -25,6 +26,15 @@ class NotificationManager {
 
   static Future<void> scheduleTodoNotification(
       BuildContext context, TodoItem task, AppLocalizations s) async {
+    final prefs = await SharedPreferences.getInstance();
+    final todoEnabled = prefs.getBool('notif_todo_enabled') ?? true;
+    if (!todoEnabled) {
+      final plugin =
+          Provider.of<FlutterLocalNotificationsPlugin>(context, listen: false);
+      await plugin.cancel(task.hashCode);
+      return;
+    }
+
     final plugin =
         Provider.of<FlutterLocalNotificationsPlugin>(context, listen: false);
     if (task.dueDate == null || task.dueTime == null || task.isCompleted) {
@@ -41,21 +51,39 @@ class NotificationManager {
       task.dueTime!.minute,
     );
 
-    if (scheduleDateTime.isBefore(now)) {
+    // --- Integrate vibration and timing settings ---
+    final todoVibration = prefs.getBool('notif_todo_vibration') ?? true;
+    final taskTimeIdx = prefs.getInt('notif_task_time') ?? 0;
+    // Map TaskNotificationTimeOption index to Duration
+    final List<Duration> advanceDurations = [
+      Duration.zero, // atDeadline
+      const Duration(minutes: 5),
+      const Duration(minutes: 15),
+      const Duration(minutes: 30),
+      const Duration(hours: 1),
+      const Duration(hours: 2),
+      const Duration(hours: 3),
+    ];
+    final advance = (taskTimeIdx >= 0 && taskTimeIdx < advanceDurations.length)
+        ? advanceDurations[taskTimeIdx]
+        : Duration.zero;
+    final scheduledDateTime = scheduleDateTime.subtract(advance);
+    if (scheduledDateTime.isBefore(now)) {
       await plugin.cancel(task.hashCode);
       return;
     }
-
     final tz.TZDateTime tzScheduleDateTime =
-        tz.TZDateTime.from(scheduleDateTime, tz.local);
-    const androidDetails = AndroidNotificationDetails(
+        tz.TZDateTime.from(scheduledDateTime, tz.local);
+    final androidDetails = AndroidNotificationDetails(
       'task_reminders_channel',
       'Task Reminders',
       channelDescription: 'Reminders for your tasks',
       importance: Importance.max,
       priority: Priority.high,
+      enableVibration: todoVibration,
+      playSound: true,
     );
-    const notificationDetails = NotificationDetails(android: androidDetails);
+    final notificationDetails = NotificationDetails(android: androidDetails);
 
     DateTimeComponents? dateTimeComponents;
     if (task.isRepeating) {
@@ -92,8 +120,17 @@ class NotificationManager {
   // --- Quran Download Notifications ---
   static Future<void> showQuranDownloadNotification(
       BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    final quranEnabled = prefs.getBool('notif_quran_enabled') ?? true;
+    if (!quranEnabled) {
+      await instance.plugin.cancel(_quranDownloadNotificationId);
+      return;
+    }
+
     try {
       print('🔔 Showing Quran download notification');
+
+      final quranVibration = prefs.getBool('notif_quran_vibration') ?? true;
 
       // Create a more persistent notification for modern Android
       final notificationDetails = NotificationDetails(
@@ -106,7 +143,7 @@ class NotificationManager {
           priority: Priority.max, // Use max priority
           ongoing: true,
           autoCancel: false,
-          enableVibration: false,
+          enableVibration: quranVibration,
           playSound: false,
           silent: true,
           category: AndroidNotificationCategory.progress,
@@ -143,9 +180,18 @@ class NotificationManager {
   static Future<void> updateQuranDownloadNotification(
       BuildContext context, String title, String body,
       {int? progress}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final quranEnabled = prefs.getBool('notif_quran_enabled') ?? true;
+    if (!quranEnabled) {
+      await instance.plugin.cancel(_quranDownloadNotificationId);
+      return;
+    }
+
     try {
       print(
           '🔔 Updating Quran download notification: $title - $body (Progress: $progress%)');
+
+      final quranVibration = prefs.getBool('notif_quran_vibration') ?? true;
 
       // Create a more detailed body with progress
       String detailedBody = body;
@@ -164,7 +210,7 @@ class NotificationManager {
           priority: Priority.max, // Use max priority
           ongoing: true,
           autoCancel: false,
-          enableVibration: false,
+          enableVibration: quranVibration,
           playSound: false,
           silent: true,
           category: AndroidNotificationCategory.progress,
@@ -229,4 +275,114 @@ class NotificationManager {
       icon: 'ic_stat_notify',
     );
   }
+
+  /// Schedules notifications for all prayers in today's PrayerData.
+  /// Each notification is scheduled 1 minute before the prayer time, using user timing/vibration settings.
+  static Future<void> schedulePrayerNotifications(BuildContext context, AppLocalizations s) async {
+    final prefs = await SharedPreferences.getInstance();
+    final prayerEnabled = prefs.getBool('notif_prayer_enabled') ?? true;
+    if (!prayerEnabled) {
+      await cancelAllPrayerNotifications(context);
+      return;
+    }
+    final todoVibration = prefs.getBool('notif_todo_vibration') ?? true;
+    final prayerTimeIdx = prefs.getInt('notif_prayer_time') ?? 0;
+    final List<Duration> advanceDurations = [
+      Duration.zero, // atDeadline
+      const Duration(minutes: 5),
+      const Duration(minutes: 15),
+      const Duration(minutes: 30),
+      const Duration(hours: 1),
+      const Duration(hours: 2),
+      const Duration(hours: 3),
+    ];
+    final advance = (prayerTimeIdx >= 0 && prayerTimeIdx < advanceDurations.length)
+        ? advanceDurations[prayerTimeIdx]
+        : Duration.zero;
+
+    final prayerData = await PrayerTimesCache.load();
+    if (prayerData == null) return;
+    final now = DateTime.now();
+    final plugin = Provider.of<FlutterLocalNotificationsPlugin>(context, listen: false);
+    for (final entry in prayerData.timings.entries) {
+      final prayerName = entry.key;
+      final timeStr = entry.value;
+      final timeParts = timeStr.split(":");
+      if (timeParts.length < 2) continue;
+      final hour = int.tryParse(timeParts[0]);
+      final minute = int.tryParse(timeParts[1]);
+      if (hour == null || minute == null) continue;
+      final scheduledDateTime = DateTime(now.year, now.month, now.day, hour, minute)
+        .subtract(const Duration(minutes: 1))
+        .subtract(advance);
+      if (scheduledDateTime.isBefore(now)) {
+        // Don't schedule past notifications
+        continue;
+      }
+      final tzScheduleDateTime = tz.TZDateTime.from(scheduledDateTime, tz.local);
+      final androidDetails = AndroidNotificationDetails(
+        'prayer_times_channel',
+        'Prayer Times',
+        channelDescription: 'Prayer time notifications',
+        importance: Importance.max,
+        priority: Priority.high,
+        enableVibration: todoVibration,
+        playSound: true,
+      );
+      final notificationDetails = NotificationDetails(android: androidDetails);
+      final notificationId = _prayerNotificationId(prayerName, now);
+    
+    // Create dynamic notification text based on advance time
+    String notificationBody;
+    if (advance == Duration.zero) {
+      // At prayer time - use original text
+      notificationBody = s.prayerNotificationBody(prayerName);
+    } else {
+      // Calculate time text based on advance duration
+      String timeText;
+      if (advance.inHours > 0) {
+        if (advance.inHours == 1) {
+          timeText = s.inOneHour;
+        } else {
+          timeText = s.inHours(advance.inHours);
+        }
+      } else {
+        if (advance.inMinutes == 1) {
+          timeText = s.inOneMinute;
+        } else {
+          timeText = s.inMinutes(advance.inMinutes);
+        }
+      }
+      notificationBody = s.prayerNotificationBodyAdvance(prayerName, timeText);
+    }
+    
+    await plugin.zonedSchedule(
+      notificationId,
+      s.appTitle,
+      notificationBody,
+      tzScheduleDateTime,
+      notificationDetails,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      payload: 'prayer:$prayerName',
+    );
+    }
+  }
+
+  /// Cancels all prayer notifications for today.
+  static Future<void> cancelAllPrayerNotifications(BuildContext context) async {
+    final now = DateTime.now();
+    final plugin = Provider.of<FlutterLocalNotificationsPlugin>(context, listen: false);
+    // Use all possible prayer names
+    const prayerNames = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+    for (final name in prayerNames) {
+      await plugin.cancel(_prayerNotificationId(name, now));
+    }
+  }
+
+  /// Generates a unique notification ID for a prayer and date.
+  static int _prayerNotificationId(String prayerName, DateTime date) {
+    return '${prayerName}_${date.year}_${date.month}_${date.day}'.hashCode;
+  }
 }
+

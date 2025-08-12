@@ -98,6 +98,72 @@ abstract class AppLocalizations {
     Locale('en')
   ];
 
+  /// No description provided for @feedbackCenter.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback Center'**
+  String get feedbackCenter;
+
+  /// No description provided for @sendFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Feedback'**
+  String get sendFeedback;
+
+  /// No description provided for @sendFeedbackDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your thoughts, bugs, or issues with us.'**
+  String get sendFeedbackDesc;
+
+  /// No description provided for @yourSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Suggestions'**
+  String get yourSuggestions;
+
+  /// No description provided for @yourSuggestionsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'View and manage your submitted feedback.'**
+  String get yourSuggestionsDesc;
+
+  /// No description provided for @developerSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer Suggestions'**
+  String get developerSuggestions;
+
+  /// No description provided for @developerSuggestionsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'See what the developer is working on and vote or comment.'**
+  String get developerSuggestionsDesc;
+
+  /// No description provided for @userInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Info'**
+  String get userInfo;
+
+  /// No description provided for @userInfoDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Optionally provide your name and phone to help us contact you.'**
+  String get userInfoDesc;
+
+  /// No description provided for @feedbackHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type your feedback here...'**
+  String get feedbackHint;
+
+  /// No description provided for @submit.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit'**
+  String get submit;
+
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
@@ -620,6 +686,96 @@ abstract class AppLocalizations {
   /// **'Custom download path cleared. Downloads will now go to app-specific storage.'**
   String get customDownloadPathClearedConfirmation;
 
+  /// No description provided for @notificationSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification Settings'**
+  String get notificationSettingsTitle;
+
+  /// No description provided for @todoNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Todo Notifications'**
+  String get todoNotifications;
+
+  /// No description provided for @todoVibration.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibration'**
+  String get todoVibration;
+
+  /// No description provided for @quranDownloadNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Quran Download Notifications'**
+  String get quranDownloadNotifications;
+
+  /// No description provided for @quranVibration.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibration'**
+  String get quranVibration;
+
+  /// No description provided for @taskReminderTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Task Reminder Time'**
+  String get taskReminderTime;
+
+  /// No description provided for @atDeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'At Deadline'**
+  String get atDeadline;
+
+  /// No description provided for @min5.
+  ///
+  /// In en, this message translates to:
+  /// **'5 min'**
+  String get min5;
+
+  /// No description provided for @min15.
+  ///
+  /// In en, this message translates to:
+  /// **'15 min'**
+  String get min15;
+
+  /// No description provided for @min30.
+  ///
+  /// In en, this message translates to:
+  /// **'30 min'**
+  String get min30;
+
+  /// No description provided for @hr1.
+  ///
+  /// In en, this message translates to:
+  /// **'1 hr'**
+  String get hr1;
+
+  /// No description provided for @hr2.
+  ///
+  /// In en, this message translates to:
+  /// **'2 hr'**
+  String get hr2;
+
+  /// No description provided for @hr3.
+  ///
+  /// In en, this message translates to:
+  /// **'3 hr'**
+  String get hr3;
+
+  /// No description provided for @todoVibrationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Todo Notifications'**
+  String get todoVibrationSubtitle;
+
+  /// No description provided for @quranVibrationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quran Download Notifications'**
+  String get quranVibrationSubtitle;
+
   /// No description provided for @clearPdfCache.
   ///
   /// In en, this message translates to:
@@ -685,6 +841,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Communication Engineering Student'**
   String get developerDetails;
+
+  /// No description provided for @feedbackCenterSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your thoughts and suggestions'**
+  String get feedbackCenterSubtitle;
+
+  /// No description provided for @developerSuggestionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Here are some features we\'re planning to add:'**
+  String get developerSuggestionsSubtitle;
+
+  /// No description provided for @yourOpinion.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Opinion'**
+  String get yourOpinion;
+
+  /// No description provided for @opinionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your thoughts about the app...'**
+  String get opinionHint;
+
+  /// No description provided for @suggestionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest new features or improvements...'**
+  String get suggestionHint;
+
+  /// No description provided for @submitOpinion.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit Opinion'**
+  String get submitOpinion;
+
+  /// No description provided for @submitSuggestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit Suggestion'**
+  String get submitSuggestion;
+
+  /// No description provided for @feedbackSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you for your feedback!'**
+  String get feedbackSubmitted;
+
+  /// No description provided for @feedbackError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to submit feedback. Please try again.'**
+  String get feedbackError;
+
+  /// No description provided for @feedbackEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your feedback before submitting.'**
+  String get feedbackEmpty;
 
   /// No description provided for @contactInfo.
   ///
@@ -2437,6 +2653,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{downloaded}/{total} Juzs downloaded'**
   String juzsDownloaded(Object downloaded, Object total);
+
+  /// No description provided for @enterYourInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your info (optional) to help us improve communication.'**
+  String get enterYourInfo;
+
+  /// No description provided for @continueButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get continueButton;
+
+  /// No description provided for @name.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get name;
+
+  /// No description provided for @phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get phone;
+
+  /// No description provided for @skip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get skip;
+
+  /// No description provided for @updateYourInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Update your info'**
+  String get updateYourInfo;
+
+  /// No description provided for @like.
+  ///
+  /// In en, this message translates to:
+  /// **'Like'**
+  String get like;
+
+  /// No description provided for @dislike.
+  ///
+  /// In en, this message translates to:
+  /// **'Dislike'**
+  String get dislike;
+
+  /// No description provided for @addComment.
+  ///
+  /// In en, this message translates to:
+  /// **'Add comment'**
+  String get addComment;
+
+  /// No description provided for @recentComments.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent comments'**
+  String get recentComments;
+
+  /// No description provided for @prayerReminderTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Prayer reminder time'**
+  String get prayerReminderTime;
+
+  /// No description provided for @prayerVibration.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibration'**
+  String get prayerVibration;
+
+  /// No description provided for @prayerVibrationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Prayer Notifications'**
+  String get prayerVibrationSubtitle;
+
+  /// No description provided for @globalNotificationsDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Global todo notifications are disabled'**
+  String get globalNotificationsDisabled;
+
+  /// No description provided for @prayerNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Prayer Time Notifications'**
+  String get prayerNotifications;
+
+  /// No description provided for @prayerNotificationBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{prayerName} prayer is in 1 minute'**
+  String prayerNotificationBody(Object prayerName);
+
+  /// No description provided for @prayerNotificationBodyAdvance.
+  ///
+  /// In en, this message translates to:
+  /// **'{prayerName} prayer is in {timeText}'**
+  String prayerNotificationBodyAdvance(Object prayerName, Object timeText);
+
+  /// No description provided for @atPrayerTime.
+  ///
+  /// In en, this message translates to:
+  /// **'At prayer time'**
+  String get atPrayerTime;
+
+  /// No description provided for @inMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} minutes'**
+  String inMinutes(Object count);
+
+  /// No description provided for @inHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} hours'**
+  String inHours(Object count);
+
+  /// No description provided for @inOneMinute.
+  ///
+  /// In en, this message translates to:
+  /// **'1 minute'**
+  String get inOneMinute;
+
+  /// No description provided for @inOneHour.
+  ///
+  /// In en, this message translates to:
+  /// **'1 hour'**
+  String get inOneHour;
 }
 
 class _AppLocalizationsDelegate

@@ -9,6 +9,42 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get feedbackCenter => 'Feedback Center';
+
+  @override
+  String get sendFeedback => 'Send Feedback';
+
+  @override
+  String get sendFeedbackDesc =>
+      'Share your thoughts, bugs, or issues with us.';
+
+  @override
+  String get yourSuggestions => 'Your Suggestions';
+
+  @override
+  String get yourSuggestionsDesc => 'View and manage your submitted feedback.';
+
+  @override
+  String get developerSuggestions => 'Developer Suggestions';
+
+  @override
+  String get developerSuggestionsDesc =>
+      'See what the developer is working on and vote or comment.';
+
+  @override
+  String get userInfo => 'Your Info';
+
+  @override
+  String get userInfoDesc =>
+      'Optionally provide your name and phone to help us contact you.';
+
+  @override
+  String get feedbackHint => 'Type your feedback here...';
+
+  @override
+  String get submit => 'Submit';
+
+  @override
   String get appTitle => 'Focus Zone';
 
   @override
@@ -325,6 +361,51 @@ class AppLocalizationsEn extends AppLocalizations {
       'Custom download path cleared. Downloads will now go to app-specific storage.';
 
   @override
+  String get notificationSettingsTitle => 'Notification Settings';
+
+  @override
+  String get todoNotifications => 'Todo Notifications';
+
+  @override
+  String get todoVibration => 'Vibration';
+
+  @override
+  String get quranDownloadNotifications => 'Quran Download Notifications';
+
+  @override
+  String get quranVibration => 'Vibration';
+
+  @override
+  String get taskReminderTime => 'Task Reminder Time';
+
+  @override
+  String get atDeadline => 'At Deadline';
+
+  @override
+  String get min5 => '5 min';
+
+  @override
+  String get min15 => '15 min';
+
+  @override
+  String get min30 => '30 min';
+
+  @override
+  String get hr1 => '1 hr';
+
+  @override
+  String get hr2 => '2 hr';
+
+  @override
+  String get hr3 => '3 hr';
+
+  @override
+  String get todoVibrationSubtitle => 'Todo Notifications';
+
+  @override
+  String get quranVibrationSubtitle => 'Quran Download Notifications';
+
+  @override
   String get clearPdfCache => 'Clear PDF Cache';
 
   @override
@@ -362,6 +443,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get developerDetails => 'Communication Engineering Student';
+
+  @override
+  String get feedbackCenterSubtitle => 'Share your thoughts and suggestions';
+
+  @override
+  String get developerSuggestionsSubtitle =>
+      'Here are some features we\'re planning to add:';
+
+  @override
+  String get yourOpinion => 'Your Opinion';
+
+  @override
+  String get opinionHint => 'Share your thoughts about the app...';
+
+  @override
+  String get suggestionHint => 'Suggest new features or improvements...';
+
+  @override
+  String get submitOpinion => 'Submit Opinion';
+
+  @override
+  String get submitSuggestion => 'Submit Suggestion';
+
+  @override
+  String get feedbackSubmitted => 'Thank you for your feedback!';
+
+  @override
+  String get feedbackError => 'Failed to submit feedback. Please try again.';
+
+  @override
+  String get feedbackEmpty => 'Please enter your feedback before submitting.';
 
   @override
   String get contactInfo => 'Contact Info';
@@ -1380,4 +1492,80 @@ class AppLocalizationsEn extends AppLocalizations {
   String juzsDownloaded(Object downloaded, Object total) {
     return '$downloaded/$total Juzs downloaded';
   }
+
+  @override
+  String get enterYourInfo =>
+      'Enter your info (optional) to help us improve communication.';
+
+  @override
+  String get continueButton => 'Continue';
+
+  @override
+  String get name => 'Name';
+
+  @override
+  String get phone => 'Phone';
+
+  @override
+  String get skip => 'Skip';
+
+  @override
+  String get updateYourInfo => 'Update your info';
+
+  @override
+  String get like => 'Like';
+
+  @override
+  String get dislike => 'Dislike';
+
+  @override
+  String get addComment => 'Add comment';
+
+  @override
+  String get recentComments => 'Recent comments';
+
+  @override
+  String get prayerReminderTime => 'Prayer reminder time';
+
+  @override
+  String get prayerVibration => 'Vibration';
+
+  @override
+  String get prayerVibrationSubtitle => 'Prayer Notifications';
+
+  @override
+  String get globalNotificationsDisabled =>
+      'Global todo notifications are disabled';
+
+  @override
+  String get prayerNotifications => 'Prayer Time Notifications';
+
+  @override
+  String prayerNotificationBody(Object prayerName) {
+    return '$prayerName prayer is in 1 minute';
+  }
+
+  @override
+  String prayerNotificationBodyAdvance(Object prayerName, Object timeText) {
+    return '$prayerName prayer is in $timeText';
+  }
+
+  @override
+  String get atPrayerTime => 'At prayer time';
+
+  @override
+  String inMinutes(Object count) {
+    return '$count minutes';
+  }
+
+  @override
+  String inHours(Object count) {
+    return '$count hours';
+  }
+
+  @override
+  String get inOneMinute => '1 minute';
+
+  @override
+  String get inOneHour => '1 hour';
 }

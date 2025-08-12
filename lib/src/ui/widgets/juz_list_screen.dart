@@ -192,11 +192,15 @@ class _JuzListScreenState extends State<JuzListScreen>
 
   // Create individual JuzDownloadManager instances
   final Map<int, new_dm.JuzDownloadManager> _juzManagers = {};
+  final Map<int, StreamSubscription> _downloadSubscriptions = {};
 
   // Cache for all Juz progress data to avoid multiple calls
   Map<String, dynamic>? _cachedAllJuzProgress;
   DateTime? _lastCacheTime;
-  static const Duration _cacheValidDuration = Duration(seconds: 5);
+  static const Duration _cacheValidDuration = Duration(seconds: 1);
+  
+  // Flag to track if we're currently updating UI to prevent setState during build
+  bool _isUpdatingUI = false;
 
   @override
   void initState() {
@@ -213,8 +217,12 @@ class _JuzListScreenState extends State<JuzListScreen>
 
   // Invalidate cache to force fresh data fetch
   void _invalidateCache() {
-    _cachedAllJuzProgress = null;
-    _lastCacheTime = null;
+    if (mounted) {
+      setState(() {
+        _cachedAllJuzProgress = null;
+        _lastCacheTime = null;
+      });
+    }
   }
 
   @override
@@ -224,19 +232,46 @@ class _JuzListScreenState extends State<JuzListScreen>
     for (int juz = 1; juz <= 30; juz++) {
       final folderId = juzFolderIds[juz];
       if (folderId != null) {
-        _juzManagers[juz] = new_dm.JuzDownloadManager(
+        final manager = new_dm.JuzDownloadManager(
           juzNumber: juz,
           folderId: folderId,
         );
+        _juzManagers[juz] = manager;
+        
+        // Listen to download state changes
+        _downloadSubscriptions[juz] = manager.downloadStateStream.listen((_) {
+          // Invalidate cache when download state changes
+          _invalidateCache();
+          
+          // Only update UI if we're not already in the middle of an update
+          if (mounted && !_isUpdatingUI) {
+            _isUpdatingUI = true;
+            if (mounted) {
+              setState(() {
+                // Force UI rebuild
+              });
+            }
+            _isUpdatingUI = false;
+          }
+        });
       }
     }
   }
 
   @override
   void dispose() {
+    // Cancel all subscriptions
+    for (final subscription in _downloadSubscriptions.values) {
+      subscription.cancel();
+    }
+    _downloadSubscriptions.clear();
+    
+    // Dispose all managers
     for (final manager in _juzManagers.values) {
       manager.dispose();
     }
+    _juzManagers.clear();
+    
     super.dispose();
   }
 
@@ -341,11 +376,8 @@ class _JuzListScreenState extends State<JuzListScreen>
     ];
     final hizbLabel = 'الحزب';
 
-    // Use the first Juz manager to check if any manager is loading
-    final firstManager = _juzManagers.values.firstOrNull;
-    if (firstManager?.state.status == new_dm.DownloadStatus.downloading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    // Note: Avoid replacing the whole screen with a global spinner.
+    // Each Juz card will reflect its own progress to prevent full-screen rebuild UX issues.
 
     return Directionality(
       textDirection: TextDirection.ltr,
@@ -385,6 +417,7 @@ class _JuzListScreenState extends State<JuzListScreen>
                         return FutureBuilder<Map<String, dynamic>>(
                           future: _getJuzProgress(juzNumber),
                           builder: (context, snapshot) {
+                            final manager = _juzManagers[juzNumber];
                             final juzProgress = snapshot.data ??
                                 {
                                   'downloaded': false,
@@ -404,9 +437,8 @@ class _JuzListScreenState extends State<JuzListScreen>
                                 juzProgress['progress'] as double;
                             final fileSize = juzProgress['fileSize'] as int;
 
-                            // Use only the progress data, not individual manager state
-                            final isDownloading =
-                                false; // Individual managers don't track full Quran downloads
+                            // Reflect per-juz manager runtime state for active download UI
+                            final isDownloading = manager?.state.status == new_dm.DownloadStatus.downloading;
                             final isIdle = !isDownloaded && !isDownloading;
                             final isSelected =
                                 _selectedJuzs.contains(juzNumber);
@@ -434,77 +466,94 @@ class _JuzListScreenState extends State<JuzListScreen>
                                         width: 2)
                                     : BorderSide.none,
                               ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _JuzCard(
-                                    juz: juzNumber,
-                                    title: 'الجزء ${_arabicNumber(juzNumber)}',
-                                    expectedSize: expectedSize,
-                                    isSelected: isSelected,
-                                    isDownloaded: isDownloaded,
-                                    isDownloading: isDownloading,
-                                    isPaused: false, // Redefine isPaused
-                                    progress: isDownloading
-                                        ? juzProgressValue
-                                        : juzProgressValue,
-                                    onTap: isDownloaded
-                                        ? () => Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) => JuzViewerScreen(
-                                                    juzNumber: juzNumber),
-                                              ),
-                                            )
-                                        : () {},
-                                    onLongPress: () =>
-                                        _toggleSelection(juzNumber),
-                                    onDownload: null, // Removed onDownload
-                                    onCancel: null, // Removed onCancel
-                                    onPauseResume:
-                                        null, // Pause functionality removed
-                                    onDelete: isDownloaded
-                                        ? () async {
-                                            // Show confirmation dialog for delete
-                                            final shouldDelete =
-                                                await showDialog<bool>(
-                                              context: context,
-                                              builder: (context) => AlertDialog(
-                                                title: Text(
-                                                    'Delete Juz $juzNumber'),
-                                                content: Text(
-                                                    'Are you sure you want to delete Juz $juzNumber? '
-                                                    'This will free up storage space but you will need to download it again to view it.'),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.of(context)
-                                                            .pop(false),
-                                                    child: const Text('No'),
+                              child: StreamBuilder<new_dm.DownloadState>(
+                                stream: manager?.downloadStateStream,
+                                initialData: manager?.state,
+                                builder: (context, stateSnap) {
+                                  final dState = stateSnap.data ?? manager?.state;
+                                  final bool liveIsDownloading =
+                                      (dState?.status == new_dm.DownloadStatus.downloading);
+                                  final liveProgress = liveIsDownloading == true
+                                      ? (dState?.progress ?? juzProgressValue)
+                                      : juzProgressValue;
+                                  return Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _JuzCard(
+                                        juz: juzNumber,
+                                        title: 'الجزء ${_arabicNumber(juzNumber)}',
+                                        expectedSize: expectedSize,
+                                        isSelected: isSelected,
+                                        isDownloaded: isDownloaded,
+                                        isDownloading: liveIsDownloading,
+                                        isPaused: false,
+                                        // Drive the progress bar from live manager state when downloading, fallback to FS-based progress
+                                        progress: liveProgress,
+                                        onTap: isDownloaded
+                                            ? () => Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) => JuzViewerScreen(
+                                                        juzNumber: juzNumber),
                                                   ),
-                                                  TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.of(context)
-                                                            .pop(true),
-                                                    child: const Text('Delete'),
+                                                )
+                                            : () {},
+                                        onLongPress: () => _toggleSelection(juzNumber),
+                                        onDownload: isDownloaded || liveIsDownloading
+                                            ? null
+                                            : () async {
+                                                final m = _juzManagers[juzNumber];
+                                                if (m != null) {
+                                                  m.start(enableBackground: true);
+                                                  _invalidateCache();
+                                                }
+                                              },
+                                        onCancel: null,
+                                        onPauseResume: null,
+                                        onDelete: isDownloaded
+                                            ? () async {
+                                                final shouldDelete = await showDialog<bool>(
+                                                  context: context,
+                                                  builder: (context) => AlertDialog(
+                                                    title: Text('Delete Juz $juzNumber'),
+                                                    content: const Text('Are you sure you want to delete this Juz?'),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () => Navigator.of(context).pop(false),
+                                                        child: const Text('No'),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed: () => Navigator.of(context).pop(true),
+                                                        child: const Text('Delete'),
+                                                      ),
+                                                    ],
                                                   ),
-                                                ],
-                                              ),
-                                            );
-                                            if (shouldDelete == true) {
-                                              _juzManagers[juzNumber]!.delete();
-                                            }
-                                          }
-                                        : null,
-                                    onProperties: () {},
-                                    fileCount: downloadedPages,
-                                    totalFiles: totalPages,
-                                    errorMessage: null, // Removed errorMessage
-                                    isError: false, // Redefine isError
-                                    isPending: false,
-                                    pendingText: '',
-                                  ),
-                                ],
+                                                );
+                                                if (shouldDelete == true) {
+                                                  final m = _juzManagers[juzNumber];
+                                                  if (m != null) {
+                                                    await m.delete();
+                                                    _invalidateCache();
+                                                    if (mounted) {
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        SnackBar(content: Text('Deleted Juz $juzNumber')),
+                                                      );
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                             : null,
+                                        onProperties: () {},
+                                        fileCount: downloadedPages,
+                                        totalFiles: totalPages,
+                                        errorMessage: null,
+                                        isError: false,
+                                        isPending: false,
+                                        pendingText: '',
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
                             );
                           },
@@ -594,12 +643,12 @@ class _JuzListScreenState extends State<JuzListScreen>
               )
             : FutureBuilder<Map<String, dynamic>>(
                 future: _getAllJuzProgress(),
+                initialData: _cachedAllJuzProgress ??
+                    {'juzProgress': <int, Map<String, dynamic>>{}},
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  if (snapshot.hasError) {
+                  // Avoid full-screen spinner: render with initialData while waiting
+                  // Only show an error if there is no usable data at all
+                  if (snapshot.hasError && snapshot.data == null) {
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -633,7 +682,6 @@ class _JuzListScreenState extends State<JuzListScreen>
                       final juzNumber = index + 1;
                       final downloadState = _juzManagers[juzNumber]!.state;
                       final status = downloadState.status;
-                      final progress = downloadState.progress;
                       final error = downloadState.errorMessage;
 
                       // Get Juz progress from cached data
@@ -673,88 +721,100 @@ class _JuzListScreenState extends State<JuzListScreen>
                       final expectedSize =
                           fileSize > 0 ? formatFileSize(fileSize) : "";
 
+                      final manager = _juzManagers[juzNumber];
                       return Column(
                         children: [
                           Padding(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 0, vertical: 0),
-                            child: _JuzCard(
-                              juz: juzNumber,
-                              title: 'الجزء ${_arabicNumber(juzNumber)}',
-                              expectedSize: expectedSize,
-                              isSelected: isSelected,
-                              isDownloaded: isDownloaded,
-                              isDownloading: isDownloading,
-                              isPaused: false,
-                              progress:
-                                  isDownloading ? progress : juzProgressValue,
-                              onTap: isDownloaded
-                                  ? () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => JuzViewerScreen(
-                                              juzNumber: juzNumber),
-                                        ),
-                                      )
-                                  : () {},
-                              onLongPress: () => _toggleSelection(juzNumber),
-                              onDownload: isIdle ||
-                                      status == new_dm.DownloadStatus.error
-                                  ? () {
-                                      _juzManagers[juzNumber]!
-                                          .start(enableBackground: true);
-                                      _invalidateCache(); // Invalidate cache when starting download
-                                    }
-                                  : null,
-                              onCancel: isDownloading ||
-                                      status == new_dm.DownloadStatus.error
-                                  ? () {
-                                      _juzManagers[juzNumber]!.cancel();
-                                      _invalidateCache(); // Invalidate cache when canceling
-                                    }
-                                  : null,
-                              onPauseResume: null,
-                              onDelete: isDownloaded ||
-                                      status == new_dm.DownloadStatus.error ||
-                                      isIdle
-                                  ? () async {
-                                      final shouldDelete =
-                                          await showDialog<bool>(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: Text('Delete Juz $juzNumber'),
-                                          content: Text(
-                                              'Are you sure you want to delete Juz $juzNumber? '
-                                              'This will free up storage space but you will need to download it again to view it.'),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.of(context)
-                                                      .pop(false),
-                                              child: const Text('No'),
+                            child: StreamBuilder<new_dm.DownloadState>(
+                              stream: manager?.downloadStateStream,
+                              initialData: manager?.state,
+                              builder: (context, stateSnap) {
+                                final dState = stateSnap.data ?? manager?.state;
+                                final bool liveIsDownloading =
+                                    (dState?.status == new_dm.DownloadStatus.downloading);
+                                final liveProgress = liveIsDownloading == true
+                                    ? (dState?.progress ?? juzProgressValue)
+                                    : juzProgressValue;
+                                return _JuzCard(
+                                  juz: juzNumber,
+                                  title: 'الجزء ${_arabicNumber(juzNumber)}',
+                                  expectedSize: expectedSize,
+                                  isSelected: isSelected,
+                                  isDownloaded: isDownloaded,
+                                  isDownloading: liveIsDownloading,
+                                  isPaused: false,
+                                  progress: liveProgress,
+                                  onTap: isDownloaded
+                                      ? () => Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => JuzViewerScreen(
+                                                  juzNumber: juzNumber),
                                             ),
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.of(context)
-                                                      .pop(true),
-                                              child: const Text('Delete'),
+                                          )
+                                      : () {},
+                                  onLongPress: () => _toggleSelection(juzNumber),
+                                  onDownload: (!isDownloaded && (liveIsDownloading != true)) ||
+                                          status == new_dm.DownloadStatus.error
+                                      ? () {
+                                          manager!.start(enableBackground: true);
+                                          _invalidateCache();
+                                        }
+                                      : null,
+                                  onCancel: (liveIsDownloading == true) ||
+                                          status == new_dm.DownloadStatus.error
+                                      ? () {
+                                          manager!.cancel();
+                                          _invalidateCache();
+                                        }
+                                      : null,
+                                  onPauseResume: null,
+                                  onDelete: isDownloaded ||
+                                          status == new_dm.DownloadStatus.error ||
+                                          (!isDownloaded && liveIsDownloading != true && isIdle)
+                                      ? () async {
+                                          final shouldDelete = await showDialog<bool>(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: Text('Delete Juz $juzNumber'),
+                                              content: Text(
+                                                  'Are you sure you want to delete Juz $juzNumber? This will free up storage space but you will need to download it again to view it.'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.of(context).pop(false),
+                                                  child: const Text('No'),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () => Navigator.of(context).pop(true),
+                                                  child: const Text('Delete'),
+                                                ),
+                                              ],
                                             ),
-                                          ],
-                                        ),
-                                      );
-                                      if (shouldDelete == true) {
-                                        _juzManagers[juzNumber]!.delete();
-                                        _invalidateCache(); // Invalidate cache when deleting
-                                      }
-                                    }
-                                  : null,
-                              onProperties: () {},
-                              fileCount: downloadedPages,
-                              totalFiles: totalPages,
-                              errorMessage: error,
-                              isError: status == new_dm.DownloadStatus.error,
-                              isPending: false,
-                              pendingText: '',
+                                          );
+                                          if (shouldDelete == true) {
+                                            if (manager != null) {
+                                              await manager.delete();
+                                              _invalidateCache();
+                                              if (mounted) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(content: Text('Deleted Juz $juzNumber')),
+                                                );
+                                              }
+                                            }
+                                          }
+                                        }
+                                      : null,
+                                  onProperties: () {},
+                                  fileCount: downloadedPages,
+                                  totalFiles: totalPages,
+                                  errorMessage: error,
+                                  isError: status == new_dm.DownloadStatus.error,
+                                  isPending: status == new_dm.DownloadStatus.idle,
+                                  pendingText: '',
+                                );
+                              },
                             ),
                           ),
                           if (index < juzCount - 1)
@@ -1068,6 +1128,15 @@ class _JuzCard extends StatelessWidget {
                   icon: const Icon(Icons.download),
                   onPressed: onDownload,
                   color: theme.colorScheme.primary,
+                ),
+              )
+            else if (onDelete != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 8.0),
+                child: IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: onDelete,
+                  color: theme.colorScheme.error,
                 ),
               ),
           ],

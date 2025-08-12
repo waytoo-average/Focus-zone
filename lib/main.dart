@@ -83,6 +83,9 @@ void main() async {
         ChangeNotifierProvider(create: (_) => RecentFilesProvider()),
         ChangeNotifierProvider(create: (_) => TodoSummaryProvider()),
         ChangeNotifierProvider(create: (_) => FirstLaunchProvider()),
+        ChangeNotifierProvider(create: (_) => UserInfoProvider()),
+        ChangeNotifierProvider(create: (_) => UserFeedbackProvider()),
+        ChangeNotifierProvider(create: (_) => DeveloperSuggestionsProvider()),
         ChangeNotifierProvider(create: (_) => globalDownloadManager!),
         Provider<FlutterLocalNotificationsPlugin>.value(
             value: flutterLocalNotificationsPlugin),
