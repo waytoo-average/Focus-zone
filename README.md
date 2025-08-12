@@ -80,7 +80,8 @@ MIT © 2025 Belal Mohamed Elnemr
 
 ## 📬 Contributions
 
-@subhan_0073
+![Contributors](https://img.shields.io/github/contributors/subhan_0073/REPO?color=blue)
+
 -----
 
 ### Project Version
