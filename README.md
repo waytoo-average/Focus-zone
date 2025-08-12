@@ -80,7 +80,7 @@ MIT © 2025 Belal Mohamed Elnemr
 
 ## 📬 Contributions
 
-![Contributors](https://img.shields.io/github/contributors/subhan_0073/REPO?color=blue)
+![Contributors](https://img.shields.io/github/contributors/waytoo-average/Focus-zone?color=blue)
 
 -----
 
