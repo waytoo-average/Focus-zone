@@ -12,6 +12,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:developer' as developer;
 import 'package:file_picker/file_picker.dart';
 import 'src/utils/feedback_manager.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'update_helper.dart';
 
 // Core app imports
 import 'package:app/app_core.dart';
@@ -52,6 +54,8 @@ class SettingsScreen extends StatelessWidget {
       }
     }
   }
+
+ 
 
   Future<void> openFolderInListView({
     required BuildContext context,
@@ -855,6 +859,213 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
+class _UpdateStatusCard extends StatefulWidget {
+  const _UpdateStatusCard();
+
+  @override
+  State<_UpdateStatusCard> createState() => _UpdateStatusCardState();
+}
+
+class _UpdateStatusCardState extends State<_UpdateStatusCard> {
+  String? _currentVersion;
+  UpdateInfo? _updateInfo;
+  bool _checking = false;
+  bool _applying = false;
+  double _progress = 0.0;
+  bool _checked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      setState(() => _currentVersion = info.version);
+    } catch (_) {}
+  }
+
+  Future<void> _checkForUpdates() async {
+    if (_checking) return;
+    setState(() {
+      _checking = true;
+      _updateInfo = null;
+      _checked = false;
+    });
+    try {
+      final info = await UpdateHelper.checkForUpdate();
+      if (!mounted) return;
+      setState(() {
+        _updateInfo = info;
+        _checked = true;
+      });
+    } finally {
+      if (mounted) setState(() => _checking = false);
+    }
+  }
+
+  Future<void> _applyPatch(UpdateInfo info) async {
+    if (_applying) return;
+    setState(() {
+      _applying = true;
+      _progress = 0.0;
+    });
+    try {
+      final ok = await UpdateHelper.applyPatchUpdate(info, (p) {
+        if (mounted) setState(() => _progress = p.clamp(0.0, 1.0));
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(ok ? 'Update applied successfully.' : 'Failed to apply update.'),
+          backgroundColor: ok ? Colors.green : Colors.red,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to apply update.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _applying = false);
+    }
+  }
+
+  Future<void> _openDownload(UpdateInfo info) async {
+    // Always open the versions page for full updates
+    final url = 'https://focus-zonee.netlify.app/versions';
+    try {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not launch: $url')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not launch: $url')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final color = theme.colorScheme;
+
+    String statusText;
+    Color statusColor = theme.textTheme.bodyMedium?.color ?? Colors.black54;
+    Widget? actionRow;
+
+    if (_checking) {
+      statusText = 'Checking for updates...';
+    } else if (_checked && _updateInfo == null) {
+      statusText = 'Your app is up to date.';
+      statusColor = Colors.green[700] ?? statusColor;
+    } else if (_updateInfo == null) {
+      statusText = 'Unknown - tap to check for updates';
+      actionRow = Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FilledButton.icon(
+            icon: const Icon(Icons.system_update_alt),
+            label: const Text('Check for updates'),
+            onPressed: _checkForUpdates,
+          ),
+        ],
+      );
+    } else {
+      // _updateInfo not null: either update available or up-to-date
+      final info = _updateInfo!;
+      if (info.updateType == UpdateType.none || info.latestVersion.isEmpty) {
+        statusText = 'Your app is up to date.';
+        statusColor = Colors.green[700] ?? statusColor;
+      } else {
+        final sizeText = UpdateHelper.getUpdateSize(info);
+        if (info.isPatchUpdate) {
+          statusText = 'Patch update available: v${info.latestVersion} • $sizeText';
+          statusColor = Colors.orange[700] ?? statusColor;
+          actionRow = Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (_applying) ...[
+                const SizedBox(height: 12),
+                LinearProgressIndicator(value: _progress),
+                const SizedBox(height: 6),
+                Text('${(_progress * 100).toStringAsFixed(0)}%', style: theme.textTheme.bodySmall),
+              ] else ...[
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  icon: const Icon(Icons.downloading),
+                  label: const Text('Apply patch update'),
+                  onPressed: () => _applyPatch(info),
+                ),
+              ],
+            ],
+          );
+        } else {
+          statusText = 'Full update available: v${info.latestVersion} • $sizeText';
+          statusColor = Colors.blue[700] ?? statusColor;
+          actionRow = Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              FilledButton.icon(
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('Visit download page'),
+                onPressed: () => _openDownload(info),
+              ),
+            ],
+          );
+        }
+      }
+    }
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: color.primary.withOpacity(0.1),
+                  child: Icon(Icons.system_update, color: color.primary),
+                ),
+                const SizedBox(width: 12),
+                Text('Update Status', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+                const Spacer(),
+                if (_currentVersion != null)
+                  Text('${s.appVersion}: ${_currentVersion!}', style: theme.textTheme.bodySmall),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(statusText, style: theme.textTheme.bodyMedium?.copyWith(color: statusColor)),
+            if (actionRow != null) ...[
+              const SizedBox(height: 8),
+              actionRow,
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // AboutScreen
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -862,14 +1073,7 @@ class AboutScreen extends StatelessWidget {
   static const String githubUrl = 'https://github.com/waytoo-average';
   static const String discordProfileUrl =
       'https://discord.com/users/858382338281963520';
-  static const String linkedinUrl =
-      'https://www.linkedin.com/in/belal-elnemr-94073322b/';
-  static const String xUrl = 'https://twitter.com/BelalElNmer';
-  static const String instagramUrl =
-      'https://www.instagram.com/belal_e_l_nemr/';
-  static const String facebookUrl = 'https://www.facebook.com/belal.elnmr/';
-  static const String appCurrentVersion = '0.1.3';
-  static const String phoneNumber = '+201026027552';
+  static const String phoneNumber = '+201027658156';
   static const String emailAddress = 'belalmohamedelnemr0@gmail.com';
 
   Future<void> _launchUrl(BuildContext context, String url) async {
@@ -894,7 +1098,6 @@ class AboutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
-    final Color? iconColor = Theme.of(context).colorScheme.onSurface;
 
     return Scaffold(
       appBar: AppBar(
@@ -926,11 +1129,21 @@ class AboutScreen extends StatelessWidget {
                           ?.copyWith(fontWeight: FontWeight.bold),
                       textAlign: TextAlign.center),
                   const SizedBox(height: 6),
-                  Text('${s.appVersion}: ${AboutScreen.appCurrentVersion}',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  FutureBuilder<PackageInfo>(
+                    future: PackageInfo.fromPlatform(),
+                    builder: (context, snapshot) {
+                      final version = snapshot.data?.version;
+                      return Text(
+                        version != null
+                            ? '${s.appVersion}: $version'
+                            : s.appVersion,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 10),
                   Text(s.appDescription,
                       textAlign: TextAlign.center,
@@ -939,6 +1152,9 @@ class AboutScreen extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 24),
+          // Update Status Card
+          const _UpdateStatusCard(),
           const SizedBox(height: 24),
           // Developer Info
           Text(s.madeBy, style: Theme.of(context).textTheme.titleLarge),

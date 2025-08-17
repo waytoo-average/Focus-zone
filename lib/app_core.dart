@@ -12,20 +12,18 @@ import 'dart:async'; // For providers async operations
 import 'dart:developer' as developer; // For logging in providers/helpers
 import 'dart:math'; // For pow in formatBytes
 import 'package:google_sign_in/google_sign_in.dart'; // For SignInProvider
-import 'package:googleapis/drive/v3.dart' as drive; // For SignInProvider
 import 'package:http/http.dart' as http; // For GoogleHttpClient
 import 'package:permission_handler/permission_handler.dart'; // For permissions in provider
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/timezone.dart' as tz;
 
 // App-specific feature imports
+import 'package:app/update_helper.dart';
+import 'package:app/notification_manager.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:app/study_features.dart';
 import 'package:app/todo_features.dart';
 import 'package:app/settings_features.dart';
 import 'package:app/zikr_features.dart';
-import 'package:app/helper.dart';
-import 'package:app/update_helper.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // --- Surah Model and Loader ---
 class Surah {
@@ -206,51 +204,102 @@ class AcademicContext {
 
 // --- Google Sign-In Provider ---
 class SignInProvider extends ChangeNotifier {
+  static const String _kSignInStateKey = 'signInState';
+  static const String _kUserEmailKey = 'userEmail';
+  static const String _kUserNameKey = 'userName';
+  static const String _kUserIdKey = 'userId';
+
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: <String>[
-      drive.DriveApi.driveReadonlyScope,
+      'email',
+      'profile',
     ],
+    // Remove hardcoded serverClientId - let it auto-detect from android/app/google-services.json
+    // This prevents client ID mismatches that cause silent sign-in failures
   );
 
   GoogleSignInAccount? _currentUser;
   GoogleSignInAccount? get currentUser => _currentUser;
+  bool _isSignedIn = false;
+  bool get isSignedIn => _isSignedIn;
 
   SignInProvider() {
     _googleSignIn.onCurrentUserChanged.listen((GoogleSignInAccount? account) {
       _currentUser = account;
+      _isSignedIn = account != null;
+      _persistSignInState();
       notifyListeners();
     });
+    _loadSignInState();
+  }
+
+  Future<void> _loadSignInState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _isSignedIn = prefs.getBool(_kSignInStateKey) ?? false;
+      notifyListeners();
+    } catch (e) {
+      _isSignedIn = false;
+    }
+  }
+
+  Future<void> _persistSignInState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_kSignInStateKey, _isSignedIn);
+      
+      if (_currentUser != null) {
+        await prefs.setString(_kUserEmailKey, _currentUser!.email);
+        await prefs.setString(_kUserNameKey, _currentUser!.displayName ?? '');
+        await prefs.setString(_kUserIdKey, _currentUser!.id);
+      } else if (!_isSignedIn) {
+        // Only clear stored user data when actually signed out
+        await prefs.remove(_kUserEmailKey);
+        await prefs.remove(_kUserNameKey);
+        await prefs.remove(_kUserIdKey);
+      }
+    } catch (e) {
+      // Silent error handling
+    }
   }
 
   Future<void> initiateSilentSignIn() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final wasPersistedAsSignedIn = prefs.getBool(_kSignInStateKey) ?? false;
+      
       final wasSignedIn = await _googleSignIn.isSignedIn();
-      if (wasSignedIn) {
+      
+      if (wasSignedIn || wasPersistedAsSignedIn) {
         final account = await _googleSignIn.signInSilently();
-        _currentUser = account;
+        
+        if (account != null) {
+          _currentUser = account;
+          _isSignedIn = true;
+        } else {
+          _currentUser = null;
+          _isSignedIn = false;
+          await _googleSignIn.signOut();
+        }
       } else {
         _currentUser = null;
+        _isSignedIn = false;
       }
-    } catch (e, stack) {
-      developer.log('Silent sign-in failed', error: e, stackTrace: stack);
+    } catch (e) {
       _currentUser = null;
+      _isSignedIn = false;
+      await _googleSignIn.signOut();
     } finally {
+      await _persistSignInState();
       notifyListeners();
     }
   }
 
   Future<void> signIn() async {
     try {
-      final account = await _googleSignIn.signIn();
-      if (account == null) {
-        developer.log('User cancelled sign-in', name: 'SignInProvider');
-      } else {
-        developer.log('Signed in as ${account.displayName}',
-            name: 'SignInProvider');
-      }
-    } catch (error, stack) {
-      developer.log('Google Sign-In failed: $error',
-          name: 'SignInProvider', error: error, stackTrace: stack);
+      await _googleSignIn.signIn();
+    } catch (error) {
+      // Silent error handling
     }
   }
 
@@ -258,14 +307,24 @@ class SignInProvider extends ChangeNotifier {
     try {
       final account = await _googleSignIn.signIn();
       if (account == null) {
-        developer.log('User cancelled sign-in', name: 'SignInProvider');
-      } else {
-        developer.log('Signed in as ${account.displayName}',
-            name: 'SignInProvider');
+        // User cancelled sign-in
+        return;
+      }
+
+      // Test if we can get auth headers
+      try {
+        await account.authHeaders;
+      } catch (e) {
+        if (context.mounted) {
+          showAppSnackBar(context, "Authentication failed: $e",
+              icon: Icons.error, backgroundColor: Colors.red);
+        }
       }
     } catch (error, stack) {
-      developer.log('Google Sign-In failed: $error',
-          name: 'SignInProvider', error: error, stackTrace: stack);
+      if (context.mounted) {
+        showAppSnackBar(context, "Sign-in error: $error",
+            icon: Icons.error, backgroundColor: Colors.red);
+      }
 
       // Check if the error is related to user limit or quota
       final errorString = error.toString().toLowerCase();
@@ -297,7 +356,22 @@ class SignInProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> signOut() => _googleSignIn.signOut();
+  Future<void> signOut() async {
+    await _googleSignIn.signOut();
+    _currentUser = null;
+    _isSignedIn = false;
+    await _persistSignInState();
+    notifyListeners();
+  }
+
+  Future<void> clearCachedAuth() async {
+    await _googleSignIn.signOut();
+    await _googleSignIn.disconnect();
+    _currentUser = null;
+    _isSignedIn = false;
+    await _persistSignInState();
+    notifyListeners();
+  }
 
   Future<http.Client?> get authenticatedHttpClient async {
     final GoogleSignInAccount? user = _currentUser;
@@ -309,10 +383,13 @@ class SignInProvider extends ChangeNotifier {
   }
 }
 
-// --- ThemeProvider for app-wide theme management ---
+// --- Enhanced ThemeProvider with smooth transitions ---
 class ThemeProvider extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
   ThemeMode get themeMode => _themeMode;
+
+  bool _isAnimating = false;
+  bool get isAnimating => _isAnimating;
 
   ThemeProvider() {
     _loadThemeMode();
@@ -327,11 +404,21 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setThemeMode(ThemeMode newMode) async {
+  Future<void> setThemeMode(ThemeMode newMode) async {
     if (newMode != _themeMode) {
+      _isAnimating = true;
+      notifyListeners();
+
+      // Add a small delay for smooth visual transition
+      await Future.delayed(const Duration(milliseconds: 150));
+
       _themeMode = newMode;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('themeMode', newMode.toString().split('.').last);
+
+      // Complete transition
+      await Future.delayed(const Duration(milliseconds: 150));
+      _isAnimating = false;
       notifyListeners();
     }
   }
@@ -688,16 +775,31 @@ class TodoSummaryProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> saveTodo(TodoItem todoItem) async {
+  Future<void> saveTodo(TodoItem todoItem, {BuildContext? context}) async {
     int existingIndex =
         _allTodos.indexWhere((t) => t.creationDate == todoItem.creationDate);
-    if (existingIndex != -1) {
+    bool isUpdate = existingIndex != -1;
+
+    if (isUpdate) {
       _allTodos[existingIndex] = todoItem;
     } else {
       _allTodos.add(todoItem);
     }
     await _persistTodos();
     notifyListeners();
+
+    // Automatically reschedule notification when task is updated
+    if (isUpdate && context != null) {
+      try {
+        final s = AppLocalizations.of(context);
+        if (s != null) {
+          await NotificationManager.scheduleTodoNotification(
+              context, todoItem, s);
+        }
+      } catch (e) {
+        print('❌ Error rescheduling todo notification: $e');
+      }
+    }
   }
 
   Future<void> deleteTodo(TodoItem todoItem) async {
@@ -746,135 +848,879 @@ class ErrorScreen extends StatelessWidget {
   }
 }
 
-// --- Splash Screen ---
+// --- Animated Splash Screen ---
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _logoController;
+  late AnimationController _textController;
+  late AnimationController _backgroundController;
+
+  late Animation<double> _logoScaleAnimation;
+  late Animation<double> _logoRotationAnimation;
+  late Animation<double> _textFadeAnimation;
+  late Animation<Offset> _textSlideAnimation;
+  late Animation<Color?> _backgroundColorAnimation;
+
   @override
   void initState() {
     super.initState();
+    _initAnimations();
     _handleStartupLogic();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Initialize theme-dependent animations after context is available
+    _backgroundColorAnimation = ColorTween(
+      begin: Theme.of(context).primaryColor.withOpacity(0.8),
+      end: Theme.of(context).primaryColor,
+    ).animate(CurvedAnimation(
+      parent: _backgroundController,
+      curve: Curves.easeInOut,
+    ));
+    _startAnimations();
+  }
+
+  void _initAnimations() {
+    // Logo animations
+    _logoController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    _logoScaleAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _logoController,
+      curve: Curves.elasticOut,
+    ));
+
+    _logoRotationAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _logoController,
+      curve: const Interval(0.0, 0.7, curve: Curves.easeInOut),
+    ));
+
+    // Text animations
+    _textController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+
+    _textFadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _textController,
+      curve: Curves.easeInOut,
+    ));
+
+    _textSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _textController,
+      curve: Curves.easeOutCubic,
+    ));
+
+    // Background color animation
+    _backgroundController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+  }
+
+  void _startAnimations() {
+    // Start background animation immediately
+    _backgroundController.forward();
+
+    // Start logo animation after a short delay
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) _logoController.forward();
+    });
+
+    // Start text animation after logo starts
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) _textController.forward();
+    });
   }
 
   Future<void> _handleStartupLogic() async {
     final signInProvider = Provider.of<SignInProvider>(context, listen: false);
     await signInProvider.initiateSilentSignIn();
 
-    // --- In-app update check ---
-    final updateInfo = await UpdateHelper.checkForUpdate();
-    if (updateInfo != null) {
-      bool proceed = false;
-      await showDialog(
-        context: context,
-        barrierDismissible: !updateInfo.mandatory,
-        builder: (context) {
-          double progress = 0;
-          bool downloading = false;
-          bool downloadComplete = false;
-          String? downloadedPath;
-          return StatefulBuilder(
-            builder: (context, setState) {
-              return AlertDialog(
-                title: Text('Update Available'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                        'A new version (${updateInfo.latestVersion}) is available.'),
-                    const SizedBox(height: 8),
-                    Text(updateInfo.changelog),
-                    if (downloading) ...[
-                      const SizedBox(height: 16),
-                      LinearProgressIndicator(value: progress),
-                      const SizedBox(height: 8),
-                      Text(
-                          'Downloading: ${(progress * 100).toStringAsFixed(0)}%'),
-                    ],
-                  ],
-                ),
-                actions: [
-                  if (!downloading && !downloadComplete)
-                    TextButton(
-                      onPressed: updateInfo.mandatory
-                          ? null
-                          : () {
-                              proceed = false;
-                              Navigator.of(context).pop();
-                            },
-                      child: const Text('Skip'),
-                    ),
-                  if (!downloading && !downloadComplete)
-                    ElevatedButton(
-                      onPressed: () async {
-                        setState(() {
-                          downloading = true;
-                        });
-                        final path = await UpdateHelper.downloadApk(
-                          updateInfo.apkUrl,
-                          (p) => setState(() => progress = p),
-                        );
-                        if (path != null) {
-                          setState(() {
-                            downloadComplete = true;
-                            downloadedPath = path;
-                          });
-                        } else {
-                          setState(() {
-                            downloading = false;
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('Download failed. Please try again.')),
-                          );
-                        }
-                      },
-                      child: const Text('Update Now'),
-                    ),
-                  if (downloadComplete && downloadedPath != null)
-                    ElevatedButton(
-                      onPressed: () async {
-                        await UpdateHelper.installApk(downloadedPath!);
-                        proceed = true;
-                        Navigator.of(context).pop();
-                      },
-                      child: const Text('Install'),
-                    ),
-                ],
-              );
-            },
-          );
-        },
-      );
-      if (!proceed && updateInfo.mandatory) {
-        // If update is mandatory and user didn't update, exit app
-        SystemNavigator.pop();
-        return;
-      }
-    }
+    // Wait for animations to complete before navigating
+    await Future.delayed(const Duration(milliseconds: 2500));
 
     if (!mounted) return;
-    await Navigator.pushReplacementNamed(context, '/rootScreen');
+    Navigator.pushReplacementNamed(context, '/rootScreen');
+
+    // Delay notification permission and update dialog until after splash finishes
+    Future.delayed(const Duration(seconds: 3), () async {
+      final ctx = rootScreenKey.currentContext;
+      if (ctx == null) return;
+      
+      // Request notification permission first
+      await _requestNotificationPermissionSafely(ctx);
+      
+      // Then show update dialog
+      await _maybeShowUpdateDialog(ctx);
+    });
+  }
+
+  Future<void> _requestNotificationPermissionSafely(BuildContext context) async {
+    try {
+      // Import permission_handler for proper notification permission handling
+      final status = await Permission.notification.status;
+      
+      if (status.isGranted) {
+        // Already granted, no need to show dialog
+        return;
+      }
+      
+      if (status.isDenied) {
+        // Show custom dialog first before requesting permission
+        final shouldRequest = await _showNotificationPermissionDialog(context);
+        if (shouldRequest) {
+          final result = await Permission.notification.request();
+          if (result.isGranted) {
+            // Permission granted, optionally show success message
+            if (context.mounted) {
+              showAppSnackBar(context, 'Notifications enabled',
+                  icon: Icons.notifications_active, iconColor: Colors.green);
+            }
+          }
+        }
+      } else if (status.isPermanentlyDenied) {
+        // Show dialog explaining how to enable in settings
+        if (context.mounted) {
+          await _showNotificationSettingsDialog(context);
+        }
+      }
+    } catch (e) {
+      developer.log('Error requesting notification permission: $e', name: 'NotificationPermission');
+    }
+  }
+
+  Future<bool> _showNotificationPermissionDialog(BuildContext context) async {
+    final s = AppLocalizations.of(context);
+    if (s == null) return false;
+    
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.notifications, color: Theme.of(context).primaryColor),
+              const SizedBox(width: 8),
+              const Text('Enable Notifications'),
+            ],
+          ),
+          content: Text(
+            'This app can send you reminders for prayers, tasks, and study sessions. You can change this later in settings.',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text("Don't Allow"),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+            ),
+            TextButton(
+              child: const Text('Allow'),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+    
+    return result ?? false;
+  }
+
+  Future<void> _showNotificationSettingsDialog(BuildContext context) async {
+    final s = AppLocalizations.of(context);
+    if (s == null) return;
+    
+    await showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Notifications Disabled'),
+          content: Text(
+            'Notifications are disabled. To enable them, go to Settings > Apps > Focus Zone > Notifications and turn them on.',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text(s.cancel),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
+            TextButton(
+              child: Text(s.settings),
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                await Permission.notification.request();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _logoController.dispose();
+    _textController.dispose();
+    _backgroundController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).primaryColor,
-      body: const Center(
-        child: Text('Focus Zone',
-            style: TextStyle(
-                fontSize: 50,
+    return AnimatedBuilder(
+      animation: _backgroundController,
+      builder: (context, child) {
+        return Scaffold(
+          backgroundColor: _backgroundColorAnimation.value,
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  _backgroundColorAnimation.value ??
+                      Theme.of(context).primaryColor,
+                  Theme.of(context).primaryColor.withOpacity(0.7),
+                ],
+              ),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Animated Logo/Icon
+                  AnimatedBuilder(
+                    animation: _logoController,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: _logoScaleAnimation.value,
+                        child: Transform.rotate(
+                          angle: _logoRotationAnimation.value * 0.5,
+                          child: Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.3),
+                                width: 2,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.school,
+                              size: 60,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Animated Text
+                  AnimatedBuilder(
+                    animation: _textController,
+                    builder: (context, child) {
+                      return SlideTransition(
+                        position: _textSlideAnimation,
+                        child: FadeTransition(
+                          opacity: _textFadeAnimation,
+                          child: Column(
+                            children: [
+                              const Text(
+                                'Focus Zone',
+                                style: TextStyle(
+                                  fontSize: 50,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 2.0,
+                                  shadows: [
+                                    Shadow(
+                                      offset: Offset(2, 2),
+                                      blurRadius: 4,
+                                      color: Colors.black26,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'Your Study Companion',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white.withOpacity(0.9),
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 50),
+
+                  // Animated Loading Indicator
+                  AnimatedBuilder(
+                    animation: _textController,
+                    builder: (context, child) {
+                      return FadeTransition(
+                        opacity: _textFadeAnimation,
+                        child: SizedBox(
+                          width: 30,
+                          height: 30,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white.withOpacity(0.8),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStep(
+    BuildContext context, {
+    required int number,
+    required String title,
+    required String content,
+    bool isImportant = false,
+  }) {
+    final color = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: isImportant
+                  ? color.primary
+                  : color.onSurface.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              '$number',
+              style: TextStyle(
+                color: isImportant ? color.onPrimary : color.onSurface,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 2.0)),
+                fontSize: 14,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isImportant ? color.primary : null,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  content,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  Future<bool> _handleUpdate(
+      UpdateInfo updateInfo, void Function(double) onProgress) async {
+    try {
+      bool success = false;
+
+      void updateProgress(double progress) {
+        if (mounted) {
+          onProgress(progress);
+        }
+      }
+
+      // Try patch update first if available
+      if (updateInfo.isPatchUpdate && updateInfo.patchUrl != null) {
+        updateProgress(0.1);
+        debugPrint('Starting patch update...');
+
+        // Download patch file
+        final patchPath = await UpdateHelper.downloadFile(
+          updateInfo.patchUrl!,
+          'update_${updateInfo.latestVersion}.zip',
+          (progress) =>
+              updateProgress(0.1 + (progress * 0.4)), // 10-50% for download
+        );
+        // If patch download failed, route to versions page instead of full APK download
+        if (patchPath == null) {
+          updateProgress(0.0);
+          await _openDownloadWebsite();
+          return false;
+        }
+
+        {
+          // proceed to apply patch since patchPath is guaranteed non-null here
+          updateProgress(0.5);
+          debugPrint('Applying patch update...');
+
+          // Apply patch
+          success = await UpdateHelper.applyPatchUpdate(updateInfo, (progress) {
+            updateProgress(
+                0.5 + (progress * 0.4)); // 50-90% for patch application
+          });
+          updateProgress(0.9);
+
+          if (success) {
+            // Show success message
+            if (mounted) {
+              await showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => AlertDialog(
+                  title: const Text('Update Complete'),
+                  content: const Text(
+                      'The update has been applied. The app will now restart.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        // Restart the app
+                        Navigator.of(context)
+                            .popUntil((route) => route.isFirst);
+                      },
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              );
+            }
+            updateProgress(1.0);
+            return true;
+          } else {
+            debugPrint('Patch update failed, offering external download page');
+            // Show error message and offer to open the versions page
+            if (mounted) {
+              final shouldContinue = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Update Failed'),
+                  content: const Text(
+                      'Could not apply the update. Would you like to open the versions page to download the full APK?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text('Open Versions Page'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (shouldContinue == true) {
+                updateProgress(0.0);
+                await _openDownloadWebsite();
+              }
+              return false;
+            }
+          }
+        }
+      }
+
+      // For full APK updates (no patch available), always open the versions page
+      await _openDownloadWebsite();
+      updateProgress(0.0);
+      return false;
+    } catch (e) {
+      debugPrint('Update failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to complete update. Please try again later.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return false;
+    }
+  }
+
+  Future<void> _openDownloadWebsite([String? preferredUrl]) async {
+    // Use provided URL if available (e.g., direct APK link); otherwise fallback to a generic downloads page
+    final String downloadUrl = preferredUrl?.trim().isNotEmpty == true
+        ? preferredUrl!.trim()
+        : 'https://focus-zonee.netlify.app/versions'; // Production fallback: public versions page
+
+    try {
+      final Uri url = Uri.parse(downloadUrl);
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        debugPrint('Could not launch $downloadUrl');
+      }
+    } catch (e) {
+      debugPrint('Error launching URL: $e');
+    }
+  }
+
+  Future<void> _maybeShowUpdateDialog(BuildContext context) async {
+    final updateInfo = await UpdateHelper.checkForUpdate();
+    if (updateInfo == null || !mounted) return;
+
+    final theme = Theme.of(context);
+    final color = theme.colorScheme;
+
+    // Determine update type and text
+    final isPatchUpdate = updateInfo.isPatchUpdate;
+    final updateSizeText = UpdateHelper.getUpdateSize(updateInfo);
+    final updateButtonText = isPatchUpdate
+        ? 'Download & Apply Update ($updateSizeText)'
+        : 'Visit Download Page';
+    final updateInstructions = isPatchUpdate
+        ? 'A small update is available. It will be applied automatically.'
+        : 'A new version is available. Visit our website to download the latest version.';
+
+    bool proceed = false;
+
+    await showDialog<bool>(
+      context: context,
+      barrierDismissible: !updateInfo.mandatory,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            bool downloading = false;
+            double downloadProgress = 0.0;
+            bool permissionNeeded = false;
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              backgroundColor: theme.dialogBackgroundColor,
+              titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+              contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+              title: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: color.primary.withOpacity(0.1),
+                    child: Icon(
+                      isPatchUpdate ? Icons.downloading : Icons.system_update,
+                      color: color.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          isPatchUpdate
+                              ? 'Update Available'
+                              : 'New Version Available',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Version ${updateInfo.latestVersion} • $updateSizeText',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.textTheme.bodySmall?.color
+                                ?.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (isPatchUpdate) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 12),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border:
+                              Border.all(color: Colors.green.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.check_circle_outline,
+                                color: Colors.green, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Small update - No reinstall needed',
+                                style: theme.textTheme.bodySmall
+                                    ?.copyWith(color: Colors.green[700]),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    Text(
+                      updateInstructions,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    if (updateInfo.changelog.isNotEmpty) ...[
+                      Text(
+                        'What\'s New:',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: color.surface.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        constraints: const BoxConstraints(maxHeight: 180),
+                        child: Scrollbar(
+                          thumbVisibility: true,
+                          child: SingleChildScrollView(
+                            child: Text(
+                              updateInfo.changelog,
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    if (downloading && isPatchUpdate) ...[
+                      const SizedBox(height: 16),
+                      Column(
+                        children: [
+                          LinearProgressIndicator(
+                            value: downloadProgress,
+                            backgroundColor: color.surfaceVariant,
+                            color: color.primary,
+                            minHeight: 8,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            '${(downloadProgress * 100).toStringAsFixed(0)}% downloaded',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                          if (downloadProgress > 0.9) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              isPatchUpdate
+                                  ? 'Applying update...'
+                                  : 'Preparing installation...',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: color.primary,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ] else if (!permissionNeeded) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (!updateInfo.mandatory)
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(false),
+                              child: const Text('Later'),
+                            ),
+                          const SizedBox(width: 8),
+                          FilledButton(
+                            onPressed: () async {
+                              if (isPatchUpdate) {
+                                // Handle patch updates as before
+                                setState(() => downloading = true);
+                                final success = await _handleUpdate(
+                                  updateInfo,
+                                  (progress) {
+                                    if (mounted) {
+                                      setState(
+                                          () => downloadProgress = progress);
+                                    }
+                                  },
+                                );
+
+                                if (mounted) {
+                                  setState(() => downloading = false);
+                                  if (success) {
+                                    Navigator.of(context).pop(true);
+                                  }
+                                }
+                              } else {
+                                // For full APK updates, always redirect to the public versions page
+                                await _openDownloadWebsite();
+                                if (context.mounted) {
+                                  Navigator.of(context).pop(false);
+                                }
+                              }
+                            },
+                            child: Text(updateButtonText),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (permissionNeeded) ...[
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.only(top: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border:
+                              Border.all(color: Colors.orange.withOpacity(0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(
+                                    Icons.security_update_warning_rounded,
+                                    color: Colors.orange,
+                                    size: 24),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'Manual Installation Required',
+                                    style:
+                                        theme.textTheme.titleMedium?.copyWith(
+                                      color: Colors.orange,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'To install this update, please follow these steps:',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _buildStep(
+                              context,
+                              number: 1,
+                              title: 'Open Settings',
+                              content:
+                                  'Tap the button below to open app settings',
+                            ),
+                            _buildStep(
+                              context,
+                              number: 2,
+                              title: 'Find App Settings',
+                              content:
+                                  'Look for "App info", "App settings", or "App permissions"',
+                            ),
+                            _buildStep(
+                              context,
+                              number: 3,
+                              title: 'Enable Unknown Sources',
+                              content:
+                                  'Find and enable "Install unknown apps" or "Unknown sources"',
+                              isImportant: true,
+                            ),
+                            _buildStep(
+                              context,
+                              number: 4,
+                              title: 'Return to App',
+                              content: 'Come back and tap "Try Install Again"',
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Note: The exact steps may vary slightly depending on your device and Android version.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontStyle: FontStyle.italic,
+                                color: theme.textTheme.bodySmall?.color
+                                    ?.withOpacity(0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: const [],
+            );
+          },
+        );
+      },
+    );
+
+    if (proceed == false && updateInfo.mandatory) {
+      // If it's a mandatory update and user didn't proceed, close the app
+      SystemNavigator.pop();
+    }
   }
 }
 
@@ -910,7 +1756,10 @@ class RootScreenState extends State<RootScreen> {
     final s = AppLocalizations.of(context);
     if (s != null) {
       if (!firstLaunchProvider.hasShownPermissionDialog) {
-        downloadPathProvider.requestStoragePermissions(context, s);
+        // Delay storage permission request by 1 second after splash
+        Future.delayed(const Duration(seconds: 1), () {
+          downloadPathProvider.requestStoragePermissions(context, s);
+        });
       }
     }
   }

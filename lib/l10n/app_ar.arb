@@ -588,5 +588,13 @@
   "inMinutes": "{count} دقائق",
   "inHours": "{count} ساعات",
   "inOneMinute": "دقيقة واحدة",
-  "inOneHour": "ساعة واحدة"
+  "inOneHour": "ساعة واحدة",
+  "sortByNameAsc": "الاسم (أ-ي)",
+  "sortByNameDesc": "الاسم (ي-أ)",
+  "sortByDateAsc": "التاريخ (الأقدم)",
+  "sortByDateDesc": "التاريخ (الأحدث)",
+  "sortByType": "النوع",
+  "searchHint": "ابحث في الملفات...",
+  "search": "بحث",
+  "openWithExternalApp":"openwithexternalapp"
 }

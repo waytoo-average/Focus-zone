@@ -16,6 +16,7 @@ import 'package:app/database_helper.dart';
 import 'package:app/azkar_data.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:app/app_core.dart';
+import 'package:app/notification_manager.dart';
 import 'src/ui/widgets/quran_entry_screen.dart';
 
 // --- Zikr Main Screen ---
@@ -1103,6 +1104,10 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
           _dataLocale = currentLocale;
           _calculateNextPrayer();
         });
+        
+        // FIX: Schedule prayer notifications when cached data is loaded
+        final s = AppLocalizations.of(context)!;
+        await NotificationManager.schedulePrayerNotifications(context, s);
         return;
       }
     }
@@ -1132,6 +1137,10 @@ class _PrayerTimesSectionState extends State<PrayerTimesSection> {
           });
           await PrayerTimesCache.save(newPrayerData);
           _calculateNextPrayer();
+          
+          // FIX: Schedule prayer notifications when new prayer data is fetched
+          final s = AppLocalizations.of(context)!;
+          await NotificationManager.schedulePrayerNotifications(context, s);
         }
       } else {
         throw Exception(AppLocalizations.of(context)!.failedToLoadPrayerTimes);

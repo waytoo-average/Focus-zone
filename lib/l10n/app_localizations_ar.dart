@@ -1562,4 +1562,28 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get inOneHour => 'ساعة واحدة';
+
+  @override
+  String get search => 'بحث';
+
+  @override
+  String get sortByNameAsc => 'الاسم (أ-ي)';
+
+  @override
+  String get sortByNameDesc => 'الاسم (ي-أ)';
+
+  @override
+  String get sortByDateAsc => 'التاريخ (الأقدم)';
+
+  @override
+  String get sortByDateDesc => 'التاريخ (الأحدث)';
+
+  @override
+  String get sortByType => 'النوع';
+
+  @override
+  String get searchHint => 'ابحث في الملفات...';
+
+  @override
+  String get openWithExternalApp => 'openwithexternalapp';
 }

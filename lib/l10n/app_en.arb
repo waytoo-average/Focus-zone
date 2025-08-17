@@ -591,7 +591,13 @@
   "inMinutes": "{count} minutes",
   "inHours": "{count} hours",
   "inOneMinute": "1 minute",
-  "inOneHour": "1 hour"
-
-
+  "inOneHour": "1 hour",
+  "search": "search",
+  "sortByNameAsc": "Name (A-Z)",
+  "sortByNameDesc": "Name (Z-A)",
+  "sortByDateAsc": "Date (Oldest)",
+  "sortByDateDesc": "Date (Newest)",
+  "sortByType": "Type",
+  "searchHint": "Search files...",
+  "openWithExternalApp":"openwithexternalapp"
 }

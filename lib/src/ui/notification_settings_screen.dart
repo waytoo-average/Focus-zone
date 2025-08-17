@@ -70,11 +70,16 @@ class NotificationSettingsState extends ChangeNotifier {
     }
   }
 
-  Future<void> setTaskTime(TaskNotificationTimeOption t) async {
+  Future<void> setTaskTime(TaskNotificationTimeOption t, BuildContext context, AppLocalizations s) async {
     taskTime = t;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('notif_task_time', t.index);
     notifyListeners();
+    
+    // Reschedule all existing todo notifications with new timing
+    if (todoEnabled) {
+      await NotificationManager.rescheduleAllTodoNotifications(context, s);
+    }
   }
 
   Future<void> setTodoVibration(bool v) async {
@@ -91,11 +96,16 @@ class NotificationSettingsState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setPrayerTime(TaskNotificationTimeOption t) async {
+  Future<void> setPrayerTime(TaskNotificationTimeOption t, BuildContext context, AppLocalizations s) async {
     prayerTime = t;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('notif_prayer_time', t.index);
     notifyListeners();
+    
+    // Reschedule prayer notifications with new timing
+    if (prayerEnabled) {
+      await NotificationManager.schedulePrayerNotifications(context, s);
+    }
   }
 }
 
@@ -185,7 +195,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                                 ),
                               );
                               if (selected != null) {
-                                await state.setTaskTime(selected);
+                                await state.setTaskTime(selected, context, s);
                               }
                             },
                           ),
@@ -228,7 +238,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                                 ),
                               );
                               if (selected != null) {
-                                await state.setPrayerTime(selected);
+                                await state.setPrayerTime(selected, context, s);
                               }
                             },
                           ),

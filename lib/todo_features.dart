@@ -213,7 +213,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
     );
 
     await Provider.of<TodoSummaryProvider>(context, listen: false)
-        .saveTodo(updatedItem);
+        .saveTodo(updatedItem, context: context);
     HapticFeedback.lightImpact();
 
     if (!mounted) return;
@@ -635,8 +635,8 @@ class _TodoDetailScreenState extends State<TodoDetailScreen> {
     );
 
     await Provider.of<TodoSummaryProvider>(context, listen: false)
-        .saveTodo(todoToSave);
-    await NotificationManager.scheduleTodoNotification(context, todoToSave, s);
+        .saveTodo(todoToSave, context: context);
+    // Notification scheduling is now handled automatically in saveTodo
 
     if (mounted) {
       showAppSnackBar(context, s.taskSaved,

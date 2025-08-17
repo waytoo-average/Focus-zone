@@ -1,0 +1,7 @@
+New feedback system
+New notification manager center
+Massive improvements to quran section
+Various bug fixes 
+More animations to make the app more lively 
+Added old academic content
+Got the app verified 

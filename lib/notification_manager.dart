@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app/todo_features.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:app/zikr_features.dart';
+import 'package:app/app_core.dart';
 
 class NotificationManager {
   NotificationManager._privateConstructor();
@@ -277,95 +278,121 @@ class NotificationManager {
   }
 
   /// Schedules notifications for all prayers in today's PrayerData.
-  /// Each notification is scheduled 1 minute before the prayer time, using user timing/vibration settings.
+  /// Each notification is scheduled based on user timing settings and vibration preferences.
   static Future<void> schedulePrayerNotifications(BuildContext context, AppLocalizations s) async {
-    final prefs = await SharedPreferences.getInstance();
-    final prayerEnabled = prefs.getBool('notif_prayer_enabled') ?? true;
-    if (!prayerEnabled) {
-      await cancelAllPrayerNotifications(context);
-      return;
-    }
-    final todoVibration = prefs.getBool('notif_todo_vibration') ?? true;
-    final prayerTimeIdx = prefs.getInt('notif_prayer_time') ?? 0;
-    final List<Duration> advanceDurations = [
-      Duration.zero, // atDeadline
-      const Duration(minutes: 5),
-      const Duration(minutes: 15),
-      const Duration(minutes: 30),
-      const Duration(hours: 1),
-      const Duration(hours: 2),
-      const Duration(hours: 3),
-    ];
-    final advance = (prayerTimeIdx >= 0 && prayerTimeIdx < advanceDurations.length)
-        ? advanceDurations[prayerTimeIdx]
-        : Duration.zero;
+    try {
+      print('🔔 Scheduling prayer notifications...');
+      final prefs = await SharedPreferences.getInstance();
+      final prayerEnabled = prefs.getBool('notif_prayer_enabled') ?? true;
+      if (!prayerEnabled) {
+        print('🔔 Prayer notifications disabled, canceling all');
+        await cancelAllPrayerNotifications(context);
+        return;
+      }
+      
+      // FIX: Use correct prayer vibration setting
+      final prayerVibration = prefs.getBool('notif_prayer_vibration') ?? true;
+      final prayerTimeIdx = prefs.getInt('notif_prayer_time') ?? 0;
+      final List<Duration> advanceDurations = [
+        Duration.zero, // atDeadline
+        const Duration(minutes: 5),
+        const Duration(minutes: 15),
+        const Duration(minutes: 30),
+        const Duration(hours: 1),
+        const Duration(hours: 2),
+        const Duration(hours: 3),
+      ];
+      final advance = (prayerTimeIdx >= 0 && prayerTimeIdx < advanceDurations.length)
+          ? advanceDurations[prayerTimeIdx]
+          : Duration.zero;
 
-    final prayerData = await PrayerTimesCache.load();
-    if (prayerData == null) return;
-    final now = DateTime.now();
-    final plugin = Provider.of<FlutterLocalNotificationsPlugin>(context, listen: false);
-    for (final entry in prayerData.timings.entries) {
-      final prayerName = entry.key;
-      final timeStr = entry.value;
-      final timeParts = timeStr.split(":");
-      if (timeParts.length < 2) continue;
-      final hour = int.tryParse(timeParts[0]);
-      final minute = int.tryParse(timeParts[1]);
-      if (hour == null || minute == null) continue;
-      final scheduledDateTime = DateTime(now.year, now.month, now.day, hour, minute)
-        .subtract(const Duration(minutes: 1))
-        .subtract(advance);
-      if (scheduledDateTime.isBefore(now)) {
-        // Don't schedule past notifications
-        continue;
+      final prayerData = await PrayerTimesCache.load();
+      if (prayerData == null) {
+        print('🔔 No prayer data available for scheduling');
+        return;
       }
-      final tzScheduleDateTime = tz.TZDateTime.from(scheduledDateTime, tz.local);
-      final androidDetails = AndroidNotificationDetails(
-        'prayer_times_channel',
-        'Prayer Times',
-        channelDescription: 'Prayer time notifications',
-        importance: Importance.max,
-        priority: Priority.high,
-        enableVibration: todoVibration,
-        playSound: true,
-      );
-      final notificationDetails = NotificationDetails(android: androidDetails);
-      final notificationId = _prayerNotificationId(prayerName, now);
-    
-    // Create dynamic notification text based on advance time
-    String notificationBody;
-    if (advance == Duration.zero) {
-      // At prayer time - use original text
-      notificationBody = s.prayerNotificationBody(prayerName);
-    } else {
-      // Calculate time text based on advance duration
-      String timeText;
-      if (advance.inHours > 0) {
-        if (advance.inHours == 1) {
-          timeText = s.inOneHour;
-        } else {
-          timeText = s.inHours(advance.inHours);
+      
+      final now = DateTime.now();
+      final plugin = Provider.of<FlutterLocalNotificationsPlugin>(context, listen: false);
+      
+      // Cancel existing prayer notifications first
+      await cancelAllPrayerNotifications(context);
+      
+      int scheduledCount = 0;
+      for (final entry in prayerData.timings.entries) {
+        final prayerName = entry.key;
+        final timeStr = entry.value;
+        final timeParts = timeStr.split(":");
+        if (timeParts.length < 2) continue;
+        final hour = int.tryParse(timeParts[0]);
+        final minute = int.tryParse(timeParts[1]);
+        if (hour == null || minute == null) continue;
+        
+        // FIX: Correct scheduling logic - subtract advance time from prayer time directly
+        final prayerDateTime = DateTime(now.year, now.month, now.day, hour, minute);
+        final scheduledDateTime = prayerDateTime.subtract(advance);
+        
+        // If the scheduled time is in the past, schedule for tomorrow
+        DateTime finalScheduledDateTime = scheduledDateTime;
+        if (scheduledDateTime.isBefore(now)) {
+          finalScheduledDateTime = scheduledDateTime.add(const Duration(days: 1));
         }
-      } else {
-        if (advance.inMinutes == 1) {
-          timeText = s.inOneMinute;
+        
+        final tzScheduleDateTime = tz.TZDateTime.from(finalScheduledDateTime, tz.local);
+        final androidDetails = AndroidNotificationDetails(
+          'prayer_times_channel',
+          'Prayer Times',
+          channelDescription: 'Prayer time notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+          enableVibration: prayerVibration, // FIX: Use correct setting
+          playSound: true,
+        );
+        final notificationDetails = NotificationDetails(android: androidDetails);
+        final notificationId = _prayerNotificationId(prayerName, finalScheduledDateTime);
+      
+        // Create dynamic notification text based on advance time
+        String notificationBody;
+        if (advance == Duration.zero) {
+          // At prayer time - use original text
+          notificationBody = s.prayerNotificationBody(prayerName);
         } else {
-          timeText = s.inMinutes(advance.inMinutes);
+          // Calculate time text based on advance duration
+          String timeText;
+          if (advance.inHours > 0) {
+            if (advance.inHours == 1) {
+              timeText = s.inOneHour;
+            } else {
+              timeText = s.inHours(advance.inHours);
+            }
+          } else {
+            if (advance.inMinutes == 1) {
+              timeText = s.inOneMinute;
+            } else {
+              timeText = s.inMinutes(advance.inMinutes);
+            }
+          }
+          notificationBody = s.prayerNotificationBodyAdvance(prayerName, timeText);
         }
+        
+        await plugin.zonedSchedule(
+          notificationId,
+          s.appTitle,
+          notificationBody,
+          tzScheduleDateTime,
+          notificationDetails,
+          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          payload: 'prayer:$prayerName',
+        );
+        
+        scheduledCount++;
+        print('🔔 Scheduled $prayerName notification for ${finalScheduledDateTime.toString()}');
       }
-      notificationBody = s.prayerNotificationBodyAdvance(prayerName, timeText);
-    }
-    
-    await plugin.zonedSchedule(
-      notificationId,
-      s.appTitle,
-      notificationBody,
-      tzScheduleDateTime,
-      notificationDetails,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      payload: 'prayer:$prayerName',
-    );
+      
+      print('🔔 Successfully scheduled $scheduledCount prayer notifications');
+    } catch (e) {
+      print('❌ Error scheduling prayer notifications: $e');
     }
   }
 
@@ -377,6 +404,27 @@ class NotificationManager {
     const prayerNames = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
     for (final name in prayerNames) {
       await plugin.cancel(_prayerNotificationId(name, now));
+    }
+  }
+
+  /// Reschedules all existing todo notifications with current timing settings
+  static Future<void> rescheduleAllTodoNotifications(BuildContext context, AppLocalizations s) async {
+    try {
+      print('🔔 Rescheduling all todo notifications...');
+      final todoProvider = Provider.of<TodoSummaryProvider>(context, listen: false);
+      final allTodos = todoProvider.allTodos;
+      
+      int rescheduledCount = 0;
+      for (final todo in allTodos) {
+        if (!todo.isCompleted && todo.dueDate != null && todo.dueTime != null) {
+          await scheduleTodoNotification(context, todo, s);
+          rescheduledCount++;
+        }
+      }
+      
+      print('🔔 Rescheduled $rescheduledCount todo notifications');
+    } catch (e) {
+      print('❌ Error rescheduling todo notifications: $e');
     }
   }
 

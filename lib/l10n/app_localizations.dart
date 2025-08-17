@@ -2785,6 +2785,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'1 hour'**
   String get inOneHour;
+
+  /// No description provided for @search.
+  ///
+  /// In en, this message translates to:
+  /// **'search'**
+  String get search;
+
+  /// No description provided for @sortByNameAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Name (A-Z)'**
+  String get sortByNameAsc;
+
+  /// No description provided for @sortByNameDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Name (Z-A)'**
+  String get sortByNameDesc;
+
+  /// No description provided for @sortByDateAsc.
+  ///
+  /// In en, this message translates to:
+  /// **'Date (Oldest)'**
+  String get sortByDateAsc;
+
+  /// No description provided for @sortByDateDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Date (Newest)'**
+  String get sortByDateDesc;
+
+  /// No description provided for @sortByType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get sortByType;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search files...'**
+  String get searchHint;
+
+  /// No description provided for @openWithExternalApp.
+  ///
+  /// In en, this message translates to:
+  /// **'openwithexternalapp'**
+  String get openWithExternalApp;
 }
 
 class _AppLocalizationsDelegate

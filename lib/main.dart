@@ -4,9 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'dart:async';
+import 'dart:io';
 import 'dart:developer' as developer;
-import 'dart:convert';
 
 // For notifications and timezone handling
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -16,10 +15,10 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 
 // Core app components and providers
 import 'package:app/app_core.dart';
-import 'package:app/helper.dart';
 import 'package:app/study_features.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:app/src/utils/app_theme.dart';
+import 'package:app/src/utils/app_animations.dart';
 import 'package:app/src/utils/download_manager_v3.dart' as new_dm;
 
 // --- App Initialization ---
@@ -72,6 +71,29 @@ void main() async {
         _onDidReceiveBackgroundNotificationResponse,
   );
 
+  // Create notification channels
+  const AndroidNotificationChannel prayerChannel = AndroidNotificationChannel(
+    'prayer_times_channel',
+    'Prayer Times',
+    description: 'Prayer time notifications',
+    importance: Importance.max,
+  );
+
+  const AndroidNotificationChannel todoChannel = AndroidNotificationChannel(
+    'task_reminders_channel',
+    'Task Reminders',
+    description: 'Reminders for your tasks',
+    importance: Importance.max,
+  );
+
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(prayerChannel);
+      
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(todoChannel);
+
   // --- Providers ---
   runApp(
     MultiProvider(
@@ -108,7 +130,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    NotificationService.requestNotificationPermission();
 
     // Use Consumer2 to efficiently listen to both ThemeProvider and LanguageProvider
     return Consumer2<ThemeProvider, LanguageProvider>(
@@ -134,9 +155,23 @@ class MyApp extends StatelessWidget {
             ],
             initialRoute: '/',
             // --- Routing ---
+            onGenerateRoute: (settings) {
+              switch (settings.name) {
+                case '/':
+                  return AppPageRouteBuilder(
+                    child: const SplashScreen(),
+                    transitionType: PageTransitionType.slideFromBottom,
+                  );
+                case '/rootScreen':
+                  return AppPageRouteBuilder(
+                    child: RootScreen(key: rootScreenKey),
+                    transitionType: PageTransitionType.fadeIn,
+                  );
+                default:
+                  return null;
+              }
+            },
             routes: {
-              '/': (context) => const SplashScreen(),
-              '/rootScreen': (context) => RootScreen(key: rootScreenKey),
               '/googleDriveViewer': (context) {
                 final args = ModalRoute.of(context)?.settings.arguments
                     as Map<String, dynamic>?;
@@ -160,15 +195,23 @@ class MyApp extends StatelessWidget {
                   return const ErrorScreen(
                       message: 'Error: Localization not available.');
                 }
-                if (args == null ||
-                    !args.containsKey('fileUrl') ||
-                    !args.containsKey('fileId')) {
+                if (args == null) {
+                  return ErrorScreen(message: s.errorNoUrlProvided);
+                }
+                final String? localPath = args['localPath'] as String?;
+                final String? fileUrl = args['fileUrl'] as String?;
+                final String? fileId = args['fileId'] as String?;
+                final String? fileName = args['fileName'] as String?;
+                // Allow either localPath or (fileUrl + fileId)
+                if ((localPath == null || localPath.isEmpty) &&
+                    (fileUrl == null || fileUrl.isEmpty || fileId == null || fileId.isEmpty)) {
                   return ErrorScreen(message: s.errorNoUrlProvided);
                 }
                 return PdfViewerScreen(
-                  fileUrl: args['fileUrl'] as String?,
-                  fileId: args['fileId'] as String,
-                  fileName: args['fileName'] as String?,
+                  fileUrl: fileUrl,
+                  fileId: (fileId ?? ''),
+                  fileName: fileName,
+                  localPath: localPath,
                 );
               },
             },

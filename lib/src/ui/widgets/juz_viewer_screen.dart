@@ -12,6 +12,7 @@ import '../../../l10n/app_localizations.dart';
 import 'dart:ui' as ui;
 import 'package:provider/provider.dart';
 import '../../utils/download_manager_v3.dart' as new_dm;
+import '../../utils/app_animations.dart';
 
 enum ScrollDirection { horizontal, vertical }
 
@@ -1474,10 +1475,9 @@ class _JuzViewerScreenState extends State<JuzViewerScreen> {
             automaticallyImplyLeading: false,
             backgroundColor: Theme.of(context).primaryColor,
             elevation: 4,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new),
+            leading: AnimatedButton(
               onPressed: () => Navigator.of(context).pop(),
-              tooltip: 'Back',
+              child: const Icon(Icons.arrow_back_ios_new),
             ),
             centerTitle: true,
             title: Text(
@@ -1495,33 +1495,31 @@ class _JuzViewerScreenState extends State<JuzViewerScreen> {
               textAlign: TextAlign.center,
             ),
             actions: [
-              IconButton(
-                icon: Icon(_isCurrentPageBookmarked
+              AnimatedButton(
+                onPressed: _images.isNotEmpty ? _toggleBookmark : null,
+                child: Icon(_isCurrentPageBookmarked
                     ? Icons.bookmark
                     : Icons.bookmark_border),
-                tooltip: _isCurrentPageBookmarked
-                    ? s.removeBookmark
-                    : s.bookmarkPage,
-                onPressed: _images.isNotEmpty ? _toggleBookmark : null,
               ),
               if (widget.isWholeQuran)
                 IconButton(
                   icon: const Icon(Icons.list_alt),
                   tooltip: s.surahList,
                   onPressed: () async {
-                    await showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      builder: (context) => SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.85,
-                        child: SurahListScreen(
-                          onSurahSelected: (surah) {
-                            int pageIndex =
-                                (surah.page - 1).clamp(0, _images.length - 1);
-                            Navigator.of(context).pop();
-                            _jumpToPage(pageIndex);
-                          },
+                    await Navigator.of(context).push(
+                      AppPageRouteBuilder(
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.85,
+                          child: SurahListScreen(
+                            onSurahSelected: (surah) {
+                              int pageIndex =
+                                  (surah.page - 1).clamp(0, _images.length - 1);
+                              Navigator.of(context).pop();
+                              _jumpToPage(pageIndex);
+                            },
+                          ),
                         ),
+                        transitionType: PageTransitionType.slideFromBottom,
                       ),
                     );
                   },
@@ -1540,6 +1538,14 @@ class _JuzViewerScreenState extends State<JuzViewerScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          ListTile(
+                            leading: const Icon(Icons.bookmarks),
+                            title: const Text('Bookmarks'),
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              if (_images.isNotEmpty) _showBookmarks();
+                            },
+                          ),
                           ListTile(
                             leading: const Icon(Icons.settings),
                             title: Text(s.readingSettings),

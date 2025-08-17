@@ -47,3 +47,10 @@ app.*.map.json
 # Ignore Android keystore properties
 /android/key.properties
 tools/suggestions_manager/
+
+# Ignore app specific files
+/app/keys.dart
+/app/google_drive_helper.dart
+/app/notification_manager.dart
+/app/src/utils/download_manager_v3.dart
+

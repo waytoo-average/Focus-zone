@@ -1568,4 +1568,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inOneHour => '1 hour';
+
+  @override
+  String get search => 'search';
+
+  @override
+  String get sortByNameAsc => 'Name (A-Z)';
+
+  @override
+  String get sortByNameDesc => 'Name (Z-A)';
+
+  @override
+  String get sortByDateAsc => 'Date (Oldest)';
+
+  @override
+  String get sortByDateDesc => 'Date (Newest)';
+
+  @override
+  String get sortByType => 'Type';
+
+  @override
+  String get searchHint => 'Search files...';
+
+  @override
+  String get openWithExternalApp => 'openwithexternalapp';
 }
