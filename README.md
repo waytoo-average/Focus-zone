@@ -78,9 +78,6 @@ The Egyptian-Chinese College for Applied Technology at Suez Canal University is 
 
 MIT © 2025 Belal Mohamed Elnemr
 
-## 📬 Contributions
-
-subhan_0073
 -----
 
 ### Project Version
