@@ -124,10 +124,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get lastYear => 'العام الماضي';
 
   @override
-  String get semester1 => 'الفصل الدراسي الأول';
+  String get semester1 => 'الفصل الأول';
 
   @override
-  String get semester2 => 'الفصل الدراسي الثاني';
+  String get semester2 => 'الفصل الثاني';
 
   @override
   String get lectures => 'المحاضرات';
@@ -408,6 +408,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get clearPdfCache => 'مسح ذاكرة التخزين المؤقت لملفات PDF';
 
   @override
+  String get clearFolderCache => 'مسح ذاكرة المجلدات المؤقتة';
+
+  @override
   String get confirmAction => 'تأكيد الإجراء';
 
   @override
@@ -415,13 +418,26 @@ class AppLocalizationsAr extends AppLocalizations {
       'هل أنت متأكد أنك تريد مسح جميع ملفات PDF المخزنة مؤقتًا داخليًا؟ سيؤدي ذلك إلى تحرير مساحة ولكن يتطلب إعادة التنزيل.';
 
   @override
+  String get confirmClearFolderCache =>
+      'هل أنت متأكد أنك تريد مسح ذاكرة المجلدات الديناميكية المؤقتة؟ سيتطلب ذلك إعادة جلب معلومات المجلدات من جوجل درايف.';
+
+  @override
   String cacheClearedItems(Object count) {
     return 'تم مسح $count ملف PDF مخزنة مؤقتًا.';
   }
 
   @override
+  String get folderCacheCleared =>
+      'تم مسح ذاكرة المجلدات الديناميكية المؤقتة بنجاح.';
+
+  @override
   String cacheClearFailed(Object error) {
     return 'فشل مسح ذاكرة التخزين المؤقت لملفات PDF: $error';
+  }
+
+  @override
+  String folderCacheClearFailed(Object error) {
+    return 'فشل مسح ذاكرة المجلدات المؤقتة: $error';
   }
 
   @override
@@ -1585,5 +1601,157 @@ class AppLocalizationsAr extends AppLocalizations {
   String get searchHint => 'ابحث في الملفات...';
 
   @override
-  String get openWithExternalApp => 'openwithexternalapp';
+  String get openWithExternalApp => 'فتح باستخدام تطبيق خارجي';
+
+  @override
+  String get leaderMode => 'وضع ليدر';
+
+  @override
+  String get leaderModeActive => 'وضع ليدر نشط';
+
+  @override
+  String get uploadMaterials => 'رفع المواد';
+
+  @override
+  String get signOutLeader => 'تسجيل خروج ليدر';
+
+  @override
+  String get leaderAuthentication => 'مصادقة ليدر';
+
+  @override
+  String get leaderAuthenticationDesc =>
+      'يرجى تسجيل الدخول بحساب مخول لرفع المواد.';
+
+  @override
+  String get authenticationRequired => 'يجب تسجيل الدخول';
+
+  @override
+  String get accessDenied => 'تم رفض الوصول...';
+
+  @override
+  String get itemRenamed => 'تم إعادة تسمية العنصر...';
+
+  @override
+  String get itemDeleted => 'تم حذف العنصر...';
+
+  @override
+  String get renameItem => 'إعادة تسمية العنصر';
+
+  @override
+  String get deleteItem => 'حذف العنصر';
+
+  @override
+  String get enterNewName => 'أدخل الاسم الجديد:';
+
+  @override
+  String get nameCannotBeEmpty => 'لا يمكن أن يكون الاسم فارغًا';
+
+  @override
+  String get confirmDelete => 'تأكيد الحذف';
+
+  @override
+  String get confirmDeleteMessage =>
+      'هل أنت متأكد من أنك تريد حذف هذا العنصر؟ لا يمكن التراجع عن هذا الإجراء.';
+
+  @override
+  String get renameFolder => 'إعادة تسمية المجلد';
+
+  @override
+  String get deleteFolder => 'حذف المجلد';
+
+  @override
+  String get confirmDeleteFolder => 'تأكيد حذف المجلد';
+
+  @override
+  String get confirmDeleteFolderMessage =>
+      'هل أنت متأكد من أنك تريد حذف هذا المجلد وجميع محتوياته؟ لا يمكن التراجع عن هذا الإجراء.';
+
+  @override
+  String get renameSubject => 'إعادة تسمية المادة';
+
+  @override
+  String get deleteSubject => 'حذف المادة';
+
+  @override
+  String get confirmDeleteSubject => 'تأكيد حذف المادة';
+
+  @override
+  String get confirmDeleteSubjectMessage =>
+      'هل أنت متأكد من أنك تريد حذف هذه المادة وجميع محتوياتها؟ لا يمكن التراجع عن هذا الإجراء.';
+
+  @override
+  String get uploadToSemester => 'رفع إلى الفصل الدراسي';
+
+  @override
+  String get chooseSemesterToUpload => 'اختر الفصل الدراسي لرفع المواد إليه:';
+
+  @override
+  String get doctor => 'دكتور';
+
+  @override
+  String get leader => 'ليدر';
+
+  @override
+  String modeActivatedFor(String role, String name) {
+    return 'تم تفعيل وضع $role لـ $name';
+  }
+
+  @override
+  String authenticationFailed(String error) {
+    return 'فشل في المصادقة: $error';
+  }
+
+  @override
+  String get leaderModeDeactivated => 'تم إلغاء تفعيل وضع ليدر';
+
+  @override
+  String folderCreatedSuccessfully(String name) {
+    return 'تم إنشاء المجلد \"$name\" بنجاح';
+  }
+
+  @override
+  String folderCreationFailed(String error) {
+    return 'فشل في إنشاء المجلد: $error';
+  }
+
+  @override
+  String renameFailed(String error) {
+    return 'فشل في إعادة التسمية: $error';
+  }
+
+  @override
+  String deleteFailed(String error) {
+    return 'فشل في الحذف: $error';
+  }
+
+  @override
+  String fileUploadedSuccessfully(String fileName) {
+    return 'تم رفع الملف بنجاح: $fileName';
+  }
+
+  @override
+  String uploadFailed(String error) {
+    return 'فشل في الرفع: $error';
+  }
+
+  @override
+  String get incompleteAcademicContext => 'سياق أكاديمي غير مكتمل للرفع';
+
+  @override
+  String get semesterFolderNotAvailable => 'مجلد الفصل الدراسي غير متاح للرفع';
+
+  @override
+  String get signInAsDoctor => 'تسجيل الدخول كدكتور';
+
+  @override
+  String get signInAsLeader => 'تسجيل الدخول ك ليدر';
+
+  @override
+  String get rename => 'تغيير الاسم';
+
+  @override
+  String get videoPlayerNotAvailable => 'مشغل الفيديو غير متاح';
+
+  @override
+  String get chooserole => 'اختر منصبك لكي تستطيع رفع محتوى';
 }

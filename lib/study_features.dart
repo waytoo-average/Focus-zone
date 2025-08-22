@@ -1,8 +1,9 @@
 // Imports specific to study features
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:googleapis/drive/v3.dart' as drive; // aliased as drive
+import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
@@ -15,15 +16,17 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 // For permissions
-// import 'package:file_picker/file_picker.dart'; // Not directly used here, but keep in pubspec if needed elsewhere
 import 'package:open_filex/open_filex.dart';
+import 'helper.dart'; // For MaterialUploadHelper and ContentManager
+import 'package:google_sign_in/google_sign_in.dart'; // For leader authentication
+import 'dart:developer' as developer;
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:microsoft_viewer/microsoft_viewer.dart';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
-import 'dart:developer' as developer; // For logging
+import 'package:googleapis/drive/v3.dart' as drive_write;
 
 // Core app imports (from app_core.dart)
 import 'package:app/app_core.dart';
@@ -31,253 +34,1112 @@ import 'package:app/src/utils/app_animations.dart';
 
 import 'l10n/app_localizations.dart'; // For AcademicContext, SignInProvider, DownloadPathProvider, AppLocalizations, ErrorScreen, showAppSnackBar, formatBytesSimplified
 
-// --- Academic Content Data ---
-const Map<String, Map<String, Map<String, Map<String, Map<String, String>>>>>
-    allAcademicContentFolders = {
-  'First Grade': {
-    // Grade
-    'Communication': {
-      // Department
-      'Current Year': {
-        // Year
-        'Semester 1': <String, String>{
-          // Semester (Map<String, String> for subjects)
-        },
-        'Semester 2': <String, String>{},
-      },
-      'Last Year': {
-        'Semester 1': <String, String>{
-          'علم جودة': '1-ESboU85nTtO2FYMbiZZeNn3Anv6aH0',
-          'تدريب تقني كهرباء': '1psr8ylukgFsqhW9v1CZkLpWaPaE-8MnL',
-          'physics': '11LAt7VWyJB_NJtR-Q6u6btUfNY6uEpEx',
-          'math': '11ag3IGjyezZouQO1tOyhaCeEbQLGND2t',
-          'English': '11Kn1lg8qTyFFBa4ZQStnQYzzdLeAJYjl',
-          'circuit': '11ZIekUHxVXriF1w2lC5dYSf3u8yCmeIt',
-          'chinese': '12v8ywEq9-RMVhOvORwc3DGpkswRsBlLb',
-          'it': '11cD7TV1sHuaK1QRYRrU8UB62Zye_i3mQ'
-        },
-        'Semester 2': <String, String>{
-          'قضايا مجتمعية': '1wyuL_okkhbtFHNcSkKzXvc-wK7G420wj',
-          'علوم حاسب': '14VYnkax5I9hXgaExRXYWQaz6mWlg59l3',
-          'تصميم دوائر الاتصالات': '1mFSHV7BPzUoaf7AuFssGFL6mtNIzz4s',
-          'اساسيات تكنولوجيا الشبكات': '1-y8Wk3Aa5G_WyyHCdIY_GP2XGDNbNTGi',
-          'Math': '19o4N4Jb_9w12M_oVzC400L_K7G720wj',
-          'English': '1D0Ps6mw5qY21jRuGVm5a_s1UZJwvPK8',
-          'Communication Circuit Technology':
-              '1ZyeUwHOoxAw2DisIFc5pGFJJ57Gy49hv',
-          'Chinese': '14tYcv7b3zfvohazvVDElaJrcJafldeg4'
-        },
-      },
-    },
-    'Electronics': {
-      'Current Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
-      },
-      'Last Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
-      },
-    },
-    'Mechatronics': {
-      'Current Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
-      },
-      'Last Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
-      },
-    },
-  },
-  'Second Grade': {
-    'Communication': {
-      'Current Year': {
-        'Semester 1': <String, String>{
-          'subject 1': '1MQj-05IJcT8SvTTWFmgDUDkClTHgRKLB',
-          'subject 2': '1r1e01lEcQclwwnU5Vm3CBHWym7FzTrUE',
-          'subject 3': '10FoYkEE3QY7RlKJi9N463EwjOQASP8Dp',
-          'subject 4': '1LAE2HJx4z_pCLuzFBYMre5fPFehvN8vE',
-          'subject 5': '14Qo6GNGvhT4R0RzhpKyehuYLj--A4-N4',
-          'subject 6': '1yC6i4q0qmLoOZvyPo1-t02IXdavbtxTL',
-          'subject 7': '1bakGQhd7GQm0psyT_LugJ0QKR2qTS5R7',
-          'subject 8': '14fjnu6Lzjk-e667Mjn1EeppVs-hwwCly',
-        }, //new leader foleder ids here
-        'Semester 2': <String, String>{
-          'subject 1': '1WxS1Baz3kXgbL9_TQ0sUXf43gg8-QFFh',
-          'subject 2': '1easCQAcuYIip_CQrgAgyRDkuqQqQoEhe',
-          'subject 3': '1iLyE4nyK_dr2SuOdvMlVOUpJ63vj3zK7',
-          'subject 4': '1xKwj7ZZWygqIsx4w_gNeVIw9s5LT0JOd',
-          'subject 5': '1OZimdoorHXKXUw_mkQzzKLUvqrnuH5T4',
-          'subject 6': '11odjzKZfzE_LocHlPVlbHBD4aX7gv-bS',
-          'subject 7': '1KFZVXYKCK8mgAYgQHwAwbUMRapbl3PKY',
-          'subject 8': '1zsS4MOx2XNBr71ICT8kJPMhLJJGYYkw4',
-        },
-      },
-      'Last Year': {
-        'Semester 1': <String, String>{
-          'Advanced Applications': '1uUVlSCePNIdodWrEse09syRa1GG8CuWX',
-          'C': '1MvfdtvfgEYHuYnnBoq7dQd4_cgST-lKF',
-          'chinese': '1R8bkpCpeFE2RZkvsRB_oBJ6XTmhMSclE',
-          'communication system': '1ViffWHEGFhcPZHScw-9TgszMtQvM5-AR',
-          'digital': '1ywJQBhI6rZrTloOxZ-wRUYP76A1zUOqQ',
-          'English': '1sMw6xH-xe8zroik167iIz4qAEXDu7l5V',
-        },
-        'Semester 2': <String, String>{
-          'Chinese': '17MkwuLxXrBWBSYU3n5kMa8cv_dkTCDfc',
-          'English': '1qchN-Frn_bTsgg3qbh9A5fqkhhrhwVNO',
-          'java OOP': '1S-qA_xFsTdIEHNKSOntoq3DWiQCCa4s4',
-          'Network Database Technology': '1GK_h9zOwF3uB0Cy0XDvdWw3s3bJtnHPU',
-          'Network Interconnection Technology':
-              '1jG0LMY-Q15woS1STcwNnUWkRZHmtTOXC',
-          'Program-Controlled Exchange Technology':
-              '1Q3JMqUc7eK8E8xgDTuUnIJCAWS84BK_V',
-          'Technical Reporting': '18qibQHXeM9_MRdRm59YVdeD17H4Rnase',
-        },
-      },
-    },
-    'Electronics': {
-      'Current Year': {
-        'Semester 1': <String, String>{
-          'subject 1': '1iOJ0ETCqhj2nIhc0h179AjZlZ5oPkYqz',
-          'subject 2': '1svxPImxZrdEsOm--RQXwbqYObX1VW-v2',
-          'subject 3': '1H2gtWG-MQeGLSPtY7vYHDrmcj8eXwoIi',
-          'subject 4': '1WYVGZxZ0jdsyMTwI7GDLlYYwTEfMSFRx',
-          'subject 5': '1GhUWe7m0VpQaxlbXrWFj9znP7Qit3tWk',
-          'subject 6': '1orZz64rngJJi1IZ9EQGztT8r0nBmK88n',
-          'subject 7': '1kicMvcE8u1fut1dxZA1MLsEMBKaCLa_P',
-          'subject 8': '1ZMnQQR85LUBAM6TqjM9PDSyUSMGJ4W-4',
-        },
-        'Semester 2': <String, String>{
-          'subject 1': '1PA95APyrhecOPvpEvxsoU5uux2ns7B2o',
-          'subject 2': '1_k7i9QbC65r7NffmMAwrE2KbXnQxU48z',
-          'subject 3': '1TUo0JfIg3HsdssH_S46D5g3VVz3sP5Qx',
-          'subject 4': '1jjuS1-FfkibE8Lx9pUJnjRnPuZAzPiaq',
-          'subject 5': '1hgIHx1w3aoqCVVXuZw7ntk5ZJY-wPUW4',
-          'subject 6': '1yRfwMufuKDTxgTvHNUYJTELJi7_11F1B',
-          'subject 7': '1bARI-uvsVH46p432NcT5tkv3V6Q174T6',
-          'subject 8': '1t6ehIUH0LzdydIO6roidy3-9YZE6VNTK',
-        },
-      },
-      'Last Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
-      },
-    },
-    'Mechatronics': {
-      'Current Year': {
-        'Semester 1': <String, String>{
-          'subject 1': '1dzvDKk7PFM2ofHFQm0Dua2IrV6j1Exyw',
-          'subject 2': '1yeAefe-opHqtm_z1I9lwAFuztr_g7n6C',
-          'subject 3': '17CLjvYJnSXXjVcIriEzvHYZNClDQT9VW',
-          'subject 4': '1IgYAuayak_21JZDq-57xdVLPYelBhxMq',
-          'subject 5': '1GCgqQqKul3P3LAP9LFuoXvoAZzmrJvp1',
-          'subject 6': '1A4pjnedpCZ_pzWyH5cIJQ93Q7ASuaxEM',
-          'subject 7': '1loR8DU7yomX7ap-mg5V0GaatyJW_eIJX',
-          'subject 8': '1FYw2SH4q4GlzU-gUfsQcgnM02hT5p5vS',
-        },
-        'Semester 2': <String, String>{
-          'subject 1': '1iFl8GYbzaJsBrVJPp5ACoqtP721Zh8IX',
-          'subject 2': '1WCyNnJQQhui2RfDjghJGxVN26g2z42kR',
-          'subject 3': '1Y6IbeSMr1ZZ19sxQMf3hNQJrNNN7PbhF',
-          'subject 4': '11BAOvLGkGu3hueip6a2XtAscnsk2G0BW',
-          'subject 5': '11KEcex13uDZA6AB0MS35lpwr9B5jqCmX',
-          'subject 6': '1Er8HI-EYagYmFfD-w71kifoNLeDf1ofW',
-          'subject 7': '1FvR-6xrXSzJ8Za_1SnkLAMPwMvlp628c',
-          'subject 8': '1Hdo8NkAJ49_Af4riOOBTPiY3tCzt4Z1O',
-        },
-      },
-      'Last Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
-      },
-    },
-  },
-  'Third Grade': {
-    'Communication': {
-      'Current Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
-      },
-      'Last Year': {
-        'Semester 1': <String, String>{
-          'broadband': '1aisZwaK65RJi_BPfj_E6hR-TZ0sKeR6p',
-          'chinese': '19TZyvCl92HH5DMf4mprO59tm-gta91wL',
-          'Communiction network': '1prylDZjqSTrY-BlEI4pXJrzAjbYi0Dq8',
-          'Linux': '1_8-fAa_nBudeiKwry4LR-JWIciMxWjUF',
-          'NGN': '17ERpI6NTPjXadcc3QsrjmqUAVf4YdRBO',
-          'website': '1tN_z_WgmXpxohPoAvHqvtTnd3iQX0YA0',
-          'الصحه والسلامه': '1kUks0v7IC5n4q4FMaAuH1QjAVQpvKNIG',
-        },
-        'Semester 2': <String, String>{
-          'cable': '1vMU9TLYEMjjLZKGyAhc7WsUxfhA3a8H3',
-          'mobile': '1Dxx-GjuzsrUfeGgKAmFYIDjds4QgCL9q',
-          'security': '1tUe7OcIJNxrg8pGJuOSmkJfxC7oAVsx3',
-          'switching': '1Vm9NvUiqs_uBflCX-iQSrTXNt84a21It',
-          'wireless': '1vY9KfmZVRIdQow7iGOA2SP2jzn_rJr06',
-          'التفكير المهني': '1G6PCmt3Ff7VGqJgp1NW7y9rNAx24s3wO',
-        },
-      },
-    },
-    'Electronics': {
-      'Current Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
-      },
-      'Last Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
-      },
-    },
-    'Mechatronics': {
-      'Current Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
-      },
-      'Last Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
-      },
-    },
-  },
-  'Fourth Grade': {
-    'Communication': {
-      'Current Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
-      },
-      'Last Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
-      },
-    },
-    'Electronics': {
-      'Current Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
-      },
-      'Last Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
-      },
-    },
-    'Mechatronics': {
-      'Current Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
-      },
-      'Last Year': {
-        'Semester 1': <String, String>{},
-        'Semester 2': <String, String>{},
-      },
-    },
-  },
+// --- Dynamic Academic Content System ---
+// Semester root folder IDs - subjects will be discovered dynamically using public Drive API
+const Map<String, String> semesterRootFolders = {
+  // First Grade
+  'First Grade Communication Current Year Semester 1':
+      '1F-aqh6UK5x8Cbva6Zr0UvnchyV8hDGp2',
+  'First Grade Communication Current Year Semester 2':
+      '1Xl2tlH1leBqoY10nwZvt_Hs4qsCMSNeL',
+  'First Grade Communication Last Year Semester 1':
+      '11YuvupTtPcZuTKAQOm9onpDrq6HwUTQS',
+  'First Grade Communication Last Year Semester 2':
+      '12g0GqJ__VAOwwr9Skqy7DHhfAAumstxl',
+  'First Grade Electronics Current Year Semester 1':
+      '1PR7sqZwA_4LgumJC0k3Af0aZ_ba2Zl30',
+  'First Grade Electronics Current Year Semester 2':
+      '1N7EiilaFCKUEE_O7Dy3P71FAcuREylXo',
+  'First Grade Electronics Last Year Semester 1':
+      '', // Empty - no folder ID provided
+  'First Grade Electronics Last Year Semester 2':
+      '', // Empty - no folder ID provided
+  'First Grade Mechatronics Current Year Semester 1':
+      '1xthA_-KhZ5Edi3jloRkwRAIMM6ljpoIS',
+  'First Grade Mechatronics Current Year Semester 2':
+      '1rVnXee3-ELWNBJ8OSoOILw0DbmuKjGxo',
+  'First Grade Mechatronics Last Year Semester 1':
+      '', // Empty - no folder ID provided
+  'First Grade Mechatronics Last Year Semester 2':
+      '', // Empty - no folder ID provided
+
+  // Second Grade
+  'Second Grade Communication Current Year Semester 1':
+      '1Ps1L5YOmU_LXfnb9sqwVtILVP5T3LjB9',
+  'Second Grade Communication Current Year Semester 2':
+      '1VUro5liVUNKtYG247Hwmq2fDQqkHqOhH',
+  'Second Grade Communication Last Year Semester 1':
+      '1bm4KMv65KpJqFPLNFcSMf4DItNq-H0WS',
+  'Second Grade Communication Last Year Semester 2':
+      '1rsfY18ebWzQPfYQIhhB_UAv0MIW_Q7Ot',
+  'Second Grade Electronics Current Year Semester 1':
+      '1q4FTG3ACwiu9z_n653kKkxx3DuZVJ2iV',
+  'Second Grade Electronics Current Year Semester 2':
+      '1XuYkkqZc1APLemfyKRuq_30Imzy_Hi4-',
+  'Second Grade Electronics Last Year Semester 1':
+      '', // Empty - no folder ID provided
+  'Second Grade Electronics Last Year Semester 2':
+      '', // Empty - no folder ID provided
+  'Second Grade Mechatronics Current Year Semester 1':
+      '1JKca-qZKuFN_S8wW0cNLYZqtJfuHyRJd',
+  'Second Grade Mechatronics Current Year Semester 2':
+      '1PL--naKlzPEehYLt4TbT9on4IG7szwmi',
+  'Second Grade Mechatronics Last Year Semester 1':
+      '', // Empty - no folder ID provided
+  'Second Grade Mechatronics Last Year Semester 2':
+      '', // Empty - no folder ID provided
+
+  // Third Grade
+  'Third Grade Communication Current Year Semester 1':
+      '1LfORh3S9XzjmgeiPXpAHGs_78utNUznc',
+  'Third Grade Communication Current Year Semester 2':
+      '12edu3L3lWkiQTWqXkAWxzLaUo_4jXkXV',
+  'Third Grade Communication Last Year Semester 1':
+      '1dnZ-B3w0eho4DLQuaUjcu_gYRxQVUh27',
+  'Third Grade Communication Last Year Semester 2':
+      '1sHx6GHS5GGNfUWcAzJdDLXoxm5dJQUW5',
+  'Third Grade Electronics Current Year Semester 1':
+      '18s3_6cK3XaCGswmaaM3BqyqyWiE9adq0',
+  'Third Grade Electronics Current Year Semester 2':
+      '1g9QQto6aulAGb1s6jjBXStqnwyR3lWrI',
+  'Third Grade Electronics Last Year Semester 1':
+      '', // Empty - no folder ID provided
+  'Third Grade Electronics Last Year Semester 2':
+      '', // Empty - no folder ID provided
+  'Third Grade Mechatronics Current Year Semester 1':
+      '1pWHRg_DNnWHefQer6yfxf5SnNd4PFKVV',
+  'Third Grade Mechatronics Current Year Semester 2':
+      '16QAM_Dcbm9GPYOk5O5wi-Vo3WcS70Bus',
+  'Third Grade Mechatronics Last Year Semester 1':
+      '', // Empty - no folder ID provided
+  'Third Grade Mechatronics Last Year Semester 2':
+      '', // Empty - no folder ID provided
+
+  // Fourth Grade
+  'Fourth Grade Communication Current Year Semester 1':
+      '1I353V2Dd1END87jCYcZb33fOmhjjKnGJ',
+  'Fourth Grade Communication Current Year Semester 2':
+      '1oJaBS3_nLYjCXIYOgqM5enjYxymw5h59',
+  'Fourth Grade Communication Last Year Semester 1':
+      '', // Empty - no folder ID provided
+  'Fourth Grade Communication Last Year Semester 2':
+      '', // Empty - no folder ID provided
+  'Fourth Grade Electronics Current Year Semester 1':
+      '1KOX51U4QKDJ3plORY7c__YVh7j4A26SH',
+  'Fourth Grade Electronics Current Year Semester 2':
+      '11I6Q4nEoiXC6lxpo3vTEsalbblIqRIqU',
+  'Fourth Grade Electronics Last Year Semester 1':
+      '', // Empty - no folder ID provided
+  'Fourth Grade Electronics Last Year Semester 2':
+      '', // Empty - no folder ID provided
+  'Fourth Grade Mechatronics Current Year Semester 1':
+      '1x_uNebUvo3ZlqpciawuBnu0ooAg_pdfV',
+  'Fourth Grade Mechatronics Current Year Semester 2':
+      '1p5Y6tooBY9TVaz55mdYL7_xcJYzqY3nY',
+  'Fourth Grade Mechatronics Last Year Semester 1':
+      '', // Empty - no folder ID provided
+  'Fourth Grade Mechatronics Last Year Semester 2':
+      '', // Empty - no folder ID provided
 };
+
+// --- Leader Mode Authentication System ---
+class LeaderModeProvider extends ChangeNotifier {
+  // SharedPreferences keys for persistent storage
+  static const String _keyIsLeaderMode = 'leader_mode_is_active';
+  static const String _keyLeaderEmail = 'leader_mode_email';
+
+  // Department-specific leader accounts mapping
+  // Structure: Grade -> Department -> Leader Email
+  // Each leader manages both current year and last year for their department
+  static const Map<String, Map<String, String>> _departmentLeaders = {
+    'First Grade': {
+      'Communication': 'eccatcommgrade1.2026@gmail.com',
+      'Electronics': 'eccatelectrograde1.2026@gmail.com',
+      'Mechatronics': 'eccatmechagrade1.2026@gmail.com',
+    },
+    'Second Grade': {
+      'Communication': 'eccatcommgrade2.2026@gmail.com',
+      'Electronics': 'eccatelectrograde2.2026@gmail.com',
+      'Mechatronics': 'eccatmechagrade2.2026@gmail.com',
+    },
+    'Third Grade': {
+      'Communication': 'eccatcommgrade3.2026@gmail.com',
+      'Electronics': 'eccatelectrograde3.2026@gmail.com',
+      'Mechatronics': 'eccatmechagrade3.2026@gmail.com',
+    },
+    'Fourth Grade': {
+      'Communication': 'eccatcommgrade4.2026@gmail.com',
+      'Electronics': 'eccatelectrograde4.2026@gmail.com',
+      'Mechatronics': 'eccatmechagrade4.2026@gmail.com',
+    },
+  };
+
+  // Doctor accounts with full access (fetched from remote JSON)
+  static List<String> _doctorAccounts = [];
+
+  // Fetch doctor accounts from GitHub repository
+  static Future<bool> fetchDoctorAccounts() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+            'https://raw.githubusercontent.com/waytoo-average/app_updates/main/doctor_accounts.json'),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        final List<dynamic> accounts = data['doctor_accounts'] ?? [];
+        _doctorAccounts = accounts.cast<String>();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      developer.log('Error fetching doctor accounts: $e',
+          name: 'LeaderModeProvider');
+      return false;
+    }
+  }
+
+  // Get all authorized emails as a flat list
+  static List<String> get _allAuthorizedEmails {
+    final List<String> emails = [];
+    _departmentLeaders.forEach((grade, departments) {
+      departments.forEach((department, leader) {
+        emails.add(leader);
+      });
+    });
+    emails.addAll(_doctorAccounts); // Add doctor accounts with full access
+    return emails.toSet().toList(); // Remove duplicates
+  }
+
+  // Separate GoogleSignIn instance for leaders with write permissions
+  final GoogleSignIn _leaderGoogleSignIn = GoogleSignIn(
+    scopes: <String>[
+      'email',
+      'profile',
+      'https://www.googleapis.com/auth/drive.file', // Write access to files created by the app
+    ],
+  );
+
+  bool _isLeaderMode = false;
+  String? _leaderEmail;
+  GoogleSignInAccount? _leaderAccount;
+  bool _isAuthenticating = false;
+  bool _isInitialized = false;
+
+  bool get isLeaderMode => _isLeaderMode;
+  String? get leaderEmail => _leaderEmail;
+  bool get isAuthenticating => _isAuthenticating;
+  bool get isInitialized => _isInitialized;
+
+  /// Initialize the provider and restore authentication state if available
+  Future<void> initialize() async {
+    if (_isInitialized) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Check if there's a saved authentication state
+      final savedIsLeaderMode = prefs.getBool(_keyIsLeaderMode) ?? false;
+      final savedLeaderEmail = prefs.getString(_keyLeaderEmail);
+
+      if (savedIsLeaderMode && savedLeaderEmail != null) {
+        // Fetch doctor accounts to ensure we have the latest list
+        await fetchDoctorAccounts();
+        
+        // Verify the email is still authorized
+        if (_allAuthorizedEmails.contains(savedLeaderEmail)) {
+          // Attempt silent sign-in to restore Google account
+          final account = await _leaderGoogleSignIn.signInSilently();
+          
+          if (account != null && account.email == savedLeaderEmail) {
+            _leaderAccount = account;
+            _leaderEmail = savedLeaderEmail;
+            _isLeaderMode = true;
+            
+            developer.log('Leader mode restored for: $savedLeaderEmail', 
+                name: 'LeaderModeProvider');
+          } else {
+            // Silent sign-in failed, clear saved state
+            await _clearSavedAuthState();
+          }
+        } else {
+          // Email no longer authorized, clear saved state
+          await _clearSavedAuthState();
+        }
+      }
+    } catch (e) {
+      developer.log('Error initializing leader mode: $e', name: 'LeaderModeProvider');
+      await _clearSavedAuthState();
+    }
+
+    _isInitialized = true;
+    notifyListeners();
+  }
+
+  /// Clear saved authentication state
+  Future<void> _clearSavedAuthState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_keyIsLeaderMode);
+      await prefs.remove(_keyLeaderEmail);
+      
+      _isLeaderMode = false;
+      _leaderEmail = null;
+      _leaderAccount = null;
+    } catch (e) {
+      developer.log('Error clearing saved auth state: $e', name: 'LeaderModeProvider');
+    }
+  }
+
+  /// Save authentication state to persistent storage
+  Future<void> _saveAuthState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_keyIsLeaderMode, _isLeaderMode);
+      if (_leaderEmail != null) {
+        await prefs.setString(_keyLeaderEmail, _leaderEmail!);
+      }
+    } catch (e) {
+      developer.log('Error saving auth state: $e', name: 'LeaderModeProvider');
+    }
+  }
+
+  /// Authenticate leader and enable leader mode
+  Future<bool> authenticateLeader(BuildContext context,
+      {bool isDoctorMode = false}) async {
+    _isAuthenticating = true;
+    notifyListeners();
+
+    try {
+      // Fetch doctor accounts if in doctor mode or if list is empty
+      if (isDoctorMode || _doctorAccounts.isEmpty) {
+        await fetchDoctorAccounts();
+      }
+
+      final GoogleSignInAccount? account = await _leaderGoogleSignIn.signIn();
+
+      if (account != null && _allAuthorizedEmails.contains(account.email)) {
+        _leaderAccount = account;
+        _leaderEmail = account.email;
+        _isLeaderMode = true;
+        _isAuthenticating = false;
+        
+        // Save authentication state to persistent storage
+        await _saveAuthState();
+        
+        notifyListeners();
+
+        if (context.mounted) {
+          final roleText = isDoctorMode ? AppLocalizations.of(context)!.doctor : AppLocalizations.of(context)!.leader;
+          showAppSnackBar(
+            context,
+            AppLocalizations.of(context)!.modeActivatedFor(roleText, account.displayName ?? ''),
+            icon: isDoctorMode
+                ? Icons.school
+                : Icons.admin_panel_settings,
+            iconColor: Colors.green,
+          );
+        }
+        return true;
+      } else {
+        await _leaderGoogleSignIn.signOut();
+        _isAuthenticating = false;
+        notifyListeners();
+
+        if (context.mounted) {
+          showAppSnackBar(
+            context,
+            AppLocalizations.of(context)!.accessDenied,
+            icon: Icons.error,
+            iconColor: Colors.red,
+          );
+        }
+        return false;
+      }
+    } catch (e) {
+      _isAuthenticating = false;
+      notifyListeners();
+
+      if (context.mounted) {
+        showAppSnackBar(
+          context,
+          AppLocalizations.of(context)!.authenticationFailed(e.toString()),
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+      return false;
+    }
+  }
+
+  /// Sign out leader and disable leader mode
+  Future<void> signOutLeader(BuildContext context) async {
+    try {
+      await _leaderGoogleSignIn.signOut();
+      _leaderAccount = null;
+      _leaderEmail = null;
+      _isLeaderMode = false;
+      
+      // Clear saved authentication state
+      await _clearSavedAuthState();
+      
+      notifyListeners();
+
+      if (context.mounted) {
+        showAppSnackBar(
+          context,
+          AppLocalizations.of(context)!.leaderModeDeactivated,
+          icon: Icons.logout,
+          iconColor: Colors.orange,
+        );
+      }
+    } catch (e) {
+      developer.log('Error signing out leader: $e', name: 'LeaderModeProvider');
+    }
+  }
+
+  /// Get authenticated HTTP client for Drive API write operations
+  Future<http.Client?> get authenticatedHttpClient async {
+    if (_leaderAccount == null) return null;
+
+    try {
+      final Map<String, String> headers = await _leaderAccount!.authHeaders;
+      return GoogleHttpClient(headers);
+    } catch (e) {
+      developer.log('Error getting authenticated client: $e',
+          name: 'LeaderModeProvider');
+      return null;
+    }
+  }
+
+  // Check if the current leader can upload to specific grade/department/year
+  bool canUploadTo(String grade, String department, String year) {
+    if (_leaderEmail == null) return false;
+
+    // Doctors have full access to everything
+    if (_doctorAccounts.contains(_leaderEmail)) return true;
+
+    final departmentLeaders = _departmentLeaders[grade];
+    if (departmentLeaders == null) return false;
+
+    // Normalize department name for flexible matching
+    String normalizedDepartment = department.toLowerCase()
+        .replaceAll(' department', '')
+        .replaceAll(' departments', '')
+        .replaceAll('department ', '')
+        .replaceAll('departments ', '')
+        .trim();
+
+    // Try to find a matching department leader with flexible name matching
+    for (final entry in departmentLeaders.entries) {
+      String normalizedKey = entry.key.toLowerCase()
+          .replaceAll(' department', '')
+          .replaceAll(' departments', '')
+          .replaceAll('department ', '')
+          .replaceAll('departments ', '')
+          .trim();
+      
+      if (normalizedKey == normalizedDepartment && entry.value.toLowerCase() == _leaderEmail!.toLowerCase()) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /// Get leader's authorized areas
+  Map<String, List<String>> getLeaderAuthorizations() {
+    if (_leaderEmail == null) return {};
+
+    // Doctors have full access
+    if (_doctorAccounts.contains(_leaderEmail)) {
+      return {
+        'All Grades': ['Full Access']
+      };
+    }
+
+    final Map<String, List<String>> authorizations = {};
+    _departmentLeaders.forEach((grade, departments) {
+      departments.forEach((department, leader) {
+        if (leader == _leaderEmail) {
+          final key = '$grade - $department';
+          authorizations
+              .putIfAbsent(key, () => [])
+              .addAll(['Current Year', 'Last Year']);
+        }
+      });
+    });
+    return authorizations;
+  }
+
+  /// Create folder in Google Drive
+  Future<bool> createFolderInDrive({
+    required String parentFolderId,
+    required String folderName,
+    required BuildContext context,
+  }) async {
+    final client = await authenticatedHttpClient;
+    if (client == null) {
+      if (context.mounted) {
+        showAppSnackBar(
+          context,
+          AppLocalizations.of(context)!.authenticationRequired,
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+      return false;
+    }
+
+    try {
+      final driveApi = drive_write.DriveApi(client);
+
+      // Create folder metadata
+      final folderMetadata = drive_write.File()
+        ..name = folderName
+        ..parents = [parentFolderId]
+        ..mimeType = 'application/vnd.google-apps.folder';
+
+      // Create folder
+      final createdFolder = await driveApi.files.create(folderMetadata);
+
+      if (createdFolder.id != null) {
+        if (context.mounted) {
+          showAppSnackBar(
+            context,
+            AppLocalizations.of(context)!.folderCreatedSuccessfully(folderName),
+            icon: Icons.folder,
+            iconColor: Colors.green,
+          );
+        }
+        return true;
+      }
+      return false;
+    } catch (e) {
+      developer.log('Error creating folder: $e', name: 'LeaderModeProvider');
+      if (context.mounted) {
+        showAppSnackBar(
+          context,
+          AppLocalizations.of(context)!.folderCreationFailed(e.toString()),
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+      return false;
+    } finally {
+      client.close();
+    }
+  }
+
+  /// Rename file or folder in Google Drive
+  Future<bool> renameFileOrFolder({
+    required String fileId,
+    required String newName,
+    required String grade,
+    required String department,
+    required String year,
+    required BuildContext context,
+  }) async {
+    // Check if leader has permission for this grade/department/year
+    if (!canUploadTo(grade, department, year)) {
+      if (context.mounted) {
+        showAppSnackBar(
+          context,
+          AppLocalizations.of(context)!.accessDenied,
+          icon: Icons.security,
+          iconColor: Colors.red,
+        );
+      }
+      return false;
+    }
+    
+    final client = await authenticatedHttpClient;
+    if (client == null) {
+      if (context.mounted) {
+        showAppSnackBar(
+          context,
+          AppLocalizations.of(context)!.authenticationRequired,
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+      return false;
+    }
+
+    try {
+      final driveApi = drive_write.DriveApi(client);
+
+      // Update file metadata with new name
+      final fileMetadata = drive_write.File()..name = newName;
+
+      await driveApi.files.update(fileMetadata, fileId);
+
+      if (context.mounted) {
+        showAppSnackBar(
+          context,
+          AppLocalizations.of(context)!.itemRenamed,
+          icon: Icons.edit,
+          iconColor: Colors.green,
+        );
+      }
+      return true;
+    } catch (e) {
+      developer.log('Error renaming file: $e', name: 'LeaderModeProvider');
+      if (context.mounted) {
+        showAppSnackBar(
+          context,
+          AppLocalizations.of(context)!.renameFailed(e.toString()),
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+      return false;
+    } finally {
+      client.close();
+    }
+  }
+
+  /// Delete file or folder from Google Drive
+  Future<bool> deleteFileOrFolder({
+    required String fileId,
+    required String fileName,
+    required String grade,
+    required String department,
+    required String year,
+    required BuildContext context,
+  }) async {
+    // Check if leader has permission for this grade/department/year
+    if (!canUploadTo(grade, department, year)) {
+      if (context.mounted) {
+        showAppSnackBar(
+          context,
+          AppLocalizations.of(context)!.accessDenied,
+          icon: Icons.security,
+          iconColor: Colors.red,
+        );
+      }
+      return false;
+    }
+    
+    final client = await authenticatedHttpClient;
+    if (client == null) {
+      if (context.mounted) {
+        showAppSnackBar(
+          context,
+          AppLocalizations.of(context)!.authenticationRequired,
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+      return false;
+    }
+
+    try {
+      final driveApi = drive_write.DriveApi(client);
+
+      // Delete the file/folder
+      await driveApi.files.delete(fileId);
+
+      if (context.mounted) {
+        showAppSnackBar(
+          context,
+          AppLocalizations.of(context)!.itemDeleted,
+          icon: Icons.delete,
+          iconColor: Colors.green,
+        );
+      }
+      return true;
+    } catch (e) {
+      developer.log('Error deleting file: $e', name: 'LeaderModeProvider');
+      if (context.mounted) {
+        showAppSnackBar(
+          context,
+          AppLocalizations.of(context)!.deleteFailed(e.toString()),
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+      return false;
+    } finally {
+      client.close();
+    }
+  }
+
+  /// Upload file to specific Drive folder
+  Future<bool> uploadFileToFolder({
+    required String folderId,
+    required File file,
+    required String fileName,
+    required String grade,
+    required String department,
+    required String year,
+    required Function(double) onProgress,
+    required BuildContext context,
+  }) async {
+    // Check if leader has permission for this grade/department/year
+    if (!canUploadTo(grade, department, year)) {
+      if (context.mounted) {
+        showAppSnackBar(
+          context,
+          AppLocalizations.of(context)!.accessDenied,
+          icon: Icons.security,
+          iconColor: Colors.red,
+        );
+      }
+      return false;
+    }
+    final client = await authenticatedHttpClient;
+    if (client == null) {
+      if (context.mounted) {
+        showAppSnackBar(
+          context,
+          AppLocalizations.of(context)!.authenticationRequired,
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+      return false;
+    }
+
+    try {
+      final driveApi = drive_write.DriveApi(client);
+
+      // Create file metadata
+      final fileMetadata = drive_write.File()
+        ..name = fileName
+        ..parents = [folderId];
+
+      // Read file content
+      final fileContent = await file.readAsBytes();
+      final media =
+          drive_write.Media(Stream.value(fileContent), fileContent.length);
+
+      // Upload file
+      final uploadedFile = await driveApi.files.create(
+        fileMetadata,
+        uploadMedia: media,
+      );
+
+      if (uploadedFile.id != null) {
+        if (context.mounted) {
+          showAppSnackBar(
+            context,
+            AppLocalizations.of(context)!.fileUploadedSuccessfully(fileName),
+            icon: Icons.cloud_upload,
+            iconColor: Colors.green,
+          );
+        }
+        return true;
+      }
+      return false;
+    } catch (e) {
+      developer.log('Error uploading file: $e', name: 'LeaderModeProvider');
+      if (context.mounted) {
+        showAppSnackBar(
+          context,
+          AppLocalizations.of(context)!.uploadFailed(e.toString()),
+          icon: Icons.error,
+          iconColor: Colors.red,
+        );
+      }
+      return false;
+    } finally {
+      client.close();
+    }
+  }
+}
+
+// Google HTTP Client for authenticated requests
+class GoogleHttpClient extends http.BaseClient {
+  final Map<String, String> _headers;
+  final http.Client _client = http.Client();
+
+  GoogleHttpClient(this._headers);
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    request.headers.addAll(_headers);
+    return _client.send(request);
+  }
+
+  @override
+  void close() {
+    _client.close();
+  }
+}
+
+// Dynamic folder provider for discovering subjects within semester folders
+class DynamicFolderProvider extends ChangeNotifier {
+  static const String _cachePrefix = 'dynamic_folders_';
+  static const Duration _cacheValidDuration = Duration(hours: 6);
+
+  Map<String, Map<String, String>> _cachedSubjects = {};
+  Map<String, DateTime> _cacheTimestamps = {};
+
+  // API key for public Drive access (same as existing implementation)
+  static const String _apiKey = 'AIzaSyA9PZz-Mbpt-LrTrWKsUBaeYdKTlBnb8H0';
+
+  /// Discover all subject folders within a semester folder using public Drive API
+  Future<Map<String, String>> discoverSemesterSubjects(
+      String semesterKey) async {
+    // Check in-memory cache first
+    if (_cachedSubjects.containsKey(semesterKey) &&
+        _cacheTimestamps.containsKey(semesterKey)) {
+      final cacheTime = _cacheTimestamps[semesterKey]!;
+      if (DateTime.now().difference(cacheTime) < _cacheValidDuration) {
+        return _cachedSubjects[semesterKey]!;
+      }
+    }
+
+    // Check persistent cache for offline access
+    final cachedData = await _loadFromCache(semesterKey);
+    if (cachedData != null) {
+      _cachedSubjects[semesterKey] = cachedData;
+      return cachedData;
+    }
+
+    final semesterFolderId = semesterRootFolders[semesterKey];
+
+    if (semesterFolderId == null || semesterFolderId.isEmpty) {
+      return {}; // Return empty if no valid folder ID
+    }
+
+    try {
+      // Use public Drive API to list folders within the semester folder
+      final url = 'https://www.googleapis.com/drive/v3/files'
+          '?q=\'$semesterFolderId\'+in+parents+and+mimeType=\'application/vnd.google-apps.folder\''
+          '&fields=files(id,name)'
+          '&key=$_apiKey';
+
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final files = data['files'] as List<dynamic>;
+
+        final subjects = <String, String>{};
+        for (final file in files) {
+          final name = file['name'] as String;
+          final id = file['id'] as String;
+          subjects[name] = id;
+        }
+
+        // Cache the results
+        _cachedSubjects[semesterKey] = subjects;
+        _cacheTimestamps[semesterKey] = DateTime.now();
+
+        // Persist cache to SharedPreferences
+        await _persistCache(semesterKey, subjects);
+
+        return subjects;
+      } else {
+        developer.log(
+            'Failed to fetch semester subjects: ${response.statusCode}',
+            name: 'DynamicFolderProvider');
+        return {};
+      }
+    } catch (e) {
+      developer.log('Error discovering semester subjects: $e',
+          name: 'DynamicFolderProvider');
+      return {};
+    }
+  }
+
+  /// Get subjects for a specific semester (with fallback to hardcoded data)
+  Future<Map<String, String>> getSubjectsForSemester(
+      String grade, String department, String year, String semester) async {
+    final semesterKey = '$grade $department $year $semester';
+    return await discoverSemesterSubjects(semesterKey);
+  }
+
+  /// Load subjects from persistent cache
+  Future<Map<String, String>?> _loadFromCache(String semesterKey) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedData = prefs.getString('$_cachePrefix$semesterKey');
+      final cacheTime = prefs.getInt('${_cachePrefix}time_$semesterKey');
+
+      if (cachedData != null && cacheTime != null) {
+        final cacheDateTime = DateTime.fromMillisecondsSinceEpoch(cacheTime);
+        // Use longer cache duration for offline access (24 hours)
+        if (DateTime.now().difference(cacheDateTime) <
+            const Duration(hours: 24)) {
+          final subjects = Map<String, String>.from(json.decode(cachedData));
+          _cacheTimestamps[semesterKey] = cacheDateTime;
+          return subjects;
+        }
+      }
+    } catch (e) {
+      developer.log('Error loading cache: $e', name: 'DynamicFolderProvider');
+    }
+    return null;
+  }
+
+  /// Persist subjects cache to SharedPreferences
+  Future<void> _persistCache(
+      String semesterKey, Map<String, String> subjects) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('$_cachePrefix$semesterKey', json.encode(subjects));
+      await prefs.setInt('${_cachePrefix}time_$semesterKey',
+          DateTime.now().millisecondsSinceEpoch);
+    } catch (e) {
+      developer.log('Error persisting cache: $e',
+          name: 'DynamicFolderProvider');
+    }
+  }
+
+  /// Preload all cached subjects for offline access
+  Future<void> preloadCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys().where(
+          (key) => key.startsWith(_cachePrefix) && !key.contains('time_'));
+
+      for (final key in keys) {
+        final semesterKey = key.substring(_cachePrefix.length);
+        final cachedData = await _loadFromCache(semesterKey);
+        if (cachedData != null) {
+          _cachedSubjects[semesterKey] = cachedData;
+        }
+      }
+
+      notifyListeners();
+    } catch (e) {
+      developer.log('Error preloading cache: $e',
+          name: 'DynamicFolderProvider');
+    }
+  }
+
+  /// Clear all cached data
+  Future<void> clearCache() async {
+    _cachedSubjects.clear();
+    _cacheTimestamps.clear();
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys().where((key) => key.startsWith(_cachePrefix));
+      for (final key in keys) {
+        await prefs.remove(key);
+      }
+    } catch (e) {
+      developer.log('Error clearing cache: $e', name: 'DynamicFolderProvider');
+    }
+
+    notifyListeners();
+  }
+}
+
+// Backward compatibility// Helper function to get semester key for dynamic folder lookup
+String _getSemesterKey(
+    String grade, String department, String year, String semester) {
+  // Normalize all values to English to match semesterRootFolders keys
+  
+  // Normalize grade names
+  String normalizedGrade = grade;
+  if (grade == 'الفرقة الأولى' || grade == 'First Grade') {
+    normalizedGrade = 'First Grade';
+  } else if (grade == 'الفرقة الثانية' || grade == 'Second Grade') {
+    normalizedGrade = 'Second Grade';
+  } else if (grade == 'الفرقة الثالثة' || grade == 'Third Grade') {
+    normalizedGrade = 'Third Grade';
+  } else if (grade == 'الفرقة الرابعة' || grade == 'Fourth Grade') {
+    normalizedGrade = 'Fourth Grade';
+  }
+  
+  // Normalize department names
+  String normalizedDepartment = department;
+  if (department == 'قسم الاتصالات' || department == 'Communication Department' || department == 'Communication') {
+    normalizedDepartment = 'Communication';
+  } else if (department == 'قسم الإلكترونيات' || department == 'Electronics Department' || department == 'Electronics') {
+    normalizedDepartment = 'Electronics';
+  } else if (department == 'قسم الميكاترونيكس' || department == 'Mechatronics Department' || department == 'Mechatronics') {
+    normalizedDepartment = 'Mechatronics';
+  }
+  
+  // Normalize year names
+  String normalizedYear = year;
+  if (year == 'العام الحالي' || year == 'Current Year') {
+    normalizedYear = 'Current Year';
+  } else if (year == 'العام الماضي' || year == 'Last Year') {
+    normalizedYear = 'Last Year';
+  }
+
+  // Normalize semester names
+  String normalizedSemester = semester;
+  if (semester == 'First Semester' || semester == 'Semester 1' || semester == 'الفصل الأول') {
+    normalizedSemester = 'Semester 1';
+  } else if (semester == 'Second Semester' || semester == 'Semester 2' || semester == 'الفصل الثاني') {
+    normalizedSemester = 'Semester 2';
+  }
+
+  return '$normalizedGrade $normalizedDepartment $normalizedYear $normalizedSemester';
+}
+
+// Helper function to get subjects for a semester using dynamic discovery
+Future<Map<String, String>> getSubjectsForSemester(
+    String grade, String department, String year, String semester) async {
+  final semesterKey = _getSemesterKey(grade, department, year, semester);
+  final folderId = semesterRootFolders[semesterKey];
+
+  // If no folder ID is available, return empty map
+  if (folderId == null || folderId.isEmpty) {
+    return <String, String>{};
+  }
+
+  // Use dynamic folder provider to discover subjects
+  final provider = DynamicFolderProvider();
+  return await provider.discoverSemesterSubjects(semesterKey);
+}
 
 // --- Grade Selection UI ---
 // GradeSelectionScreen - NO LONGER HAS ITS OWN SCAFFOLD OR APPBAR
 class GradeSelectionScreen extends StatelessWidget {
   const GradeSelectionScreen({super.key});
+
+  /// Show enhanced authentication dialog with doctor and leader options
+  void _showEnhancedAuthenticationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Theme.of(context).colorScheme.surface,
+                  Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+                ],
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header with icon
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    Icons.admin_panel_settings,
+                    size: 48,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  AppLocalizations.of(context)!.authenticationRequired,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                 AppLocalizations.of(context)!.chooserole,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.7),
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                // Sign in as Doctor button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      Navigator.of(dialogContext).pop();
+                      final leaderProvider = Provider.of<LeaderModeProvider>(
+                          context,
+                          listen: false);
+                      await leaderProvider.authenticateLeader(context,
+                          isDoctorMode: true);
+                    },
+                    icon: const Icon(Icons.school),
+                    label: Text(AppLocalizations.of(context)!.signInAsDoctor),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      backgroundColor: Colors.blue.shade600,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Sign in as Leader button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      Navigator.of(dialogContext).pop();
+                      final leaderProvider = Provider.of<LeaderModeProvider>(
+                          context,
+                          listen: false);
+                      await leaderProvider.authenticateLeader(context,
+                          isDoctorMode: false);
+                    },
+                    icon: const Icon(Icons.school),
+                    label: Text(AppLocalizations.of(context)!.signInAsLeader),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      backgroundColor: Colors.green.shade600,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Cancel button
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.7),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Show material upload bottom sheet
+  void _showMaterialUploadBottomSheet(BuildContext context) {
+    MaterialUploadHelper.showMaterialUploadBottomSheet(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
@@ -293,37 +1155,81 @@ class GradeSelectionScreen extends StatelessWidget {
         AppBar(
           title: Text(s.appTitle),
           automaticallyImplyLeading: false,
+          actions: [
+            // Leader Mode Button
+            Consumer<LeaderModeProvider>(
+              builder: (context, leaderProvider, child) {
+                if (leaderProvider.isLeaderMode) {
+                  return PopupMenuButton<String>(
+                    icon: const Icon(Icons.admin_panel_settings,
+                        color: Colors.green),
+                    tooltip: s.leaderModeActive,
+                    onSelected: (value) async {
+                      if (value == 'signout') {
+                        await leaderProvider.signOutLeader(context);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'signout',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.logout, color: Colors.red),
+                            const SizedBox(width: 8),
+                            Text (s.signOut,
+                                style: const TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                } else {
+                  return IconButton(
+                    icon: const Icon(Icons.admin_panel_settings_outlined),
+                    tooltip: AppLocalizations.of(context)!.leaderMode,
+                    onPressed: leaderProvider.isAuthenticating
+                        ? null
+                        : () => _showEnhancedAuthenticationDialog(context),
+                  );
+                }
+              },
+            ),
+          ],
         ),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.all(20.0),
-            child: StaggeredListView(
-              children: grades.map((grade) {
-                return AnimatedCard(
-                  child: AnimatedButton(
-                    onPressed: () => Future.microtask(() =>
-                        Navigator.of(context).pushNamed('/departments',
-                            arguments: AcademicContext(grade: grade.$1))),
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: ListTile(
-                        leading: Icon(grade.$2, size: 32),
-                        title: Text(
-                          grade.$1,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
+            child: Stack(
+              children: [
+                StaggeredListView(
+                  children: grades.map((grade) {
+                    return AnimatedCard(
+                      child: AnimatedButton(
+                        onPressed: () => Future.microtask(() =>
+                            Navigator.of(context).pushNamed('/departments',
+                                arguments: AcademicContext(grade: grade.$1))),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          child: ListTile(
+                            leading: Icon(grade.$2, size: 32),
+                            title: Text(
+                              grade.$1,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            trailing: const Icon(Icons.arrow_forward_ios),
                           ),
                         ),
-                        trailing: const Icon(Icons.arrow_forward_ios),
                       ),
-                    ),
-                  ),
-                );
-              }).toList(),
+                    );
+                  }).toList(),
+                ),
+              ],
             ),
           ),
-        ),
+        )
       ],
     );
   }
@@ -448,142 +1354,583 @@ class YearSelectionScreen extends StatelessWidget {
 }
 
 // SemesterSelectionScreen
-class SemesterSelectionScreen extends StatelessWidget {
+class SemesterSelectionScreen extends StatefulWidget {
   final AcademicContext academicContext;
   const SemesterSelectionScreen({super.key, required this.academicContext});
 
-  Map<String, String> _getSubjectsForContext(
-      BuildContext context, AcademicContext contextToLookup) {
-    final String? canonicalGrade = contextToLookup.getCanonicalGrade(context);
-    final String? canonicalDepartment =
-        contextToLookup.getCanonicalDepartment(context);
-    final String? canonicalYear = contextToLookup.getCanonicalYear(context);
-    final String? canonicalSemester =
-        contextToLookup.getCanonicalSemester(context);
+  @override
+  State<SemesterSelectionScreen> createState() =>
+      _SemesterSelectionScreenState();
+}
+
+class _SemesterSelectionScreenState extends State<SemesterSelectionScreen> {
+  Map<String, String> semester1Subjects = {};
+  Map<String, String> semester2Subjects = {};
+  bool isLoading = true;
+
+  /// Show material upload bottom sheet - enabled for semester level uploads
+  void _showMaterialUploadBottomSheet(BuildContext context) {
+    // Show dialog to choose which semester to upload to
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.upload_file, color: Colors.blue),
+            const SizedBox(width: 8),
+            Text(AppLocalizations.of(context)!.uploadToSemester),
+          ],
+        ),
+        content: Text(AppLocalizations.of(context)!.chooseSemesterToUpload),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _uploadToSemester(context, 'Semester 1');
+            },
+            child: Text(AppLocalizations.of(context)!.semester1),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _uploadToSemester(context, 'Semester 2');
+            },
+            child: Text(AppLocalizations.of(context)!.semester2),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Upload materials to specific semester folder
+  void _uploadToSemester(BuildContext context, String semester) {
+    final grade = widget.academicContext.grade;
+    final department = widget.academicContext.department;
+    final year = widget.academicContext.year;
+    
+    if (grade == null || department == null || year == null) {
+      showAppSnackBar(
+        context,
+        AppLocalizations.of(context)!.incompleteAcademicContext,
+        icon: Icons.error,
+        iconColor: Colors.red,
+      );
+      return;
+    }
+    
+    final semesterKey = _getSemesterKey(grade, department, year, semester);
+    final semesterFolderId = semesterRootFolders[semesterKey];
+    
+    if (semesterFolderId == null || semesterFolderId.isEmpty) {
+      showAppSnackBar(
+        context,
+        AppLocalizations.of(context)!.semesterFolderNotAvailable,
+        icon: Icons.error,
+        iconColor: Colors.red,
+      );
+      return;
+    }
+    
+    // Use the MaterialUploadHelper with explicit context
+    MaterialUploadHelper.showMaterialUploadBottomSheetWithContext(
+      context,
+      semesterFolderId,
+      widget.academicContext,
+    );
+  }
+
+  Future<Map<String, String>> _getSubjectsForContext(
+      BuildContext context, AcademicContext contextToLookup) async {
+    final String? canonicalGrade = contextToLookup.grade;
+    final String? canonicalDepartment = contextToLookup.department;
+    final String? canonicalYear = contextToLookup.year;
+    final String? canonicalSemester = contextToLookup.semester;
 
     if (canonicalGrade == null ||
+        canonicalGrade.isEmpty ||
         canonicalDepartment == null ||
+        canonicalDepartment.isEmpty ||
         canonicalYear == null ||
-        canonicalSemester == null) {
+        canonicalYear.isEmpty ||
+        canonicalSemester == null ||
+        canonicalSemester.isEmpty) {
       developer.log(
           'Incomplete Canonical AcademicContext for subject lookup: $contextToLookup',
           name: 'SemesterSelectionScreen');
       return {};
     }
 
-    final Map<String, Map<String, Map<String, Map<String, String>>>>? gradeMap =
-        allAcademicContentFolders[canonicalGrade];
-    final Map<String, Map<String, Map<String, String>>>? departmentMap =
-        gradeMap?[canonicalDepartment];
-    final Map<String, Map<String, String>>? yearMap =
-        departmentMap?[canonicalYear];
-    final Map<String, String>? semesterMap = yearMap?[canonicalSemester];
+    // Use dynamic folder discovery
+    return await getSubjectsForSemester(
+        canonicalGrade, canonicalDepartment, canonicalYear, canonicalSemester);
+  }
 
-    return semesterMap ?? {};
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (isLoading) {
+      _loadSubjects();
+    }
+  }
+
+  Future<void> _loadSubjects() async {
+    try {
+      final context1 = widget.academicContext.copyWith(semester: 'Semester 1');
+      final context2 = widget.academicContext.copyWith(semester: 'Semester 2');
+      
+      final results = await Future.wait([
+        _getSubjectsForContext(context, context1),
+        _getSubjectsForContext(context, context2),
+      ]);
+
+      setState(() {
+        semester1Subjects = results[0];
+        semester2Subjects = results[1];
+        isLoading = false;
+      });
+    } catch (e) {
+      developer.log('Error loading subjects: $e',
+          name: 'SemesterSelectionScreen');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _refreshSubjects() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    // Clear the dynamic folder cache to force refetch
+    final dynamicFolderProvider =
+        Provider.of<DynamicFolderProvider>(context, listen: false);
+    await dynamicFolderProvider.clearCache();
+
+    // Reload subjects
+    await _loadSubjects();
   }
 
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final Map<String, String> semester1Subjects = _getSubjectsForContext(
-        context, academicContext.copyWith(semester: s.semester1));
-    final Map<String, String> semester2Subjects = _getSubjectsForContext(
-        context, academicContext.copyWith(semester: s.semester2));
 
     final bool hasSem1 = semester1Subjects.isNotEmpty;
     final bool hasSem2 = semester2Subjects.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(academicContext.titleString, softWrap: true, maxLines: 2),
+        title: Text(widget.academicContext.titleString,
+            softWrap: true, maxLines: 2),
+        leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: isLoading ? null : _refreshSubjects,
+            tooltip: 'Refresh folders',
+          ),
+        ],
+        elevation: theme.appBarTheme.elevation,
+        backgroundColor: theme.appBarTheme.backgroundColor,
+      ),
+      // No floating action button for semester selection screen
+      body: isLoading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : (!hasSem1 && !hasSem2)
+              ? Center(
+                  child: Card(
+                    margin: const EdgeInsets.all(32),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Text(
+                        s.notAvailableNow,
+                        style: theme.textTheme.titleMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.all(20.0),
+                  children: [
+                    if (hasSem1)
+                      Card(
+                        margin: const EdgeInsets.only(bottom: 16.0),
+                        child: ListTile(
+                          title: Text(s.semester1,
+                              style: theme.textTheme.titleMedium),
+                          trailing:
+                              const Icon(Icons.arrow_forward_ios, size: 18),
+                          onTap: () {
+                            Navigator.of(context).pushNamed(
+                              '/subjects',
+                              arguments: {
+                                'subjects': semester1Subjects,
+                                'context': widget.academicContext
+                                    .copyWith(semester: 'Semester 1'),
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    if (hasSem2)
+                      Card(
+                        margin: const EdgeInsets.only(bottom: 16.0),
+                        child: ListTile(
+                          title: Text(s.semester2,
+                              style: theme.textTheme.titleMedium),
+                          trailing:
+                              const Icon(Icons.arrow_forward_ios, size: 18),
+                          onTap: () {
+                            Navigator.of(context).pushNamed(
+                              '/subjects',
+                              arguments: {
+                                'subjects': semester2Subjects,
+                                'context': widget.academicContext
+                                    .copyWith(semester: 'Semester 2'),
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+    );
+  }
+}
+
+// SubjectSelectionScreen
+class SubjectSelectionScreen extends StatefulWidget {
+  final Map<String, String> subjects;
+  final AcademicContext academicContext;
+  const SubjectSelectionScreen(
+      {super.key, required this.subjects, required this.academicContext});
+
+  @override
+  State<SubjectSelectionScreen> createState() => _SubjectSelectionScreenState();
+}
+
+class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
+  Map<String, String> _subjects = {};
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _subjects = Map.from(widget.subjects);
+  }
+
+  /// Refresh subjects list from parent provider
+  Future<void> _refreshSubjects() async {
+    if (!mounted) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Trigger refresh in parent by popping and letting parent rebuild
+      // For now, we'll just reload from widget.subjects
+      await Future.delayed(const Duration(milliseconds: 500)); // Small delay for UX
+      
+      if (mounted) {
+        setState(() {
+          _subjects = Map.from(widget.subjects);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  /// Show material upload bottom sheet - enabled for semester level uploads
+  void _showMaterialUploadBottomSheet(BuildContext context) {
+    final grade = widget.academicContext.grade;
+    final department = widget.academicContext.department;
+    final year = widget.academicContext.year;
+    final semester = widget.academicContext.semester;
+    
+    if (grade == null || department == null || year == null || semester == null) {
+      showAppSnackBar(
+        context,
+        'Incomplete academic context for upload',
+        icon: Icons.error,
+        iconColor: Colors.red,
+      );
+      return;
+    }
+    
+    final semesterKey = _getSemesterKey(grade, department, year, semester);
+    final semesterFolderId = semesterRootFolders[semesterKey];
+    
+    if (semesterFolderId == null || semesterFolderId.isEmpty) {
+      showAppSnackBar(
+        context,
+        AppLocalizations.of(context)!.semesterFolderNotAvailable,
+        icon: Icons.error,
+        iconColor: Colors.red,
+      );
+      return;
+    }
+    
+    // Use the MaterialUploadHelper with explicit context
+    MaterialUploadHelper.showMaterialUploadBottomSheetWithContext(
+      context,
+      semesterFolderId,
+      widget.academicContext,
+    );
+  }
+
+  /// Handle leader mode actions for subject folders (rename/delete)
+  void _handleSubjectLeaderAction(String action, String subjectName, String folderId) {
+    if (action == 'rename') {
+      _showSubjectRenameDialog(subjectName, folderId);
+    } else if (action == 'delete') {
+      _showSubjectDeleteConfirmation(subjectName, folderId);
+    }
+  }
+
+  /// Show rename dialog for subject folder
+  void _showSubjectRenameDialog(String currentName, String folderId) {
+    final TextEditingController controller = TextEditingController(text: currentName);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+        title: Row(
+          children: [
+            Icon(Icons.folder, color: Colors.blue, size: 28),
+            SizedBox(width: 12),
+            Text(AppLocalizations.of(context)!.renameSubject, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'Subject Name',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.blue, width: 2),
+                ),
+              ),
+              onSubmitted: (value) {
+                if (value.trim().isNotEmpty && value.trim() != currentName) {
+                  Navigator.pop(context);
+                  _performSubjectRename(folderId, value.trim());
+                }
+              },
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(AppLocalizations.of(context)!.cancel, style: TextStyle(fontSize: 16)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    final newName = controller.text.trim();
+                    if (newName.isNotEmpty && newName != currentName) {
+                      Navigator.pop(context);
+                      _performSubjectRename(folderId, newName);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(AppLocalizations.of(context)!.rename, style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Show delete confirmation dialog for subject folder
+  void _showSubjectDeleteConfirmation(String subjectName, String folderId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+        title: Row(
+          children: [
+            Icon(Icons.delete, color: Colors.red, size: 28),
+            SizedBox(width: 12),
+            Text(AppLocalizations.of(context)!.deleteSubject, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 16),
+            Text(
+              'Are you sure you want to delete the subject "$subjectName"?',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'This will delete the entire subject folder and all its contents. This action cannot be undone.',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(AppLocalizations.of(context)!.cancel, style: TextStyle(fontSize: 16)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _performSubjectDelete(folderId, subjectName);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(AppLocalizations.of(context)!.delete, style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Perform rename operation for subject folder
+  Future<void> _performSubjectRename(String folderId, String newName) async {
+    final leaderProvider = Provider.of<LeaderModeProvider>(context, listen: false);
+    
+    final success = await leaderProvider.renameFileOrFolder(
+      fileId: folderId,
+      newName: newName,
+      grade: widget.academicContext.grade ?? 'Unknown',
+      department: widget.academicContext.department ?? 'Unknown',
+      year: widget.academicContext.year ?? 'Unknown',
+      context: context,
+    );
+
+    if (success) {
+      // Refresh the subjects list to show updated name
+      await _refreshSubjects();
+    }
+  }
+
+  /// Perform delete operation for subject folder
+  Future<void> _performSubjectDelete(String folderId, String subjectName) async {
+    final leaderProvider = Provider.of<LeaderModeProvider>(context, listen: false);
+    
+    final success = await leaderProvider.deleteFileOrFolder(
+      fileId: folderId,
+      fileName: subjectName,
+      grade: widget.academicContext.grade ?? 'Unknown',
+      department: widget.academicContext.department ?? 'Unknown',
+      year: widget.academicContext.year ?? 'Unknown',
+      context: context,
+    );
+
+    if (success) {
+      // Refresh the subjects list to show updated name
+      await _refreshSubjects();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final List<MapEntry<String, String>> subjectsList =
+        _subjects.entries.toList();
+    final s = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.academicContext.titleString, softWrap: true, maxLines: 3),
         leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.pop(context)),
         elevation: theme.appBarTheme.elevation,
         backgroundColor: theme.appBarTheme.backgroundColor,
       ),
-      body: (!hasSem1 && !hasSem2)
-          ? Center(
-              child: Card(
-                margin: const EdgeInsets.all(32),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Text(
-                    s.notAvailableNow,
-                    style: theme.textTheme.titleMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-            )
-          : ListView(
-              padding: const EdgeInsets.all(20.0),
-              children: [
-                if (hasSem1)
-                  Card(
-                    margin: const EdgeInsets.only(bottom: 16.0),
-                    child: ListTile(
-                      title:
-                          Text(s.semester1, style: theme.textTheme.titleMedium),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 18),
-                      onTap: () {
-                        Navigator.of(context).pushNamed(
-                          '/subjects',
-                          arguments: {
-                            'subjects': semester1Subjects,
-                            'context':
-                                academicContext.copyWith(semester: s.semester1),
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                if (hasSem2)
-                  Card(
-                    margin: const EdgeInsets.only(bottom: 16.0),
-                    child: ListTile(
-                      title:
-                          Text(s.semester2, style: theme.textTheme.titleMedium),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 18),
-                      onTap: () {
-                        Navigator.of(context).pushNamed(
-                          '/subjects',
-                          arguments: {
-                            'subjects': semester2Subjects,
-                            'context':
-                                academicContext.copyWith(semester: s.semester2),
-                          },
-                        );
-                      },
-                    ),
-                  ),
-              ],
-            ),
-    );
-  }
-}
-
-// SubjectSelectionScreen
-class SubjectSelectionScreen extends StatelessWidget {
-  final Map<String, String> subjects;
-  final AcademicContext academicContext;
-  const SubjectSelectionScreen(
-      {super.key, required this.subjects, required this.academicContext});
-  @override
-  Widget build(BuildContext context) {
-    final List<MapEntry<String, String>> subjectsList =
-        subjects.entries.toList();
-    final s = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(academicContext.titleString, softWrap: true, maxLines: 3),
-        leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.pop(context)),
-        elevation: theme.appBarTheme.elevation,
-        backgroundColor: theme.appBarTheme.backgroundColor,
+      floatingActionButton: Consumer<LeaderModeProvider>(
+        builder: (context, leaderProvider, child) {
+          if (leaderProvider.isLeaderMode) {
+            return FloatingActionButton(
+              onPressed: () => _showMaterialUploadBottomSheet(context),
+              backgroundColor: Theme.of(context).primaryColor,
+              child: const Icon(Icons.add, color: Colors.white),
+            );
+          }
+          return const SizedBox.shrink();
+        },
       ),
       body: subjectsList.isEmpty
           ? Center(
@@ -608,7 +1955,39 @@ class SubjectSelectionScreen extends StatelessWidget {
                   margin: const EdgeInsets.only(bottom: 16.0),
                   child: ListTile(
                     title: Text(entry.key, style: theme.textTheme.titleMedium),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 18),
+                    trailing: Consumer<LeaderModeProvider>(
+                      builder: (context, leaderProvider, child) {
+                        if (leaderProvider.isLeaderMode) {
+                          return PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert),
+                            onSelected: (value) => _handleSubjectLeaderAction(value, entry.key, entry.value),
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                value: 'rename',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.edit, color: Colors.blue),
+                                    const SizedBox(width: 8),
+                                    Text(AppLocalizations.of(context)!.renameSubject),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.delete, color: Colors.red),
+                                    const SizedBox(width: 8),
+                                    Text(AppLocalizations.of(context)!.deleteSubject, style: const TextStyle(color: Colors.red)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+                        return const Icon(Icons.arrow_forward_ios, size: 18);
+                      },
+                    ),
                     onTap: () {
                       Navigator.push(
                         context,
@@ -616,7 +1995,7 @@ class SubjectSelectionScreen extends StatelessWidget {
                           builder: (context) => SubjectContentScreen(
                             subjectName: entry.key,
                             rootFolderId: entry.value,
-                            academicContext: academicContext,
+                            academicContext: widget.academicContext,
                           ),
                         ),
                       );
@@ -639,51 +2018,35 @@ class SubjectContentScreen extends StatelessWidget {
       required this.subjectName,
       required this.rootFolderId,
       required this.academicContext});
+
+  /// Show material upload bottom sheet
+  void _showMaterialUploadBottomSheet(BuildContext context) {
+    MaterialUploadHelper.showMaterialUploadBottomSheetWithContext(
+      context,
+      rootFolderId,
+      academicContext,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final s = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(subjectName),
-        leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.pop(context)),
-        elevation: theme.appBarTheme.elevation,
-        backgroundColor: theme.appBarTheme.backgroundColor,
+      floatingActionButton: Consumer<LeaderModeProvider>(
+        builder: (context, leaderProvider, child) {
+          if (leaderProvider.isLeaderMode) {
+            return FloatingActionButton(
+              onPressed: () => _showMaterialUploadBottomSheet(context),
+              backgroundColor: Theme.of(context).primaryColor,
+              child: const Icon(Icons.add, color: Colors.white),
+            );
+          }
+          return const SizedBox.shrink();
+        },
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => LectureFolderBrowserScreen(
-                        initialFolderId: rootFolderId,
-                      ),
-                    ),
-                  );
-                },
-                child: Text(s.lectures)),
-            const SizedBox(height: 20),
-            ElevatedButton(
-                onPressed: () => showAppSnackBar(
-                    context, s.explanationContentNotAvailable(subjectName),
-                    icon: Icons.info_outline),
-                child: Text(s.explanation)),
-            const SizedBox(height: 20),
-            ElevatedButton(
-                onPressed: () => showAppSnackBar(
-                    context, s.summariesContentNotAvailable(subjectName),
-                    icon: Icons.info_outline),
-                child: Text(s.summaries)),
-          ],
-        ),
+      body: LectureFolderBrowserScreen(
+        initialFolderId: rootFolderId,
+        academicContext: academicContext,
+        subjectName: subjectName,
       ),
     );
   }
@@ -1091,23 +2454,6 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
                     label: Text(s.retry),
                   ),
                 const SizedBox(height: 10),
-                Consumer<SignInProvider>(
-                  builder: (context, signInProvider, child) {
-                    if (signInProvider.currentUser == null) {
-                      return ElevatedButton.icon(
-                        icon: const Icon(Icons.login),
-                        onPressed: () =>
-                            signInProvider.signInWithErrorHandling(context),
-                        label: Text(s?.signIn ?? 'Sign In'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).primaryColor,
-                          foregroundColor: Colors.white,
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                )
               ],
             ),
           ),
@@ -1303,7 +2649,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                 )
               : _chewieController != null
                   ? Chewie(controller: _chewieController!)
-                  : const Center(child: Text('Video player not available')),
+                  : Center(child: Text(AppLocalizations.of(context)!.videoPlayerNotAvailable)),
     );
   }
 }
@@ -1432,7 +2778,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen> {
                           height: 200,
                           decoration: BoxDecoration(
                             color:
-                                Theme.of(context).primaryColor.withOpacity(0.1),
+                                Theme.of(context).primaryColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(100),
                           ),
                           child: Icon(
@@ -1618,7 +2964,7 @@ class _OfficeDocumentViewerScreenState
                             // Fallback to external app
                             OpenFilex.open(widget.documentPath);
                           },
-                          child: const Text('Open with external app'),
+                          child: Text(AppLocalizations.of(context)!.openWithExternalApp),
                         ),
                       ],
                     ),
@@ -1757,7 +3103,7 @@ class _OfficeDocumentViewerScreenState
                       );
                     }
                   },
-                  child: const Text('Open with external app'),
+                  child: Text(AppLocalizations.of(context)!.openWithExternalApp),
                 ),
               ],
             ),
@@ -1933,8 +3279,31 @@ class _GoogleDriveViewerScreenState extends State<GoogleDriveViewerScreen> {
 // Lecture Folder Browser Screen (MODIFIED FOR SELECTION, DOWNLOAD, DETAILS)
 class LectureFolderBrowserScreen extends StatefulWidget {
   final String? initialFolderId;
+  final AcademicContext? academicContext;
+  final String? subjectName;
 
-  const LectureFolderBrowserScreen({super.key, this.initialFolderId});
+  const LectureFolderBrowserScreen({super.key, this.initialFolderId, this.academicContext, this.subjectName});
+  
+  // Method to get current folder ID from anywhere in the widget tree
+  static String? getCurrentFolderId(BuildContext context) {
+    // Find the LectureFolderBrowserScreen widget and get its current state
+    String? currentFolderId;
+    context.visitAncestorElements((element) {
+      if (element.widget is LectureFolderBrowserScreen) {
+        final browserWidget = element.widget as LectureFolderBrowserScreen;
+        if (element is StatefulElement && element.state is _LectureFolderBrowserScreenState) {
+          final state = element.state as _LectureFolderBrowserScreenState;
+          currentFolderId = state._currentFolderId ?? browserWidget.initialFolderId;
+        } else {
+          currentFolderId = browserWidget.initialFolderId;
+        }
+        return false; // Stop searching
+      }
+      return true; // Continue searching
+    });
+    
+    return currentFolderId;
+  }
 
   @override
   State<LectureFolderBrowserScreen> createState() =>
@@ -2132,6 +3501,15 @@ class _LectureFolderBrowserScreenState
   }
 
   @override
+  void didUpdateWidget(LectureFolderBrowserScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Update current folder ID if the widget's initialFolderId changes
+    if (oldWidget.initialFolderId != widget.initialFolderId) {
+      _currentFolderId = widget.initialFolderId;
+    }
+  }
+
+  @override
   void dispose() {
     _cancelTokens.forEach((fileId, token) {
       if (!token.isCancelled) {
@@ -2216,29 +3594,9 @@ class _LectureFolderBrowserScreenState
       return;
     }
 
-    final signInProvider = Provider.of<SignInProvider>(context, listen: false);
-    final http.Client? authenticatedClient =
-        await signInProvider.authenticatedHttpClient;
-
-    if (!mounted) return;
-
-    if (authenticatedClient == null) {
-      if (mounted) {
-        setState(() {
-          _error = s!.notSignedInClientNotAvailable;
-          _offlineMode = true;
-          _isLoading = false;
-        });
-      }
-      // Attempt to show any locally downloaded files for this folder
-      final localFiles = await _buildLocalFilesForCurrentFolder();
-      if (mounted) {
-        setState(() {
-          _files = localFiles;
-        });
-      }
-      return;
-    }
+    // Use API key for public Drive files - no authentication needed
+    const String apiKey =
+        'AIzaSyA9PZz-Mbpt-LrTrWKsUBaeYdKTlBnb8H0'; 
 
     if (_currentFolderId == null) {
       if (mounted) {
@@ -2254,26 +3612,45 @@ class _LectureFolderBrowserScreenState
       return;
     }
 
-    final driveApi = drive.DriveApi(authenticatedClient);
-
     try {
-      final String? pageToken = loadMore
-          ? _globalNextPageToken[_currentFolderId!]
-          : null; // null for first page
+      final String? pageToken =
+          loadMore ? _globalNextPageToken[_currentFolderId!] : null;
 
-      final result = await driveApi.files.list(
-        q: "'$_currentFolderId' in parents and trashed = false",
-        $fields:
+      // Build API URL for public Drive files
+      final String baseUrl = 'https://www.googleapis.com/drive/v3/files';
+      final Map<String, String> queryParams = {
+        'q': "'$_currentFolderId' in parents and trashed = false",
+        'fields':
             'nextPageToken, files(id, name, mimeType, webViewLink, iconLink, size, modifiedTime, webContentLink)',
-        orderBy: 'folder,name',
-        pageToken: pageToken,
-        pageSize: 50,
-      );
+        'orderBy': 'folder,name',
+        'pageSize': '50',
+        'key': apiKey,
+      };
+
+      if (pageToken != null) {
+        queryParams['pageToken'] = pageToken;
+      }
+
+      final Uri uri = Uri.parse(baseUrl).replace(queryParameters: queryParams);
+      final response = await http.get(uri);
 
       if (!mounted) return;
 
-      // Merge or replace results and update global caches
-      final List<drive.File> newFiles = result.files ?? <drive.File>[];
+      if (response.statusCode != 200) {
+        throw Exception(
+            'Failed to load files: ${response.statusCode} ${response.reasonPhrase}');
+      }
+
+      final Map<String, dynamic> jsonData = json.decode(response.body);
+      final List<dynamic> filesJson = jsonData['files'] ?? [];
+      final String? nextPageToken = jsonData['nextPageToken'];
+
+      // Convert JSON to drive.File objects
+      final List<drive.File> newFiles = filesJson.map((fileJson) {
+        return drive.File.fromJson(fileJson);
+      }).toList();
+
+      if (!mounted) return;
 
       // Initialize existing lists
       final List<drive.File> existing = loadMore
@@ -2291,7 +3668,7 @@ class _LectureFolderBrowserScreenState
       }
 
       _globalFolderCache[_currentFolderId!] = merged;
-      _globalNextPageToken[_currentFolderId!] = result.nextPageToken;
+      _globalNextPageToken[_currentFolderId!] = nextPageToken;
 
       if (mounted) {
         setState(() {
@@ -2364,6 +3741,7 @@ class _LectureFolderBrowserScreenState
           MaterialPageRoute(
             builder: (context) => LectureFolderBrowserScreen(
               initialFolderId: file.id!,
+              academicContext: widget.academicContext,
             ),
           ),
         );
@@ -2853,8 +4231,6 @@ class _LectureFolderBrowserScreenState
   }
 
   void _viewSelectedFileDetails() {
-    if (!mounted || s == null) return; // Ensure mounted
-
     if (_selectedFiles.length == 1) {
       final file = _selectedFiles.first;
       showDialog(
@@ -2865,6 +4241,214 @@ class _LectureFolderBrowserScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(s!.noItemSelectedForDetails)),
       );
+    }
+  }
+
+  /// Handle leader mode actions (rename/delete)
+  void _handleLeaderAction(String action, drive.File file) {
+    if (action == 'rename') {
+      _showRenameDialog(file);
+    } else if (action == 'delete') {
+      _showDeleteConfirmation(file);
+    }
+  }
+
+  /// Show rename dialog for file/folder
+  void _showRenameDialog(drive.File file) {
+    final TextEditingController controller = TextEditingController(text: file.name);
+    final isFolder = _isFolder(file);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+        title: Row(
+          children: [
+            Icon(isFolder ? Icons.folder : Icons.edit, color: Colors.blue, size: 28),
+            const SizedBox(width: 12),
+            Text(isFolder ? AppLocalizations.of(context)!.renameFolder : AppLocalizations.of(context)!.renameItem, 
+                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.enterNewName,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.blue, width: 2),
+                ),
+              ),
+              onSubmitted: (value) {
+                if (value.trim().isNotEmpty && value.trim() != file.name) {
+                  Navigator.pop(context);
+                  _performRename(file, value.trim());
+                }
+              },
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(AppLocalizations.of(context)!.cancel, style: const TextStyle(fontSize: 16)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    final newName = controller.text.trim();
+                    if (newName.isNotEmpty && newName != file.name) {
+                      Navigator.pop(context);
+                      _performRename(file, newName);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(AppLocalizations.of(context)!.rename, style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Show delete confirmation dialog
+  void _showDeleteConfirmation(drive.File file) {
+    final isFolder = _isFolder(file);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+        title: Row(
+          children: [
+            const Icon(Icons.delete, color: Colors.red, size: 28),
+            const SizedBox(width: 12),
+            Text(isFolder ? AppLocalizations.of(context)!.deleteFolder : AppLocalizations.of(context)!.deleteItem,
+                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 16),
+            Text(
+              AppLocalizations.of(context)!.confirmDeleteMessage,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isFolder ? 'This will delete the folder and all its contents.' : 'This action cannot be undone.',
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(AppLocalizations.of(context)!.cancel, style: TextStyle(fontSize: 16)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _performDelete(file);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(AppLocalizations.of(context)!.delete, style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Perform rename operation
+  Future<void> _performRename(drive.File file, String newName) async {
+    final leaderProvider = Provider.of<LeaderModeProvider>(context, listen: false);
+    
+    final success = await leaderProvider.renameFileOrFolder(
+      fileId: file.id!,
+      newName: newName,
+      grade: widget.academicContext?.grade ?? 'Unknown',
+      department: widget.academicContext?.department ?? 'Unknown',
+      year: widget.academicContext?.year ?? 'Unknown',
+      context: context,
+    );
+
+    if (success) {
+      // Refresh the file list to show updated name
+      _fetchDriveFiles();
+    }
+  }
+
+  /// Perform delete operation
+  Future<void> _performDelete(drive.File file) async {
+    final leaderProvider = Provider.of<LeaderModeProvider>(context, listen: false);
+    
+    final success = await leaderProvider.deleteFileOrFolder(
+      fileId: file.id!,
+      fileName: file.name ?? 'Unknown',
+      grade: widget.academicContext?.grade ?? 'Unknown',
+      department: widget.academicContext?.department ?? 'Unknown',
+      year: widget.academicContext?.year ?? 'Unknown',
+      context: context,
+    );
+
+    if (success) {
+      // Refresh the file list to remove deleted item
+      _fetchDriveFiles();
     }
   }
 
@@ -2880,66 +4464,56 @@ class _LectureFolderBrowserScreenState
                   "Loading localizations...")));
     }
 
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Theme.of(context)
-          .colorScheme
-          .background, // Set Scaffold background back to solid background color
+      backgroundColor: theme.colorScheme.surface,
+      appBar: AppBar(
+        title: Text(_getAppBarTitle()),
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        elevation: theme.appBarTheme.elevation,
+        actions: [
+          // App bar actions
+          if (_isSelectionMode) ...[
+            IconButton(
+              icon: const Icon(Icons.download),
+              onPressed: _selectedFiles.isNotEmpty && !_isDownloadingMultiple
+                  ? _downloadSelectedFiles
+                  : null,
+              tooltip: s!.downloadAction,
+            ),
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              onPressed:
+                  _selectedFiles.length == 1 && !_isDownloadingMultiple
+                      ? _viewSelectedFileDetails
+                      : null,
+              tooltip: s!.viewDetails,
+            ),
+            IconButton(
+              icon: const Icon(Icons.cancel_outlined),
+              onPressed:
+                  _isDownloadingMultiple ? null : _cancelSelectionMode,
+              tooltip: s!.cancelSelection,
+            ),
+          ] else ...[
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _isDownloadingMultiple ? null : _fetchDriveFiles,
+              tooltip: s!.refresh,
+            ),
+            if (_offlineMode)
+              const Padding(
+                padding: EdgeInsets.only(right: 8.0),
+                child: Icon(Icons.wifi_off, color: Colors.redAccent),
+              ),
+          ],
+        ],
+      ),
       body: Column(
         children: [
-          AppBar(
-            // AppBar remains at the top
-            title: Text(s!.lectures),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () {
-                if (_isDownloadingMultiple) {
-                  showAppSnackBar(context, s!.downloadInProgressPleaseWait);
-                  return;
-                }
-                Navigator.pop(context);
-              },
-            ),
-            actions: [
-              if (_isSelectionMode) ...[
-                IconButton(
-                  icon: const Icon(Icons.download),
-                  onPressed:
-                      _selectedFiles.isNotEmpty && !_isDownloadingMultiple
-                          ? _downloadSelectedFiles
-                          : null,
-                  tooltip: s!.downloadSelected,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.info_outline),
-                  onPressed:
-                      _selectedFiles.length == 1 && !_isDownloadingMultiple
-                          ? _viewSelectedFileDetails
-                          : null,
-                  tooltip: s!.viewDetails,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.cancel_outlined),
-                  onPressed:
-                      _isDownloadingMultiple ? null : _cancelSelectionMode,
-                  tooltip: s!.cancelSelection,
-                ),
-              ] else ...[
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: _isDownloadingMultiple ? null : _fetchDriveFiles,
-                  tooltip: s!.refresh,
-                ),
-                if (_offlineMode)
-                  const Padding(
-                    padding: EdgeInsets.only(right: 8.0),
-                    child: Icon(Icons.wifi_off, color: Colors.redAccent),
-                  ),
-              ],
-            ],
-          ),
           // --- Search and Sort Controls ---
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
             child: Row(
               children: [
                 Expanded(
@@ -3041,25 +4615,6 @@ class _LectureFolderBrowserScreenState
                                 onPressed: _fetchDriveFiles,
                                 label: Text(s!.retry),
                               ),
-                              const SizedBox(height: 10),
-                              Consumer<SignInProvider>(
-                                builder: (context, signInProvider, child) {
-                                  if (signInProvider.currentUser == null) {
-                                    return ElevatedButton.icon(
-                                      icon: const Icon(Icons.login),
-                                      onPressed: () => signInProvider
-                                          .signInWithErrorHandling(context),
-                                      label: Text(s?.signIn ?? 'Sign In'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            Theme.of(context).primaryColor,
-                                        foregroundColor: Colors.white,
-                                      ),
-                                    );
-                                  }
-                                  return const SizedBox.shrink();
-                                },
-                              ),
                             ],
                           ),
                         ),
@@ -3116,7 +4671,7 @@ class _LectureFolderBrowserScreenState
                                 color: isSelected
                                     ? Theme.of(context)
                                         .primaryColor
-                                        .withOpacity(0.2)
+                                        .withValues(alpha: 0.2)
                                     : null,
                                 margin: const EdgeInsets.symmetric(
                                     vertical: 4.0, horizontal: 8.0),
@@ -3149,7 +4704,7 @@ class _LectureFolderBrowserScreenState
                                                   : Theme.of(context)
                                                       .colorScheme
                                                       .onSurface
-                                                      .withOpacity(0.6),
+                                                      .withValues(alpha: 0.6),
                                               size: 28,
                                             ),
                                       title: Text(
@@ -3164,10 +4719,43 @@ class _LectureFolderBrowserScreenState
                                           ? Text(
                                               "${s!.downloading} (${(progress * 100).toStringAsFixed(0)}%)")
                                           : null,
-                                      trailing: !_isSelectionMode &&
-                                              !_isFolder(file)
-                                          ? const Icon(Icons.arrow_forward_ios,
-                                              size: 16, color: Colors.grey)
+                                      trailing: !_isSelectionMode
+                                          ? Consumer<LeaderModeProvider>(
+                                              builder: (context, leaderProvider, child) {
+                                                if (leaderProvider.isLeaderMode && file.id != null && !file.id!.startsWith('local:')) {
+                                                  return PopupMenuButton<String>(
+                                                    icon: const Icon(Icons.more_vert, size: 20),
+                                                    onSelected: (value) => _handleLeaderAction(value, file),
+                                                    itemBuilder: (context) => [
+                                                      PopupMenuItem(
+                                                        value: 'rename',
+                                                        child: Row(
+                                                          children: [
+                                                            Icon(Icons.edit, size: 18),
+                                                            SizedBox(width: 8),
+                                                            Text(AppLocalizations.of(context)!.rename),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      PopupMenuItem(
+                                                        value: 'delete',
+                                                        child: Row(
+                                                          children: [
+                                                            Icon(Icons.delete, size: 18, color: Colors.red),
+                                                            SizedBox(width: 8),
+                                                            Text(AppLocalizations.of(context)!.delete, style: TextStyle(color: Colors.red)),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  );
+                                                } else if (!_isFolder(file)) {
+                                                  return const Icon(Icons.arrow_forward_ios,
+                                                      size: 16, color: Colors.grey);
+                                                }
+                                                return const SizedBox.shrink();
+                                              },
+                                            )
                                           : null,
                                       onTap: () => _onItemTap(file),
                                       onLongPress: () => _onItemLongPress(file),
@@ -3183,7 +4771,7 @@ class _LectureFolderBrowserScreenState
                                               AlwaysStoppedAnimation<Color>(
                                                   Theme.of(context)
                                                       .primaryColor
-                                                      .withOpacity(0.3)),
+                                                      .withValues(alpha: 0.3)),
                                         ),
                                       ),
                                   ],
@@ -3191,10 +4779,54 @@ class _LectureFolderBrowserScreenState
                               );
                             },
                           ),
-          ),
+          )
         ],
       ),
+      floatingActionButton: Consumer<LeaderModeProvider>(
+        builder: (context, leaderProvider, child) {
+          if (leaderProvider.isLeaderMode) {
+            return FloatingActionButton(
+              onPressed: () => MaterialUploadHelper.showMaterialUploadBottomSheetWithContext(
+                context,
+                _currentFolderId,
+                widget.academicContext,
+              ),
+              backgroundColor: Theme.of(context).primaryColor,
+              child: const Icon(Icons.add, color: Colors.white),
+            );
+          }
+          return const SizedBox.shrink();
+        },
+      ),
     );
+  }
+
+  String _getAppBarTitle() {
+    // Use subject name if available, otherwise fall back to academic context or "Lectures"
+    if (widget.subjectName != null && widget.subjectName!.isNotEmpty) {
+      return widget.subjectName!;
+    }
+    if (widget.academicContext != null) {
+      final context = widget.academicContext!;
+      if (context.semester != null && context.semester!.isNotEmpty) {
+        final localizedSemester = _getLocalizedSemesterName(context.semester!);
+        return '$localizedSemester - ${context.grade}';
+      }
+      if (context.grade != null && context.grade!.isNotEmpty) {
+        return context.grade;
+      }
+    }
+    return "Lectures";
+  }
+
+  String _getLocalizedSemesterName(String semesterName) {
+    final s = AppLocalizations.of(context)!;
+    if (semesterName == 'Semester 1' || semesterName == 'الفصل الأول') {
+      return s.semester1;
+    } else if (semesterName == 'Semester 2' || semesterName == 'الفصل الثاني') {
+      return s.semester2;
+    }
+    return semesterName; // Return original if no match
   }
 
   IconData _getIconForMimeType(String? mimeType) {
@@ -3221,7 +4853,7 @@ class _LectureFolderBrowserScreenState
           Icon(icon,
               size: 80,
               color:
-                  Theme.of(context).colorScheme.onBackground.withOpacity(0.4)),
+                  Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
           const SizedBox(height: 20),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -3231,8 +4863,8 @@ class _LectureFolderBrowserScreenState
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Theme.of(context)
                         .colorScheme
-                        .onBackground
-                        .withOpacity(0.7),
+                        .onSurface
+                        .withValues(alpha: 0.7),
                   ),
             ),
           ),
@@ -3246,11 +4878,11 @@ class _LectureFolderBrowserScreenState
 enum _SortMode { nameAsc, nameDesc, dateAsc, dateDesc, type }
 
 extension _SortModeStrings on AppLocalizations {
-  String get sortNameAsc => sortByNameAsc ?? "A-Z";
-  String get sortNameDesc => sortByNameDesc ?? "Z-A";
-  String get sortDateAsc => sortByDateAsc ?? "Oldest";
-  String get sortDateDesc => sortByDateDesc ?? "Newest";
-  String get sortType => sortByType ?? "Type";
+  String get sortNameAsc => "A-Z";
+  String get sortNameDesc => "Z-A";
+  String get sortDateAsc => "Oldest";
+  String get sortDateDesc => "Newest";
+  String get sortType => "Type";
 }
 
 // --- File Details Dialog ---

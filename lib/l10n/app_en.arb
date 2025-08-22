@@ -114,10 +114,14 @@
   "todoVibrationSubtitle": "Todo Notifications",
   "quranVibrationSubtitle": "Quran Download Notifications",
   "clearPdfCache": "Clear PDF Cache",
+  "clearFolderCache": "Clear Folder Cache",
   "confirmAction": "Confirm Action",
   "confirmClearCache": "Are you sure you want to clear all internally cached PDF files? This will free up space but require re-downloading.",
+  "confirmClearFolderCache": "Are you sure you want to clear the dynamic folder cache? This will require re-fetching folder information from Google Drive.",
   "cacheClearedItems": "Cleared {count} cached PDF files.",
+  "folderCacheCleared": "Dynamic folder cache cleared successfully.",
   "cacheClearFailed": "Failed to clear PDF cache: {error}",
+  "folderCacheClearFailed": "Failed to clear folder cache: {error}",
   "about": "About",
   "appVersion": "Version",
   "appDescription": "Focus Zone is a mobile application designed to help students access and organize their academic materials from Google Drive.",
@@ -599,5 +603,114 @@
   "sortByDateDesc": "Date (Newest)",
   "sortByType": "Type",
   "searchHint": "Search files...",
-  "openWithExternalApp":"openwithexternalapp"
+  "openWithExternalApp": "Open with External App",
+  "leaderMode": "Leader Mode",
+  "leaderModeActive": "Leader Mode Active",
+  "uploadMaterials": "Upload Materials",
+  "signOutLeader": "Sign Out Leader",
+  "leaderAuthentication": "Leader Authentication",
+  "leaderAuthenticationDesc": "Please sign in with an authorized account to upload materials.",
+  "authenticationRequired": "Authentication required...",
+  "accessDenied": "Access denied...",
+  "itemRenamed": "Item renamed...",
+  "itemDeleted": "Item deleted...",
+  "renameItem": "Rename Item",
+  "deleteItem": "Delete Item",
+  "enterNewName": "Enter new name:",
+  "nameCannotBeEmpty": "Name cannot be empty",
+  "confirmDelete": "Confirm Delete",
+  "confirmDeleteMessage": "Are you sure you want to delete this item? This action cannot be undone.",
+  "renameFolder": "Rename Folder",
+  "deleteFolder": "Delete Folder",
+  "confirmDeleteFolder": "Confirm Delete Folder",
+  "confirmDeleteFolderMessage": "Are you sure you want to delete this folder and all its contents? This action cannot be undone.",
+  "renameSubject": "Rename Subject",
+  "deleteSubject": "Delete Subject",
+  "confirmDeleteSubject": "Confirm Delete Subject",
+  "confirmDeleteSubjectMessage": "Are you sure you want to delete this subject and all its contents? This action cannot be undone.",
+  "uploadToSemester": "Upload to Semester",
+  "chooseSemesterToUpload": "Choose which semester to upload materials to:",
+  "semester1": "Semester 1",
+  "semester2": "Semester 2",
+  "leaderModeActive": "Leader Mode Active",
+  "signOut": "Sign Out",
+  "leaderMode": "Leader Mode",
+  "doctor": "Doctor",
+  "leader": "Leader",
+  "modeActivatedFor": "{role} mode activated for {name}",
+  "@modeActivatedFor": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "authenticationFailed": "Authentication failed: {error}",
+  "@authenticationFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "leaderModeDeactivated": "Leader mode deactivated",
+  "folderCreatedSuccessfully": "Folder \"{name}\" created successfully",
+  "@folderCreatedSuccessfully": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "folderCreationFailed": "Folder creation failed: {error}",
+  "@folderCreationFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "renameFailed": "Rename failed: {error}",
+  "@renameFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteFailed": "Delete failed: {error}",
+  "@deleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "fileUploadedSuccessfully": "File uploaded successfully: {fileName}",
+  "@fileUploadedSuccessfully": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadFailed": "Upload failed: {error}",
+  "@uploadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "incompleteAcademicContext": "Incomplete academic context for upload",
+  "semesterFolderNotAvailable": "Semester folder not available for upload",
+  "signInAsDoctor": "Sign in as Doctor",
+  "signInAsLeader": "Sign in as Leader",
+  "openWithExternalApp": "Open with external app",
+  "rename": "Rename",
+  "videoPlayerNotAvailable": "Video player not available",
+  "chooserole": "Choose your role to access material upload features"
 }

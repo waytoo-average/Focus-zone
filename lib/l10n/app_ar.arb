@@ -114,10 +114,14 @@
   "todoVibrationSubtitle": "إشعارات المهام",
   "quranVibrationSubtitle": "إشعارات تحميل القرآن",
   "clearPdfCache": "مسح ذاكرة التخزين المؤقت لملفات PDF",
+  "clearFolderCache": "مسح ذاكرة المجلدات المؤقتة",
   "confirmAction": "تأكيد الإجراء",
   "confirmClearCache": "هل أنت متأكد أنك تريد مسح جميع ملفات PDF المخزنة مؤقتًا داخليًا؟ سيؤدي ذلك إلى تحرير مساحة ولكن يتطلب إعادة التنزيل.",
+  "confirmClearFolderCache": "هل أنت متأكد أنك تريد مسح ذاكرة المجلدات الديناميكية المؤقتة؟ سيتطلب ذلك إعادة جلب معلومات المجلدات من جوجل درايف.",
   "cacheClearedItems": "تم مسح {count} ملف PDF مخزنة مؤقتًا.",
+  "folderCacheCleared": "تم مسح ذاكرة المجلدات الديناميكية المؤقتة بنجاح.",
   "cacheClearFailed": "فشل مسح ذاكرة التخزين المؤقت لملفات PDF: {error}",
+  "folderCacheClearFailed": "فشل مسح ذاكرة المجلدات المؤقتة: {error}",
   "about": "حول التطبيق",
   "appVersion": "الإصدار",
   "appDescription": "منطقة التركيز هو تطبيق جوال مصمم لمساعدة الطلاب على الوصول إلى موادهم الأكاديمية وتنظيمها من جوجل درايف.",
@@ -596,5 +600,114 @@
   "sortByType": "النوع",
   "searchHint": "ابحث في الملفات...",
   "search": "بحث",
-  "openWithExternalApp":"openwithexternalapp"
+  "openWithExternalApp": "فتح بتطبيق خارجي",
+  "leaderMode": "وضع ليدر",
+  "leaderModeActive": "وضع ليدر نشط",
+  "uploadMaterials": "رفع المواد",
+  "signOutLeader": "تسجيل خروج ليدر",
+  "leaderAuthentication": "مصادقة ليدر",
+  "leaderAuthenticationDesc": "يرجى تسجيل الدخول بحساب مخول لرفع المواد.",
+  "authenticationRequired": "يجب تسجيل الدخول",
+  "accessDenied": "تم رفض الوصول...",
+  "itemRenamed": "تم إعادة تسمية العنصر...",
+  "itemDeleted": "تم حذف العنصر...",
+  "renameItem": "إعادة تسمية العنصر",
+  "deleteItem": "حذف العنصر",
+  "enterNewName": "أدخل الاسم الجديد:",
+  "nameCannotBeEmpty": "لا يمكن أن يكون الاسم فارغًا",
+  "confirmDelete": "تأكيد الحذف",
+  "confirmDeleteMessage": "هل أنت متأكد من أنك تريد حذف هذا العنصر؟ لا يمكن التراجع عن هذا الإجراء.",
+  "renameFolder": "إعادة تسمية المجلد",
+  "deleteFolder": "حذف المجلد",
+  "confirmDeleteFolder": "تأكيد حذف المجلد",
+  "confirmDeleteFolderMessage": "هل أنت متأكد من أنك تريد حذف هذا المجلد وجميع محتوياته؟ لا يمكن التراجع عن هذا الإجراء.",
+  "renameSubject": "إعادة تسمية المادة",
+  "deleteSubject": "حذف المادة",
+  "confirmDeleteSubject": "تأكيد حذف المادة",
+  "confirmDeleteSubjectMessage": "هل أنت متأكد من أنك تريد حذف هذه المادة وجميع محتوياتها؟ لا يمكن التراجع عن هذا الإجراء.",
+  "uploadToSemester": "رفع إلى الفصل الدراسي",
+  "chooseSemesterToUpload": "اختر الفصل الدراسي لرفع المواد إليه:",
+  "semester1": "الفصل الأول",
+  "semester2": "الفصل الثاني",
+  "leaderModeActive": "وضع ليدر نشط",
+  "signOut": "تسجيل الخروج",
+  "leaderMode": "وضع ليدر",
+  "doctor": "دكتور",
+  "leader": "ليدر",
+  "modeActivatedFor": "تم تفعيل وضع {role} لـ {name}",
+  "@modeActivatedFor": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "authenticationFailed": "فشل في المصادقة: {error}",
+  "@authenticationFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "leaderModeDeactivated": "تم إلغاء تفعيل وضع ليدر",
+  "folderCreatedSuccessfully": "تم إنشاء المجلد \"{name}\" بنجاح",
+  "@folderCreatedSuccessfully": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "folderCreationFailed": "فشل في إنشاء المجلد: {error}",
+  "@folderCreationFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "renameFailed": "فشل في إعادة التسمية: {error}",
+  "@renameFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteFailed": "فشل في الحذف: {error}",
+  "@deleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "fileUploadedSuccessfully": "تم رفع الملف بنجاح: {fileName}",
+  "@fileUploadedSuccessfully": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadFailed": "فشل في الرفع: {error}",
+  "@uploadFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "incompleteAcademicContext": "سياق أكاديمي غير مكتمل للرفع",
+  "semesterFolderNotAvailable": "مجلد الفصل الدراسي غير متاح للرفع",
+  "signInAsDoctor": "تسجيل الدخول كدكتور",
+  "signInAsLeader": "تسجيل الدخول ك ليدر",
+  "openWithExternalApp": "فتح باستخدام تطبيق خارجي",
+  "rename": "تغيير الاسم",
+  "videoPlayerNotAvailable": "مشغل الفيديو غير متاح",
+  "chooserole": "اختر منصبك لكي تستطيع رفع محتوى"
 }

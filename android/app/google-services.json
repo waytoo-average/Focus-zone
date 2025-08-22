@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "404623694888",
+    "project_id": "eccat-project",
+    "storage_bucket": "eccat-project.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:404623694888:android:b044302d7c8b04f612e91d",
+        "android_client_info": {
+          "package_name": "com.waytoo_average.focus_zone"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "404623694888-nrmvsane52dedddc3eq1l5kdeo5plq6d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.waytoo_average.focus_zone",
+            "certificate_hash": "0b693706b7fd42763ca197ea538e278d5ba1a983"
+          }
+        },
+        {
+          "client_id": "404623694888-58e5kqfvjjp8ogc89k4vcjir8g8mt8gd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDl1eZgWTAB1QOHkmKhE1mTM5PHkKUbOSU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "404623694888-58e5kqfvjjp8ogc89k4vcjir8g8mt8gd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

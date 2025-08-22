@@ -1,7 +1,4 @@
-New feedback system
-New notification manager center
-Massive improvements to quran section
-Various bug fixes 
-More animations to make the app more lively 
-Added old academic content
-Got the app verified 
+sign in free (no need to sign in for acadimic content)
+leader/doctor mode: allows leaders and doctors to sign in to the app to upload new content
+better material viewing experince 
+

@@ -317,13 +317,13 @@ abstract class AppLocalizations {
   /// No description provided for @semester1.
   ///
   /// In en, this message translates to:
-  /// **'First Semester'**
+  /// **'Semester 1'**
   String get semester1;
 
   /// No description provided for @semester2.
   ///
   /// In en, this message translates to:
-  /// **'Second Semester'**
+  /// **'Semester 2'**
   String get semester2;
 
   /// No description provided for @lectures.
@@ -782,6 +782,12 @@ abstract class AppLocalizations {
   /// **'Clear PDF Cache'**
   String get clearPdfCache;
 
+  /// No description provided for @clearFolderCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Folder Cache'**
+  String get clearFolderCache;
+
   /// No description provided for @confirmAction.
   ///
   /// In en, this message translates to:
@@ -794,17 +800,35 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to clear all internally cached PDF files? This will free up space but require re-downloading.'**
   String get confirmClearCache;
 
+  /// No description provided for @confirmClearFolderCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to clear the dynamic folder cache? This will require re-fetching folder information from Google Drive.'**
+  String get confirmClearFolderCache;
+
   /// No description provided for @cacheClearedItems.
   ///
   /// In en, this message translates to:
   /// **'Cleared {count} cached PDF files.'**
   String cacheClearedItems(Object count);
 
+  /// No description provided for @folderCacheCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Dynamic folder cache cleared successfully.'**
+  String get folderCacheCleared;
+
   /// No description provided for @cacheClearFailed.
   ///
   /// In en, this message translates to:
   /// **'Failed to clear PDF cache: {error}'**
   String cacheClearFailed(Object error);
+
+  /// No description provided for @folderCacheClearFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to clear folder cache: {error}'**
+  String folderCacheClearFailed(Object error);
 
   /// No description provided for @about.
   ///
@@ -2831,8 +2855,272 @@ abstract class AppLocalizations {
   /// No description provided for @openWithExternalApp.
   ///
   /// In en, this message translates to:
-  /// **'openwithexternalapp'**
+  /// **'Open with external app'**
   String get openWithExternalApp;
+
+  /// No description provided for @leaderMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Leader Mode'**
+  String get leaderMode;
+
+  /// No description provided for @leaderModeActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Leader Mode Active'**
+  String get leaderModeActive;
+
+  /// No description provided for @uploadMaterials.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload Materials'**
+  String get uploadMaterials;
+
+  /// No description provided for @signOutLeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Out Leader'**
+  String get signOutLeader;
+
+  /// No description provided for @leaderAuthentication.
+  ///
+  /// In en, this message translates to:
+  /// **'Leader Authentication'**
+  String get leaderAuthentication;
+
+  /// No description provided for @leaderAuthenticationDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Please sign in with an authorized account to upload materials.'**
+  String get leaderAuthenticationDesc;
+
+  /// No description provided for @authenticationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication required...'**
+  String get authenticationRequired;
+
+  /// No description provided for @accessDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Access denied...'**
+  String get accessDenied;
+
+  /// No description provided for @itemRenamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Item renamed...'**
+  String get itemRenamed;
+
+  /// No description provided for @itemDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Item deleted...'**
+  String get itemDeleted;
+
+  /// No description provided for @renameItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename Item'**
+  String get renameItem;
+
+  /// No description provided for @deleteItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Item'**
+  String get deleteItem;
+
+  /// No description provided for @enterNewName.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter new name:'**
+  String get enterNewName;
+
+  /// No description provided for @nameCannotBeEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Name cannot be empty'**
+  String get nameCannotBeEmpty;
+
+  /// No description provided for @confirmDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Delete'**
+  String get confirmDelete;
+
+  /// No description provided for @confirmDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this item? This action cannot be undone.'**
+  String get confirmDeleteMessage;
+
+  /// No description provided for @renameFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename Folder'**
+  String get renameFolder;
+
+  /// No description provided for @deleteFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Folder'**
+  String get deleteFolder;
+
+  /// No description provided for @confirmDeleteFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Delete Folder'**
+  String get confirmDeleteFolder;
+
+  /// No description provided for @confirmDeleteFolderMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this folder and all its contents? This action cannot be undone.'**
+  String get confirmDeleteFolderMessage;
+
+  /// No description provided for @renameSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename Subject'**
+  String get renameSubject;
+
+  /// No description provided for @deleteSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Subject'**
+  String get deleteSubject;
+
+  /// No description provided for @confirmDeleteSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Delete Subject'**
+  String get confirmDeleteSubject;
+
+  /// No description provided for @confirmDeleteSubjectMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this subject and all its contents? This action cannot be undone.'**
+  String get confirmDeleteSubjectMessage;
+
+  /// No description provided for @uploadToSemester.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload to Semester'**
+  String get uploadToSemester;
+
+  /// No description provided for @chooseSemesterToUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which semester to upload materials to:'**
+  String get chooseSemesterToUpload;
+
+  /// No description provided for @doctor.
+  ///
+  /// In en, this message translates to:
+  /// **'Doctor'**
+  String get doctor;
+
+  /// No description provided for @leader.
+  ///
+  /// In en, this message translates to:
+  /// **'Leader'**
+  String get leader;
+
+  /// No description provided for @modeActivatedFor.
+  ///
+  /// In en, this message translates to:
+  /// **'{role} mode activated for {name}'**
+  String modeActivatedFor(String role, String name);
+
+  /// No description provided for @authenticationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication failed: {error}'**
+  String authenticationFailed(String error);
+
+  /// No description provided for @leaderModeDeactivated.
+  ///
+  /// In en, this message translates to:
+  /// **'Leader mode deactivated'**
+  String get leaderModeDeactivated;
+
+  /// No description provided for @folderCreatedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder \"{name}\" created successfully'**
+  String folderCreatedSuccessfully(String name);
+
+  /// No description provided for @folderCreationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder creation failed: {error}'**
+  String folderCreationFailed(String error);
+
+  /// No description provided for @renameFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename failed: {error}'**
+  String renameFailed(String error);
+
+  /// No description provided for @deleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete failed: {error}'**
+  String deleteFailed(String error);
+
+  /// No description provided for @fileUploadedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'File uploaded successfully: {fileName}'**
+  String fileUploadedSuccessfully(String fileName);
+
+  /// No description provided for @uploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload failed: {error}'**
+  String uploadFailed(String error);
+
+  /// No description provided for @incompleteAcademicContext.
+  ///
+  /// In en, this message translates to:
+  /// **'Incomplete academic context for upload'**
+  String get incompleteAcademicContext;
+
+  /// No description provided for @semesterFolderNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Semester folder not available for upload'**
+  String get semesterFolderNotAvailable;
+
+  /// No description provided for @signInAsDoctor.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in as Doctor'**
+  String get signInAsDoctor;
+
+  /// No description provided for @signInAsLeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in as Leader'**
+  String get signInAsLeader;
+
+  /// No description provided for @rename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get rename;
+
+  /// No description provided for @videoPlayerNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Video player not available'**
+  String get videoPlayerNotAvailable;
+
+  /// No description provided for @chooserole.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your role to access material upload features'**
+  String get chooserole;
 }
 
 class _AppLocalizationsDelegate

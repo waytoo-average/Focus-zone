@@ -1,8 +1,8 @@
 ﻿{
-    "latest_version":  "2.0.0",
-    "apk_url":  "https://waytoo-average.github.io/app_updates/focus-zone-v2.0.0.apk",
+    "latest_version":  "2.1.0",
+    "apk_url":  "https://waytoo-average.github.io/app_updates/focus-zone-v2.1.0.apk",
     "update_type":  "full",
-    "size_mb":  57.3,
+    "size_mb":  57.4,
     "mandatory":  true,
     "changelog":  ""
 }

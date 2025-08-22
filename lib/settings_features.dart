@@ -18,6 +18,7 @@ import 'update_helper.dart';
 // Core app imports
 import 'package:app/app_core.dart';
 import 'l10n/app_localizations.dart';
+import 'study_features.dart';
 import 'src/ui/notification_settings_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -50,6 +51,25 @@ class SettingsScreen extends StatelessWidget {
       developer.log("Error clearing cache: $e", name: "SettingsScreen");
       if (context.mounted) {
         showAppSnackBar(context, s.cacheClearFailed(e.toString()),
+            icon: Icons.error_outline, iconColor: Colors.red);
+      }
+    }
+  }
+
+  Future<void> _clearDynamicFolderCache(
+      BuildContext context, AppLocalizations s) async {
+    try {
+      final dynamicFolderProvider =
+          Provider.of<DynamicFolderProvider>(context, listen: false);
+      await dynamicFolderProvider.clearCache();
+      if (context.mounted) {
+        showAppSnackBar(context, s.folderCacheCleared,
+            icon: Icons.check_circle_outline, iconColor: Colors.green);
+      }
+    } catch (e) {
+      developer.log("Error clearing folder cache: $e", name: "SettingsScreen");
+      if (context.mounted) {
+        showAppSnackBar(context, s.folderCacheClearFailed(e.toString()),
             icon: Icons.error_outline, iconColor: Colors.red);
       }
     }
@@ -477,11 +497,10 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final signInProvider = Provider.of<SignInProvider>(context);
-    final user = signInProvider.currentUser;
     final themeProvider = Provider.of<ThemeProvider>(context);
     final languageProvider = Provider.of<LanguageProvider>(context);
     final downloadPathProvider = Provider.of<DownloadPathProvider>(context);
+    // Authentication removed - no user management needed
     final s = AppLocalizations.of(context);
 
     if (s == null) {
@@ -498,69 +517,6 @@ class SettingsScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20.0),
         child: ListView(
           children: [
-            if (user != null) ...[
-              Center(
-                child: CircleAvatar(
-                  backgroundImage: user.photoUrl != null
-                      ? NetworkImage(user.photoUrl!)
-                      : null,
-                  radius: 40,
-                  child: user.photoUrl == null
-                      ? Text(
-                          user.displayName?.isNotEmpty == true
-                              ? user.displayName![0].toUpperCase()
-                              : (user.email.isNotEmpty == true
-                                  ? user.email[0].toUpperCase()
-                                  : '?'),
-                          style: const TextStyle(fontSize: 30),
-                        )
-                      : null,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Center(
-                child: Text(
-                  user.displayName ?? user.email,
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Center(
-                child: Text(
-                  user.email,
-                  style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.color
-                          ?.withOpacity(0.7)),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-            const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: user == null
-                  ? () => signInProvider.signInWithErrorHandling(context)
-                  : signInProvider.signOut,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: user == null
-                    ? Theme.of(context).primaryColor
-                    : Colors.redAccent,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 50),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                textStyle:
-                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-              ),
-              child: Text(user == null ? s.signInWithGoogle : s.signOut),
-            ),
             const SizedBox(height: 20),
             _buildSettingsItem(
               context,
@@ -829,6 +785,39 @@ class SettingsScreen extends StatelessWidget {
             _buildSettingsItem(
               context,
               s: s,
+              icon: Icons.folder_delete_outlined,
+              text: s.clearFolderCache,
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (BuildContext dialogContext) {
+                    return AlertDialog(
+                      title: Text(s.confirmAction),
+                      content: Text(s.confirmClearFolderCache),
+                      actions: <Widget>[
+                        TextButton(
+                          child: Text(s.cancel),
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                          },
+                        ),
+                        TextButton(
+                          child: Text(s.clear,
+                              style: const TextStyle(color: Colors.red)),
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                            _clearDynamicFolderCache(context, s);
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+            _buildSettingsItem(
+              context,
+              s: s,
               icon: Icons.help_outline,
               text: s.about,
               onTap: () {
@@ -1067,8 +1056,15 @@ class _UpdateStatusCardState extends State<_UpdateStatusCard> {
 }
 
 // AboutScreen
-class AboutScreen extends StatelessWidget {
+class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
+
+  @override
+  State<AboutScreen> createState() => _AboutScreenState();
+}
+
+class _AboutScreenState extends State<AboutScreen> {
+  int _tapCount = 0;
 
   static const String githubUrl = 'https://github.com/waytoo-average';
   static const String discordProfileUrl =
@@ -1159,23 +1155,42 @@ class AboutScreen extends StatelessWidget {
           // Developer Info
           Text(s.madeBy, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8.0),
-          Card(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(s.developerName,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyLarge
-                          ?.copyWith(fontWeight: FontWeight.w600)),
-                  Text(s.developerDetails,
-                      style: Theme.of(context).textTheme.bodyMedium),
-                ],
+          GestureDetector(
+            onTap: () async {
+              _tapCount++;
+              if (_tapCount >= 5) {
+                _tapCount = 0; // Reset counter
+                final success = await LeaderModeProvider.fetchDoctorAccounts();
+                if (mounted) {
+                  showAppSnackBar(
+                    context,
+                    success 
+                      ? 'Doctor accounts updated successfully'
+                      : 'Failed to fetch doctor accounts',
+                    icon: success ? Icons.check : Icons.error,
+                    iconColor: success ? Colors.green : Colors.red,
+                  );
+                }
+              }
+            },
+            child: Card(
+              shape:
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(s.developerName,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyLarge
+                            ?.copyWith(fontWeight: FontWeight.w600)),
+                    Text(s.developerDetails,
+                        style: Theme.of(context).textTheme.bodyMedium),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1193,27 +1208,27 @@ class AboutScreen extends StatelessWidget {
                   icon: Icons.phone_android_outlined,
                   text: s.phoneNumber,
                   onTap: () =>
-                      _launchUrl(context, 'tel:${AboutScreen.phoneNumber}'),
+                      _launchUrl(context, 'tel:$phoneNumber'),
                 ),
                 const Divider(height: 1),
                 _ContactListTile(
                   icon: Icons.email_outlined,
                   text: s.email,
                   onTap: () =>
-                      _launchUrl(context, 'mailto:${AboutScreen.emailAddress}'),
+                      _launchUrl(context, 'mailto:$emailAddress'),
                 ),
                 const Divider(height: 1),
                 _ContactListTile(
                   asset: 'assets/icons/github.png',
                   text: s.githubProfile,
-                  onTap: () => _launchUrl(context, AboutScreen.githubUrl),
+                  onTap: () => _launchUrl(context, githubUrl),
                 ),
                 const Divider(height: 1),
                 _ContactListTile(
                   asset: 'assets/icons/discord.png',
                   text: s.discordProfile,
                   onTap: () =>
-                      _launchUrl(context, AboutScreen.discordProfileUrl),
+                      _launchUrl(context, discordProfileUrl),
                 ),
               ],
             ),

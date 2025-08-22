@@ -4,10 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'dart:io';
 import 'dart:developer' as developer;
 
-// For notifications and timezone handling
+// For notifications only
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -87,18 +86,24 @@ void main() async {
   );
 
   await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(prayerChannel);
-      
+
   await flutterLocalNotificationsPlugin
-      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(todoChannel);
 
   // --- Providers ---
+  final dynamicFolderProvider = DynamicFolderProvider();
+  // Preload cached folders for offline access
+  dynamicFolderProvider.preloadCache();
+  
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => SignInProvider()),
+        // SignInProvider removed - authentication no longer needed
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
         ChangeNotifierProvider(create: (_) => DownloadPathProvider()),
@@ -108,6 +113,12 @@ void main() async {
         ChangeNotifierProvider(create: (_) => UserInfoProvider()),
         ChangeNotifierProvider(create: (_) => UserFeedbackProvider()),
         ChangeNotifierProvider(create: (_) => DeveloperSuggestionsProvider()),
+        ChangeNotifierProvider(create: (_) {
+          final provider = LeaderModeProvider();
+          provider.initialize(); // Initialize authentication state on app start
+          return provider;
+        }),
+        ChangeNotifierProvider.value(value: dynamicFolderProvider),
         ChangeNotifierProvider(create: (_) => globalDownloadManager!),
         Provider<FlutterLocalNotificationsPlugin>.value(
             value: flutterLocalNotificationsPlugin),
@@ -130,7 +141,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     // Use Consumer2 to efficiently listen to both ThemeProvider and LanguageProvider
     return Consumer2<ThemeProvider, LanguageProvider>(
       builder: (context, themeProvider, languageProvider, child) {
@@ -204,7 +214,10 @@ class MyApp extends StatelessWidget {
                 final String? fileName = args['fileName'] as String?;
                 // Allow either localPath or (fileUrl + fileId)
                 if ((localPath == null || localPath.isEmpty) &&
-                    (fileUrl == null || fileUrl.isEmpty || fileId == null || fileId.isEmpty)) {
+                    (fileUrl == null ||
+                        fileUrl.isEmpty ||
+                        fileId == null ||
+                        fileId.isEmpty)) {
                   return ErrorScreen(message: s.errorNoUrlProvided);
                 }
                 return PdfViewerScreen(

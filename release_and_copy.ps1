@@ -202,6 +202,21 @@ if ($updateType -eq "full") {
 Copy-Item $updateJsonPath $updateJsonDest -Force
 Write-Host "Copied update.json to $updateRepo" -ForegroundColor Green
 
+# Step 4.5: Copy APK to focus-zone-website assets (for full updates only)
+if ($updateType -eq "full") {
+    $websiteAssetsDir = "D:\ECCAT_PERSONAL_PROJECTS\focus-zone-website\assets"
+    
+    # Check if website assets directory exists
+    if (Test-Path $websiteAssetsDir) {
+        $websiteApkDest = "$websiteAssetsDir\$apkFileName"
+        Copy-Item $apkSource $websiteApkDest -Force
+        Write-Host "Copied $apkFileName to focus-zone-website assets" -ForegroundColor Green
+    } else {
+        Write-Host "Warning: focus-zone-website assets directory not found at: $websiteAssetsDir" -ForegroundColor Yellow
+        Write-Host "Skipping website assets copy." -ForegroundColor Yellow
+    }
+}
+
 # Step 5: Commit and push in update repo
 Push-Location $updateRepo
 

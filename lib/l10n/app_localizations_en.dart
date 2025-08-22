@@ -125,10 +125,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lastYear => 'Last Year';
 
   @override
-  String get semester1 => 'First Semester';
+  String get semester1 => 'Semester 1';
 
   @override
-  String get semester2 => 'Second Semester';
+  String get semester2 => 'Semester 2';
 
   @override
   String get lectures => 'Lectures';
@@ -409,6 +409,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clearPdfCache => 'Clear PDF Cache';
 
   @override
+  String get clearFolderCache => 'Clear Folder Cache';
+
+  @override
   String get confirmAction => 'Confirm Action';
 
   @override
@@ -416,13 +419,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'Are you sure you want to clear all internally cached PDF files? This will free up space but require re-downloading.';
 
   @override
+  String get confirmClearFolderCache =>
+      'Are you sure you want to clear the dynamic folder cache? This will require re-fetching folder information from Google Drive.';
+
+  @override
   String cacheClearedItems(Object count) {
     return 'Cleared $count cached PDF files.';
   }
 
   @override
+  String get folderCacheCleared => 'Dynamic folder cache cleared successfully.';
+
+  @override
   String cacheClearFailed(Object error) {
     return 'Failed to clear PDF cache: $error';
+  }
+
+  @override
+  String folderCacheClearFailed(Object error) {
+    return 'Failed to clear folder cache: $error';
   }
 
   @override
@@ -1591,5 +1606,161 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchHint => 'Search files...';
 
   @override
-  String get openWithExternalApp => 'openwithexternalapp';
+  String get openWithExternalApp => 'Open with external app';
+
+  @override
+  String get leaderMode => 'Leader Mode';
+
+  @override
+  String get leaderModeActive => 'Leader Mode Active';
+
+  @override
+  String get uploadMaterials => 'Upload Materials';
+
+  @override
+  String get signOutLeader => 'Sign Out Leader';
+
+  @override
+  String get leaderAuthentication => 'Leader Authentication';
+
+  @override
+  String get leaderAuthenticationDesc =>
+      'Please sign in with an authorized account to upload materials.';
+
+  @override
+  String get authenticationRequired => 'Authentication required...';
+
+  @override
+  String get accessDenied => 'Access denied...';
+
+  @override
+  String get itemRenamed => 'Item renamed...';
+
+  @override
+  String get itemDeleted => 'Item deleted...';
+
+  @override
+  String get renameItem => 'Rename Item';
+
+  @override
+  String get deleteItem => 'Delete Item';
+
+  @override
+  String get enterNewName => 'Enter new name:';
+
+  @override
+  String get nameCannotBeEmpty => 'Name cannot be empty';
+
+  @override
+  String get confirmDelete => 'Confirm Delete';
+
+  @override
+  String get confirmDeleteMessage =>
+      'Are you sure you want to delete this item? This action cannot be undone.';
+
+  @override
+  String get renameFolder => 'Rename Folder';
+
+  @override
+  String get deleteFolder => 'Delete Folder';
+
+  @override
+  String get confirmDeleteFolder => 'Confirm Delete Folder';
+
+  @override
+  String get confirmDeleteFolderMessage =>
+      'Are you sure you want to delete this folder and all its contents? This action cannot be undone.';
+
+  @override
+  String get renameSubject => 'Rename Subject';
+
+  @override
+  String get deleteSubject => 'Delete Subject';
+
+  @override
+  String get confirmDeleteSubject => 'Confirm Delete Subject';
+
+  @override
+  String get confirmDeleteSubjectMessage =>
+      'Are you sure you want to delete this subject and all its contents? This action cannot be undone.';
+
+  @override
+  String get uploadToSemester => 'Upload to Semester';
+
+  @override
+  String get chooseSemesterToUpload =>
+      'Choose which semester to upload materials to:';
+
+  @override
+  String get doctor => 'Doctor';
+
+  @override
+  String get leader => 'Leader';
+
+  @override
+  String modeActivatedFor(String role, String name) {
+    return '$role mode activated for $name';
+  }
+
+  @override
+  String authenticationFailed(String error) {
+    return 'Authentication failed: $error';
+  }
+
+  @override
+  String get leaderModeDeactivated => 'Leader mode deactivated';
+
+  @override
+  String folderCreatedSuccessfully(String name) {
+    return 'Folder \"$name\" created successfully';
+  }
+
+  @override
+  String folderCreationFailed(String error) {
+    return 'Folder creation failed: $error';
+  }
+
+  @override
+  String renameFailed(String error) {
+    return 'Rename failed: $error';
+  }
+
+  @override
+  String deleteFailed(String error) {
+    return 'Delete failed: $error';
+  }
+
+  @override
+  String fileUploadedSuccessfully(String fileName) {
+    return 'File uploaded successfully: $fileName';
+  }
+
+  @override
+  String uploadFailed(String error) {
+    return 'Upload failed: $error';
+  }
+
+  @override
+  String get incompleteAcademicContext =>
+      'Incomplete academic context for upload';
+
+  @override
+  String get semesterFolderNotAvailable =>
+      'Semester folder not available for upload';
+
+  @override
+  String get signInAsDoctor => 'Sign in as Doctor';
+
+  @override
+  String get signInAsLeader => 'Sign in as Leader';
+
+  @override
+  String get rename => 'Rename';
+
+  @override
+  String get videoPlayerNotAvailable => 'Video player not available';
+
+  @override
+  String get chooserole =>
+      'Choose your role to access material upload features';
 }

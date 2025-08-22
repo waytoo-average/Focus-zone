@@ -11,9 +11,8 @@ import 'package:path_provider/path_provider.dart'; // For DownloadPathProvider
 import 'dart:async'; // For providers async operations
 import 'dart:developer' as developer; // For logging in providers/helpers
 import 'dart:math'; // For pow in formatBytes
-import 'package:google_sign_in/google_sign_in.dart'; // For SignInProvider
-import 'package:http/http.dart' as http; // For GoogleHttpClient
 import 'package:permission_handler/permission_handler.dart'; // For permissions in provider
+import 'package:http/http.dart' as http; // For GoogleHttpClient
 
 // App-specific feature imports
 import 'package:app/update_helper.dart';
@@ -202,186 +201,7 @@ class AcademicContext {
   }
 }
 
-// --- Google Sign-In Provider ---
-class SignInProvider extends ChangeNotifier {
-  static const String _kSignInStateKey = 'signInState';
-  static const String _kUserEmailKey = 'userEmail';
-  static const String _kUserNameKey = 'userName';
-  static const String _kUserIdKey = 'userId';
-
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: <String>[
-      'email',
-      'profile',
-    ],
-    // Remove hardcoded serverClientId - let it auto-detect from android/app/google-services.json
-    // This prevents client ID mismatches that cause silent sign-in failures
-  );
-
-  GoogleSignInAccount? _currentUser;
-  GoogleSignInAccount? get currentUser => _currentUser;
-  bool _isSignedIn = false;
-  bool get isSignedIn => _isSignedIn;
-
-  SignInProvider() {
-    _googleSignIn.onCurrentUserChanged.listen((GoogleSignInAccount? account) {
-      _currentUser = account;
-      _isSignedIn = account != null;
-      _persistSignInState();
-      notifyListeners();
-    });
-    _loadSignInState();
-  }
-
-  Future<void> _loadSignInState() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      _isSignedIn = prefs.getBool(_kSignInStateKey) ?? false;
-      notifyListeners();
-    } catch (e) {
-      _isSignedIn = false;
-    }
-  }
-
-  Future<void> _persistSignInState() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_kSignInStateKey, _isSignedIn);
-      
-      if (_currentUser != null) {
-        await prefs.setString(_kUserEmailKey, _currentUser!.email);
-        await prefs.setString(_kUserNameKey, _currentUser!.displayName ?? '');
-        await prefs.setString(_kUserIdKey, _currentUser!.id);
-      } else if (!_isSignedIn) {
-        // Only clear stored user data when actually signed out
-        await prefs.remove(_kUserEmailKey);
-        await prefs.remove(_kUserNameKey);
-        await prefs.remove(_kUserIdKey);
-      }
-    } catch (e) {
-      // Silent error handling
-    }
-  }
-
-  Future<void> initiateSilentSignIn() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final wasPersistedAsSignedIn = prefs.getBool(_kSignInStateKey) ?? false;
-      
-      final wasSignedIn = await _googleSignIn.isSignedIn();
-      
-      if (wasSignedIn || wasPersistedAsSignedIn) {
-        final account = await _googleSignIn.signInSilently();
-        
-        if (account != null) {
-          _currentUser = account;
-          _isSignedIn = true;
-        } else {
-          _currentUser = null;
-          _isSignedIn = false;
-          await _googleSignIn.signOut();
-        }
-      } else {
-        _currentUser = null;
-        _isSignedIn = false;
-      }
-    } catch (e) {
-      _currentUser = null;
-      _isSignedIn = false;
-      await _googleSignIn.signOut();
-    } finally {
-      await _persistSignInState();
-      notifyListeners();
-    }
-  }
-
-  Future<void> signIn() async {
-    try {
-      await _googleSignIn.signIn();
-    } catch (error) {
-      // Silent error handling
-    }
-  }
-
-  Future<void> signInWithErrorHandling(BuildContext context) async {
-    try {
-      final account = await _googleSignIn.signIn();
-      if (account == null) {
-        // User cancelled sign-in
-        return;
-      }
-
-      // Test if we can get auth headers
-      try {
-        await account.authHeaders;
-      } catch (e) {
-        if (context.mounted) {
-          showAppSnackBar(context, "Authentication failed: $e",
-              icon: Icons.error, backgroundColor: Colors.red);
-        }
-      }
-    } catch (error, stack) {
-      if (context.mounted) {
-        showAppSnackBar(context, "Sign-in error: $error",
-            icon: Icons.error, backgroundColor: Colors.red);
-      }
-
-      // Check if the error is related to user limit or quota
-      final errorString = error.toString().toLowerCase();
-      if (errorString.contains('quota') ||
-          errorString.contains('limit') ||
-          errorString.contains('exceeded') ||
-          errorString.contains('maximum') ||
-          errorString.contains('user limit') ||
-          errorString.contains('oauth') ||
-          errorString.contains('403') ||
-          errorString.contains('forbidden') ||
-          errorString.contains('access denied') ||
-          errorString.contains('too many requests') ||
-          errorString.contains('rate limit')) {
-        // Show maximum user limit error message
-        if (context.mounted) {
-          final s = AppLocalizations.of(context);
-          if (s != null) {
-            showAppSnackBar(
-              context,
-              s.maxUserLimitReached,
-              icon: Icons.info_outline,
-              iconColor: Colors.orange,
-              backgroundColor: Colors.orange.shade700,
-            );
-          }
-        }
-      }
-    }
-  }
-
-  Future<void> signOut() async {
-    await _googleSignIn.signOut();
-    _currentUser = null;
-    _isSignedIn = false;
-    await _persistSignInState();
-    notifyListeners();
-  }
-
-  Future<void> clearCachedAuth() async {
-    await _googleSignIn.signOut();
-    await _googleSignIn.disconnect();
-    _currentUser = null;
-    _isSignedIn = false;
-    await _persistSignInState();
-    notifyListeners();
-  }
-
-  Future<http.Client?> get authenticatedHttpClient async {
-    final GoogleSignInAccount? user = _currentUser;
-    if (user == null) {
-      return null;
-    }
-    final Map<String, String> headers = await user.authHeaders;
-    return GoogleHttpClient(headers);
-  }
-}
+// SignInProvider class removed - authentication no longer needed for public Drive files
 
 // --- Enhanced ThemeProvider with smooth transitions ---
 class ThemeProvider extends ChangeNotifier {
@@ -956,9 +776,8 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _handleStartupLogic() async {
-    final signInProvider = Provider.of<SignInProvider>(context, listen: false);
-    await signInProvider.initiateSilentSignIn();
-
+    // Authentication removed - no startup sign-in needed
+    
     // Wait for animations to complete before navigating
     await Future.delayed(const Duration(milliseconds: 2500));
 
@@ -969,25 +788,26 @@ class _SplashScreenState extends State<SplashScreen>
     Future.delayed(const Duration(seconds: 3), () async {
       final ctx = rootScreenKey.currentContext;
       if (ctx == null) return;
-      
+
       // Request notification permission first
       await _requestNotificationPermissionSafely(ctx);
-      
+
       // Then show update dialog
       await _maybeShowUpdateDialog(ctx);
     });
   }
 
-  Future<void> _requestNotificationPermissionSafely(BuildContext context) async {
+  Future<void> _requestNotificationPermissionSafely(
+      BuildContext context) async {
     try {
       // Import permission_handler for proper notification permission handling
       final status = await Permission.notification.status;
-      
+
       if (status.isGranted) {
         // Already granted, no need to show dialog
         return;
       }
-      
+
       if (status.isDenied) {
         // Show custom dialog first before requesting permission
         final shouldRequest = await _showNotificationPermissionDialog(context);
@@ -1008,14 +828,15 @@ class _SplashScreenState extends State<SplashScreen>
         }
       }
     } catch (e) {
-      developer.log('Error requesting notification permission: $e', name: 'NotificationPermission');
+      developer.log('Error requesting notification permission: $e',
+          name: 'NotificationPermission');
     }
   }
 
   Future<bool> _showNotificationPermissionDialog(BuildContext context) async {
     final s = AppLocalizations.of(context);
     if (s == null) return false;
-    
+
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -1047,14 +868,14 @@ class _SplashScreenState extends State<SplashScreen>
         );
       },
     );
-    
+
     return result ?? false;
   }
 
   Future<void> _showNotificationSettingsDialog(BuildContext context) async {
     final s = AppLocalizations.of(context);
     if (s == null) return;
-    
+
     await showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -1988,10 +1809,9 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = AppLocalizations.of(context)!;
-    final signInProvider = Provider.of<SignInProvider>(context);
     final todoSummary = Provider.of<TodoSummaryProvider>(context);
     final recentFilesProvider = Provider.of<RecentFilesProvider>(context);
-    final user = signInProvider.currentUser;
+    // Authentication removed - no user management needed
 
     return Scaffold(
       body: CustomScrollView(
@@ -2004,30 +1824,6 @@ class DashboardScreen extends StatelessWidget {
             elevation: 0,
             backgroundColor: Theme.of(context).primaryColor,
             automaticallyImplyLeading: false,
-            leading: Padding(
-              padding: const EdgeInsets.only(left: 16.0, top: 16.0),
-              child: Opacity(
-                opacity: user != null ? 1.0 : 0.0,
-                child: CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.white,
-                  backgroundImage: user?.photoUrl != null
-                      ? NetworkImage(user!.photoUrl!)
-                      : null,
-                  child: user?.photoUrl == null
-                      ? Text(
-                          user?.displayName?.isNotEmpty == true
-                              ? user!.displayName![0].toUpperCase()
-                              : (user?.email?.isNotEmpty == true
-                                  ? user!.email![0].toUpperCase()
-                                  : '?'),
-                          style: TextStyle(
-                              color: Theme.of(context).primaryColor,
-                              fontSize: 18))
-                      : null,
-                ),
-              ),
-            ),
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.only(bottom: 16.0),
               centerTitle: true,
@@ -2053,21 +1849,7 @@ class DashboardScreen extends StatelessWidget {
               ),
             ),
             actions: [
-              if (user == null)
-                TextButton(
-                  onPressed: () =>
-                      signInProvider.signInWithErrorHandling(context),
-                  style: TextButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0)),
-                  child: Text(s.signIn, style: const TextStyle(fontSize: 16)),
-                )
-              else
-                IconButton(
-                  icon: const Icon(Icons.logout, color: Colors.white),
-                  onPressed: signInProvider.signOut,
-                  tooltip: s.signOut,
-                ),
+              // Authentication removed - no sign-in/out buttons needed
             ],
           ),
           SliverList(
