@@ -15,6 +15,40 @@ import 'package:timezone/timezone.dart' as tz;
 import 'app_core.dart';
 import 'study_features.dart';
 
+// Helper functions to normalize academic context values from Arabic to English
+String _normalizeGrade(String grade) {
+  if (grade == 'الفرقة الأولى' || grade == 'First Grade') {
+    return 'First Grade';
+  } else if (grade == 'الفرقة الثانية' || grade == 'Second Grade') {
+    return 'Second Grade';
+  } else if (grade == 'الفرقة الثالثة' || grade == 'Third Grade') {
+    return 'Third Grade';
+  } else if (grade == 'الفرقة الرابعة' || grade == 'Fourth Grade') {
+    return 'Fourth Grade';
+  }
+  return grade;
+}
+
+String _normalizeDepartment(String department) {
+  if (department == 'قسم الاتصالات' || department == 'Communication Department' || department == 'Communication') {
+    return 'Communication';
+  } else if (department == 'قسم الإلكترونيات' || department == 'Electronics Department' || department == 'Electronics') {
+    return 'Electronics';
+  } else if (department == 'قسم الميكاترونيكس' || department == 'Mechatronics Department' || department == 'Mechatronics') {
+    return 'Mechatronics';
+  }
+  return department;
+}
+
+String _normalizeYear(String year) {
+  if (year == 'العام الحالي' || year == 'Current Year') {
+    return 'Current Year';
+  } else if (year == 'العام الماضي' || year == 'Last Year') {
+    return 'Last Year';
+  }
+  return year;
+}
+
 class NotificationService {
   static bool isAnyPermissionBeingRequested = false;
 
@@ -450,13 +484,18 @@ class ContentManager {
         final file = result.files.first;
         
         if (file.path != null) {
+          // Normalize academic context values to English for permission checks
+          final normalizedGrade = _normalizeGrade(grade ?? 'Unknown');
+          final normalizedDepartment = _normalizeDepartment(department ?? 'Unknown');
+          final normalizedYear = _normalizeYear(year ?? 'Unknown');
+          
           final success = await leaderProvider.uploadFileToFolder(
             folderId: folderId,
             file: File(file.path!),
             fileName: file.name,
-            grade: grade ?? 'Unknown',
-            department: department ?? 'Unknown',
-            year: year ?? 'Unknown',
+            grade: normalizedGrade,
+            department: normalizedDepartment,
+            year: normalizedYear,
             onProgress: (progress) {
               // Progress feedback could be enhanced with a progress dialog
             },
@@ -535,13 +574,18 @@ class ContentManager {
       if (image != null) {
         final fileName = 'scanned_document_${DateTime.now().millisecondsSinceEpoch}.jpg';
         
+        // Normalize academic context values to English for permission checks
+        final normalizedGrade = _normalizeGrade(grade ?? 'Unknown');
+        final normalizedDepartment = _normalizeDepartment(department ?? 'Unknown');
+        final normalizedYear = _normalizeYear(year ?? 'Unknown');
+        
         final success = await leaderProvider.uploadFileToFolder(
           folderId: folderId,
           file: File(image.path),
           fileName: fileName,
-          grade: grade ?? 'Unknown',
-          department: department ?? 'Unknown',
-          year: year ?? 'Unknown',
+          grade: normalizedGrade,
+          department: normalizedDepartment,
+          year: normalizedYear,
           onProgress: (progress) {
             // Progress feedback could be enhanced with a progress dialog
           },

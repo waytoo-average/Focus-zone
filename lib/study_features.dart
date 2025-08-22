@@ -976,6 +976,40 @@ String _getSemesterKey(
   return '$normalizedGrade $normalizedDepartment $normalizedYear $normalizedSemester';
 }
 
+// Helper functions to normalize individual academic context values
+String _normalizeGrade(String grade) {
+  if (grade == 'الفرقة الأولى' || grade == 'First Grade') {
+    return 'First Grade';
+  } else if (grade == 'الفرقة الثانية' || grade == 'Second Grade') {
+    return 'Second Grade';
+  } else if (grade == 'الفرقة الثالثة' || grade == 'Third Grade') {
+    return 'Third Grade';
+  } else if (grade == 'الفرقة الرابعة' || grade == 'Fourth Grade') {
+    return 'Fourth Grade';
+  }
+  return grade;
+}
+
+String _normalizeDepartment(String department) {
+  if (department == 'قسم الاتصالات' || department == 'Communication Department' || department == 'Communication') {
+    return 'Communication';
+  } else if (department == 'قسم الإلكترونيات' || department == 'Electronics Department' || department == 'Electronics') {
+    return 'Electronics';
+  } else if (department == 'قسم الميكاترونيكس' || department == 'Mechatronics Department' || department == 'Mechatronics') {
+    return 'Mechatronics';
+  }
+  return department;
+}
+
+String _normalizeYear(String year) {
+  if (year == 'العام الحالي' || year == 'Current Year') {
+    return 'Current Year';
+  } else if (year == 'العام الماضي' || year == 'Last Year') {
+    return 'Last Year';
+  }
+  return year;
+}
+
 // Helper function to get subjects for a semester using dynamic discovery
 Future<Map<String, String>> getSubjectsForSemester(
     String grade, String department, String year, String semester) async {
@@ -1870,12 +1904,17 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
   Future<void> _performSubjectRename(String folderId, String newName) async {
     final leaderProvider = Provider.of<LeaderModeProvider>(context, listen: false);
     
+    // Normalize academic context values to English for permission checks
+    final normalizedGrade = _normalizeGrade(widget.academicContext.grade ?? 'Unknown');
+    final normalizedDepartment = _normalizeDepartment(widget.academicContext.department ?? 'Unknown');
+    final normalizedYear = _normalizeYear(widget.academicContext.year ?? 'Unknown');
+    
     final success = await leaderProvider.renameFileOrFolder(
       fileId: folderId,
       newName: newName,
-      grade: widget.academicContext.grade ?? 'Unknown',
-      department: widget.academicContext.department ?? 'Unknown',
-      year: widget.academicContext.year ?? 'Unknown',
+      grade: normalizedGrade,
+      department: normalizedDepartment,
+      year: normalizedYear,
       context: context,
     );
 
@@ -1889,12 +1928,17 @@ class _SubjectSelectionScreenState extends State<SubjectSelectionScreen> {
   Future<void> _performSubjectDelete(String folderId, String subjectName) async {
     final leaderProvider = Provider.of<LeaderModeProvider>(context, listen: false);
     
+    // Normalize academic context values to English for permission checks
+    final normalizedGrade = _normalizeGrade(widget.academicContext.grade ?? 'Unknown');
+    final normalizedDepartment = _normalizeDepartment(widget.academicContext.department ?? 'Unknown');
+    final normalizedYear = _normalizeYear(widget.academicContext.year ?? 'Unknown');
+    
     final success = await leaderProvider.deleteFileOrFolder(
       fileId: folderId,
       fileName: subjectName,
-      grade: widget.academicContext.grade ?? 'Unknown',
-      department: widget.academicContext.department ?? 'Unknown',
-      year: widget.academicContext.year ?? 'Unknown',
+      grade: normalizedGrade,
+      department: normalizedDepartment,
+      year: normalizedYear,
       context: context,
     );
 
@@ -4418,12 +4462,17 @@ class _LectureFolderBrowserScreenState
   Future<void> _performRename(drive.File file, String newName) async {
     final leaderProvider = Provider.of<LeaderModeProvider>(context, listen: false);
     
+    // Normalize academic context values to English for permission checks
+    final normalizedGrade = _normalizeGrade(widget.academicContext?.grade ?? 'Unknown');
+    final normalizedDepartment = _normalizeDepartment(widget.academicContext?.department ?? 'Unknown');
+    final normalizedYear = _normalizeYear(widget.academicContext?.year ?? 'Unknown');
+    
     final success = await leaderProvider.renameFileOrFolder(
       fileId: file.id!,
       newName: newName,
-      grade: widget.academicContext?.grade ?? 'Unknown',
-      department: widget.academicContext?.department ?? 'Unknown',
-      year: widget.academicContext?.year ?? 'Unknown',
+      grade: normalizedGrade,
+      department: normalizedDepartment,
+      year: normalizedYear,
       context: context,
     );
 
@@ -4437,12 +4486,17 @@ class _LectureFolderBrowserScreenState
   Future<void> _performDelete(drive.File file) async {
     final leaderProvider = Provider.of<LeaderModeProvider>(context, listen: false);
     
+    // Normalize academic context values to English for permission checks
+    final normalizedGrade = _normalizeGrade(widget.academicContext?.grade ?? 'Unknown');
+    final normalizedDepartment = _normalizeDepartment(widget.academicContext?.department ?? 'Unknown');
+    final normalizedYear = _normalizeYear(widget.academicContext?.year ?? 'Unknown');
+    
     final success = await leaderProvider.deleteFileOrFolder(
       fileId: file.id!,
       fileName: file.name ?? 'Unknown',
-      grade: widget.academicContext?.grade ?? 'Unknown',
-      department: widget.academicContext?.department ?? 'Unknown',
-      year: widget.academicContext?.year ?? 'Unknown',
+      grade: normalizedGrade,
+      department: normalizedDepartment,
+      year: normalizedYear,
       context: context,
     );
 
